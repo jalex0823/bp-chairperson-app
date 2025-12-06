@@ -5,7 +5,14 @@ class Config:
     # Database configuration
     # Use DATABASE_URL if provided (Heroku), otherwise construct from individual vars
     if os.getenv('DATABASE_URL'):
-        SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
+        raw_url = os.environ.get("DATABASE_URL")
+        # Normalize Heroku Postgres URLs and set driver explicitly
+        # Heroku may provide postgres://; SQLAlchemy expects postgresql+psycopg2://
+        if raw_url.startswith("postgres://"):
+            raw_url = raw_url.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif raw_url.startswith("postgresql://"):
+            raw_url = raw_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        SQLALCHEMY_DATABASE_URI = raw_url
     else:
         # MySQL (DreamHost) connection details
         DB_HOST = os.environ.get("DB_HOST", "localhost")
