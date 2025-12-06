@@ -40,15 +40,8 @@ if os.getenv('FLASK_ENV') != 'production':
 else:
     scheduler = None
 
-# Ensure database tables exist when the app starts (for gunicorn on Heroku)
-@app.before_first_request
-def ensure_tables():
-    try:
-        with app.app_context():
-            db.create_all()
-    except Exception as e:
-        # Log error to stdout so Heroku logs capture it
-        print(f"DB initialization failed: {e}")
+# Flask 3 removed before_first_request; database initialization is handled
+# via Heroku release phase (see Procfile) and CLI command `flask --app app.py init-db`.
 
 # ==========================
 # MODELS
