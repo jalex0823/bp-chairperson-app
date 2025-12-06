@@ -13,7 +13,7 @@ from apscheduler.triggers.cron import CronTrigger
 load_dotenv()
 
 # Import after loading env vars
-from app import send_open_slot_reminder
+from app import send_open_slot_reminder, send_day_of_chair_reminders
 
 def run_scheduler():
     """Run the background scheduler for email reminders."""
@@ -27,8 +27,17 @@ def run_scheduler():
         replace_existing=True
     )
 
+    # Schedule day-of chair reminders every morning at 6 AM (server local time)
+    scheduler.add_job(
+        send_day_of_chair_reminders,
+        CronTrigger(hour=6),
+        id='daily-day-of-reminders',
+        replace_existing=True
+    )
+
     print("🚀 Starting Back Porch Chair Portal scheduler...")
     print("📅 Weekly reminders scheduled for Sundays at 10 AM")
+    print("📧 Day-of chair reminders scheduled daily at 6 AM")
     print("💡 Individual chair reminders scheduled dynamically when signups occur")
 
     try:

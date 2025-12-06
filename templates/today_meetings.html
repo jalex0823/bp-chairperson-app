@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container my-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Today's Meetings — {{ today.strftime('%A, %B %d, %Y') }}</h1>
+    <div>
+      <button class="btn btn-light btn-sm rounded-pill" onclick="window.print()">Print</button>
+    </div>
+  </div>
+
+  {% if meetings and meetings|length > 0 %}
+    <ul class="list-group">
+      {% for m in meetings %}
+        <li class="list-group-item d-flex justify-content-between align-items-start">
+          <div>
+            <div class="fw-bold">
+              {{ m.start_time.strftime('%I:%M %p') }} • {{ m.title }}
+            </div>
+            <div class="small text-muted">
+              {% if m.description %}{{ m.description }}{% endif %}
+            </div>
+            {% if m.zoom_link %}
+              <div class="small"><a href="{{ m.zoom_link }}" target="_blank">Join Link</a></div>
+            {% endif %}
+          </div>
+          <div class="text-nowrap">
+            {% if m.chair_signup and m.chair_signup.user %}
+              <span class="badge bg-success">Chair: {{ m.chair_signup.user.display_name }}</span>
+            {% else %}
+              <span class="badge bg-secondary">No chair yet</span>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="alert alert-info">No meetings scheduled for today.</div>
+  {% endif %}
+</div>
+{% endblock %}

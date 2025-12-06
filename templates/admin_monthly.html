@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="mb-0">Monthly Report — {{ month_name }} {{ year }}</h1>
+  <div>
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin_monthly_pdf', year=year, month=month) }}">Download PDF</a>
+    <a class="btn btn-outline-success btn-sm" href="{{ url_for('calendar_month_ics', year=year, month=month) }}">Download .ics</a>
+    <button class="btn btn-outline-dark btn-sm" onclick="window.print()">Print</button>
+  </div>
+</div>
+
+{% if not meetings %}
+  <p class="text-muted">No meetings scheduled for this month.</p>
+{% else %}
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Chair</th>
+          <th>Meeting</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in meetings %}
+          <tr>
+            <td>{{ m.event_date.strftime('%Y-%m-%d (%a)') }}</td>
+            <td>
+              {{ m.start_time.strftime('%I:%M %p') }}
+              {% if m.end_time %}– {{ m.end_time.strftime('%I:%M %p') }}{% endif %}
+            </td>
+            <td>
+              {% if m.chair_signup %}
+                {{ m.chair_signup.display_name_snapshot }} ({{ m.chair_signup.user.bp_id }})
+              {% else %}
+                <span class="text-muted">No chair yet</span>
+              {% endif %}
+            </td>
+            <td>{{ m.title }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+{% endblock %}

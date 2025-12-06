@@ -1,13 +1,36 @@
 :root {
-    --bp-green: #166534; /* A standard green, like Bootstrap's 'success' */
-    --bp-gold: #ca8a04;  /* A standard gold/yellow, like Bootstrap's 'warning' */
+    /* Back Porch logo-inspired palette */
+    --bp-teal: #0f6f75;           /* primary teal ring */
+    --bp-deep-teal: #0b5257;      /* darker teal accents */
+    --bp-sunset-orange: #f0752b;  /* sunset orange */
+    --bp-sunrise-yellow: #f7b733; /* sunrise yellow */
+    --bp-porch-wood: #176f7a;     /* teal wood deck tint */
+    --bp-cream: #fff7e6;          /* warm cream background */
+    --bp-slate: #2f3b3d;          /* dark slate text */
+    --bp-muted: #6c7a7d;          /* muted text */
+
+    /* Legacy tokens kept for compatibility */
+    --bp-green: var(--bp-teal);
+    --bp-gold: var(--bp-sunset-orange);
     --bp-white: #ffffff;
     --bp-light-gray: #f8f9fa;
     --bp-dark-text: #212529;
+
+    /* Semantic tokens */
+    --color-primary: var(--bp-teal);
+    --color-primary-dark: var(--bp-deep-teal);
+    --color-secondary: var(--bp-sunset-orange);
+    --color-accent: var(--bp-sunrise-yellow);
+    --color-bg: #ffffff;
+    --color-bg-muted: var(--bp-cream);
+    --color-text: var(--bp-slate);
+    --color-text-muted: var(--bp-muted);
+    --color-border: #e3e6e8;
 }
 
 body {
-    background-color: var(--bp-light-gray);
+    color: var(--color-text);
+    background-color: var(--color-bg);
 }
 
 .navbar-brand {
@@ -15,8 +38,11 @@ body {
 }
 
 .navbar.bg-bp-green {
-    background-color: var(--bp-green) !important;
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--bp-porch-wood) 100%) !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
+.navbar .nav-link, .navbar-brand { color: #fff !important; }
+.navbar .nav-link:hover { color: var(--color-accent) !important; }
 
 .btn-gold {
     color: var(--bp-dark-text);
@@ -41,10 +67,102 @@ body {
     border-color: var(--bp-gold);
 }
 
-.card {
-    border: 1px solid #dee2e6;
-}
+.card { border: 1px solid var(--color-border); }
+.card-header { background-color: var(--color-bg-muted); color: var(--color-text); }
 
 .badge.bg-bp-green {
     background-color: var(--bp-green) !important;
+}
+
+/* Calendar theme */
+.calendar-container {
+    --bp-muted: #6c757d;
+}
+
+.calendar-header {
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--bp-porch-wood) 100%);
+    color: #fff;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.calendar-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.calendar-table thead th {
+    background: var(--bp-white);
+    color: var(--bp-muted);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+}
+
+.calendar-cell {
+    border: 1px solid #e5e7eb;
+    min-height: 7rem;
+}
+
+.calendar-cell .day-badge {
+    display: inline-block;
+    background: var(--bp-gold);
+    color: #1a1a1a;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+}
+
+.calendar-cell .meeting {
+    border-left: 3px solid var(--bp-green);
+    padding-left: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.calendar-cell .meeting.chaired { border-left-color: var(--bp-gold); }
+.calendar-cell .meeting.chaired { opacity: 0.6; /* grey out taken meetings */ }
+
+/* Day modal list items for taken meetings */
+.list-group-item.taken {
+    background-color: #f8f9fa; /* light grey */
+    color: var(--color-text-muted); /* secondary text */
+
+.calendar-cell .meeting-title {
+    font-weight: 600;
+}
+
+.calendar-cell .meeting-time {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.calendar-cell .meeting-chair {
+    font-size: 0.85rem;
+}
+
+.calendar-out-month {
+        background: #f9fafb;
+        color: #b0b6bb;
+}
+
+/* Buttons */
+.btn-primary { background-color: var(--color-primary); border-color: var(--color-primary); }
+.btn-primary:hover { background-color: var(--color-primary-dark); border-color: var(--color-primary-dark); }
+.btn-secondary { background-color: var(--color-secondary); border-color: var(--color-secondary); color: #1b1b1b; }
+.btn-secondary:hover { background-color: #e0641e; border-color: #e0641e; color: #1b1b1b; }
+
+/* Links */
+a { color: var(--color-primary); }
+a:hover { color: var(--color-secondary); }
+
+/* Tooltips */
+.tooltip-inner { background-color: var(--color-primary); }
+.bs-tooltip-auto[data-popper-placement^="top"] .tooltip-arrow::before { border-top-color: var(--color-primary); }
+.bs-tooltip-auto[data-popper-placement^="bottom"] .tooltip-arrow::before { border-bottom-color: var(--color-primary); }
+
+/* Forms */
+.form-control:focus, .form-select:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 0.2rem rgba(15, 111, 117, 0.2);
 }

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container my-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <h1 class="mb-0">Your Dashboard</h1>
+    <div>
+      <a class="btn btn-outline-primary" href="{{ url_for('profile') }}">Edit Profile</a>
+      <a class="btn btn-outline-secondary" href="{{ url_for('calendar_view') }}">Interactive Calendar</a>
+      <a class="btn btn-outline-secondary" href="{{ url_for('calendar_display') }}">Display Calendar</a>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <h5>Profile</h5>
+    <p>
+      <strong>Name:</strong> {{ user.display_name }}<br>
+      <strong>Email:</strong> {{ user.email }}<br>
+      <strong>Gender:</strong> {{ user.gender or '—' }}
+    </p>
+  </div>
+
+  <div class="mt-4">
+    <h5>Your Upcoming Meetings (as Chair)</h5>
+    {% if my_meetings %}
+      <ul class="list-group">
+        {% for m in my_meetings %}
+          <li class="list-group-item d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-bold">{{ m.event_date.strftime('%A, %B %d, %Y') }} • {{ m.start_time.strftime('%I:%M %p') }}</div>
+              <div>{{ m.title }}</div>
+            </div>
+            <div class="text-nowrap">
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('meeting_detail', meeting_id=m.id) }}">Details</a>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="alert alert-info">You haven't claimed any meetings yet.</div>
+    {% endif %}
+  </div>
+
+  {% if current_user and current_user.is_admin %}
+  <div class="mt-4">
+    <h5>Admin Shortcuts</h5>
+    <a class="btn btn-sm btn-outline-danger" href="{{ url_for('admin_meetings') }}">Manage Meetings</a>
+    <a class="btn btn-sm btn-outline-danger" href="{{ url_for('admin_monthly_html') }}">Monthly Report</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

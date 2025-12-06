@@ -114,4 +114,41 @@
     <li>⚙️ <a href="#" target="_blank">Default Settings for Protection</a></li>
     <li>👥 <a href="#" target="_blank">Managing Meeting Participants</a></li>
   </ul>
+{% extends 'base.html' %}
+{% block content %}
+  <h2 class="mb-3">Chairperson Resources</h2>
+  <p class="text-muted">Guidelines and helpful tools for chairing Back Porch meetings.</p>
+
+  <div class="card mb-4">
+    <div class="card-header">Reference PDFs</div>
+    <div class="card-body">
+      {% if pdfs and pdfs|length > 0 %}
+        <ul class="list-group">
+          {% for p in pdfs %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>
+                <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                {{ p.name }}
+              </span>
+              <span>
+                <a href="{{ p.url }}" class="btn btn-sm btn-primary" target="_blank" rel="noopener">View</a>
+                <a href="{{ p.url }}" class="btn btn-sm btn-outline-secondary" download>Download</a>
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="mb-0">No PDFs found in the resources folder. If you have materials to add, contact an admin.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <h3 class="mt-3">Key Points</h3>
+  <ul>
+    <li>Arrive 10 minutes early and open the room.</li>
+    <li>Read the opening and keep the meeting on track.</li>
+    <li>Encourage participation and manage time gently.</li>
+    <li>Close the meeting warmly and share service opportunities.</li>
+  </ul>
+
 {% endblock %}

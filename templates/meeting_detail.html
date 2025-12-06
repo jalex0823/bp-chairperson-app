@@ -27,49 +27,65 @@
 
   <hr>
 
-  <h5>Chair Status</h5>
-  {% if meeting.chair_signup %}
-    <p>
-      This meeting is currently chaired by:
-      <strong>{{ meeting.chair_signup.display_name_snapshot }} ({{ meeting.chair_signup.user.bp_id }})</strong><br>
-      <small class="text-muted">Thank you for your service!</small>
-    </p>
-  {% else %}
-    <p>No one has signed up to chair this meeting yet.</p>
-  {% endif %}
+  <div class="row">
+    <div class="col-md-8">
+      <h5>Chair Status</h5>
+      {% if meeting.chair_signup %}
+        <p>
+          This meeting is currently chaired by:
+          <strong>{{ meeting.chair_signup.display_name_snapshot }} ({{ meeting.chair_signup.user.bp_id }})</strong><br>
+          <small class="text-muted">Thank you for your service!</small>
+        </p>
+      {% else %}
+        <p>No one has signed up to chair this meeting yet.</p>
+      {% endif %}
 
-  {% if meeting.is_open and not meeting.chair_signup %}
-    <hr>
-    <h4>Sign Up to Chair</h4>
+      {% if meeting.is_open and not meeting.chair_signup %}
+        <hr>
+        <h4>Sign Up to Chair</h4>
 
-    {% if not user %}
-      <div class="alert alert-info">
-        Please <a href="{{ url_for('login', next=request.path) }}">log in</a> or
-        <a href="{{ url_for('register', next=request.path) }}">create a Back Porch chairperson account</a>
-        before signing up to chair.
-      </div>
-    {% else %}
-      <p class="text-muted">
-        You are logged in as <strong>{{ user.display_name }}</strong>.
-      </p>
-      <form method="post">
-        {{ form.hidden_tag() }}
-        <div class="mb-3">
-          {{ form.notes.label(class="form-label") }}
-          {{ form.notes(class="form-control", rows="3") }}
-          <div class="form-text">
-            Optional: anything the admin should know (e.g., “First time chairing”, “Need tech help”).
+        {% if not user %}
+          <div class="alert alert-info">
+            Please <a href="{{ url_for('login', next=request.path) }}">log in</a> or
+            <a href="{{ url_for('register', next=request.path) }}">create a Back Porch chairperson account</a>
+            before signing up to chair.
           </div>
+        {% else %}
+          <p class="text-muted">
+            You are logged in as <strong>{{ user.display_name }}</strong>.
+          </p>
+          <form method="post">
+            {{ form.hidden_tag() }}
+            <div class="mb-3">
+              {{ form.notes.label(class="form-label") }}
+              {{ form.notes(class="form-control", rows="3") }}
+              <div class="form-text">
+                Optional: anything the admin should know (e.g., “First time chairing”, “Need tech help”).
+              </div>
+            </div>
+            {{ form.submit(class="btn btn-success") }}
+          </form>
+        {% endif %}
+      {% else %}
+        <hr>
+        {% if not meeting.is_open %}
+          <p class="text-muted">This meeting is not currently open for chair sign-ups.</p>
+        {% elif meeting.chair_signup %}
+          <p class="text-muted">Chair position has been filled.</p>
+        {% endif %}
+      {% endif %}
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">Reference Materials</div>
+        <div class="card-body">
+          <p class="mb-2">Helpful guides and PDFs for chairing:</p>
+          <ul class="list-unstyled mb-3">
+            <li>📚 <a href="{{ url_for('chair_resources') }}" target="_blank" rel="noopener">Chairperson Resources</a></li>
+          </ul>
+          <p class="small text-muted mb-0">Visit the resources page for downloadable PDFs and guidelines.</p>
         </div>
-        {{ form.submit(class="btn btn-success") }}
-      </form>
-    {% endif %}
-  {% else %}
-    <hr>
-    {% if not meeting.is_open %}
-      <p class="text-muted">This meeting is not currently open for chair sign-ups.</p>
-    {% elif meeting.chair_signup %}
-      <p class="text-muted">Chair position has been filled.</p>
-    {% endif %}
-  {% endif %}
+      </div>
+    </div>
+  </div>
 {% endblock %}

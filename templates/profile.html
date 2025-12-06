@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container my-4" style="max-width: 600px;">
+  <h1 class="mb-3">Edit Profile</h1>
+  <form method="post">
+    {{ form.hidden_tag() }}
+
+    <div class="mb-3">
+      {{ form.display_name.label(class="form-label") }}
+      {{ form.display_name(class="form-control") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.gender.label(class="form-label") }}
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="gender" id="genderMale" value="male" {% if form.gender.data == 'male' %}checked{% endif %}>
+        <label class="form-check-label" for="genderMale">Male</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="gender" id="genderFemale" value="female" {% if form.gender.data == 'female' %}checked{% endif %}>
+        <label class="form-check-label" for="genderFemale">Female</label>
+      </div>
+      <div class="form-text">Used to determine eligibility for Men-only or Women-only meetings.</div>
+    </div>
+
+    {{ form.submit(class="btn btn-primary") }}
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary ms-2">Cancel</a>
+  </form>
+</div>
+{% endblock %}

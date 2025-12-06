@@ -1,42 +1,96 @@
 {% extends "base.html" %}
 {% block content %}
   <h2>Create Back Porch Chairperson Account</h2>
-  <p class="text-muted">
-    Suggested: regular member of this group, at least 90 days sober, actively working the steps with a sponsor.
-  </p>
+  <div class="container py-4">
+    <h2 class="mb-3">Register</h2>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="alert alert-warning">{{ messages[0] }}</div>
+      {% endif %}
+    {% endwith %}
 
-  <form method="post" class="mt-3" style="max-width: 600px;">
-    {{ form.hidden_tag() }}
-
-    <div class="mb-3">
-      {{ form.display_name.label(class="form-label") }}
-      {{ form.display_name(class="form-control") }}
-      <div class="form-text">
-        For anonymity, use first name & last initial or an alias (e.g., "Alex P.").
+    <form id="registerForm" method="POST" action="{{ url_for('register') }}">
+      {{ form.hidden_tag() }}
+      {% if access_codes_configured %}
+      <div class="mb-3">
+        <label for="access_code" class="form-label">Access Code</label>
+        <input type="text" class="form-control" id="access_code" name="access_code" placeholder="Enter your access code" required>
+        <div class="form-text">Registration is restricted. Enter the access code to unlock the form.</div>
       </div>
-    </div>
+      {% endif %}
 
-    <div class="mb-3">
-      {{ form.email.label(class="form-label") }}
-      {{ form.email(class="form-control") }}
-    </div>
+      <fieldset id="regFields">
+        <div class="mb-3">
+          {{ form.username.label(class_='form-label') }}
+          {{ form.username(class_='form-control') }}
+        </div>
+        <div class="mb-3">
+          {{ form.email.label(class_='form-label') }}
+          {{ form.email(class_='form-control') }}
+        </div>
+        <div class="mb-3">
+          {{ form.password.label(class_='form-label') }}
+          {{ form.password(class_='form-control') }}
+        </div>
+        <div class="mb-3">
+          {{ form.confirm.label(class_='form-label') }}
+          {{ form.confirm(class_='form-control') }}
+        </div>
+        <div class="mb-3">
+          {{ form.gender.label(class_='form-label') }}
+          {{ form.gender(class_='form-select') }}
+          <div class="form-text">Your gender helps determine eligibility for certain meetings.</div>
+        </div>
+        <div class="mb-3">
+          {{ form.display_name.label(class_='form-label') }}
+          {{ form.display_name(class_='form-control') }}
+          <div class="form-text">Optional: a friendly name shown on the calendar instead of your full username.</div>
+        </div>
+      </fieldset>
 
-    <div class="mb-3">
-      {{ form.password.label(class="form-label") }}
-      {{ form.password(class="form-control") }}
-    </div>
+      <button id="submitBtn" type="submit" class="btn btn-primary">Create Account</button>
+    </form>
 
-    <div class="mb-3">
-      {{ form.sobriety_days.label(class="form-label") }}
-      {{ form.sobriety_days(class="form-control") }}
-      <div class="form-text">
-        Optional and not verified – this helps us understand if the suggested guidelines are being followed.
+    <script>
+      (function() {
+        const accessConfigured = {{ 'true' if access_codes_configured else 'false' }};
+        const accessInput = document.getElementById('access_code');
+        const regFields = document.getElementById('regFields');
+        const submitBtn = document.getElementById('submitBtn');
+
+        function setLockedState(locked) {
+          if (!regFields) return;
+          for (const el of regFields.querySelectorAll('input, select, textarea')) {
+            el.disabled = locked;
+          }
+          if (submitBtn) submitBtn.disabled = locked;
+        }
+
+        // On load: if access is configured, lock until a non-empty code is entered.
+        if (accessConfigured) {
+          setLockedState(true);
+          if (accessInput) {
+            const toggle = () => {
+              const hasCode = accessInput.value && accessInput.value.trim().length > 0;
+              setLockedState(!hasCode);
+            };
+            accessInput.addEventListener('input', toggle);
+            // Initialize once in case browser restores value
+            toggle();
+          }
+        } else {
+          // No access code required; keep form enabled
+          setLockedState(false);
+        }
+      })();
+    </script>
+  </div>
+        {{ form.gender(class="form-check-input", value='male') }}
+        <label class="form-check-label me-3">Male</label>
+        {{ form.gender(class="form-check-input", value='female') }}
+        <label class="form-check-label">Female</label>
       </div>
-    </div>
-
-    <div class="form-check mb-3">
-      {{ form.agreed_guidelines(class="form-check-input") }}
-      {{ form.agreed_guidelines.label(class="form-check-label") }}
+      <div class="form-text">Used to determine eligibility for Men-only or Women-only meetings.</div>
     </div>
 
     {{ form.submit(class="btn btn-primary") }}

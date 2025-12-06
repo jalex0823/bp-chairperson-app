@@ -1,19 +1,58 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1 class="mb-3">Back Porch Chairperson Calendar</h1>
-  <p class="text-muted">
-    Sign up to chair an upcoming Back Porch meeting. We suggest at least 90 days sober
-    and working with a sponsor. Thank you for your service.
-  </p>
+  <!-- Hero Section -->
+  <section class="py-5 mb-4" style="background: linear-gradient(90deg, var(--color-primary) 0%, var(--bp-porch-wood) 100%); border-radius: 0.75rem; color: #fff;">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <h1 class="display-6 fw-bold mb-2">Welcome to Back Porch</h1>
+          <p class="lead mb-3">A modern, friendly place to sign up and serve as chair for our online meetings.</p>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('calendar_view') }}" class="btn btn-light">View Calendar</a>
+            <a href="{{ url_for('meetings_today') }}" class="btn btn-secondary">Today’s Meetings</a>
+            <a href="{{ url_for('chair_resources') }}" class="btn btn-outline-light">Chair Resources</a>
+          </div>
+        </div>
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+          <a href="{{ url_for('calendar_ics') }}" class="btn btn-outline-light">📅 Subscribe (iCal)</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <div class="mb-3">
-    <a href="{{ url_for('calendar_ics') }}" class="btn btn-outline-primary">
-      📅 Subscribe to Calendar (iCal)
-    </a>
+  <!-- Quick Actions -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Sign Up to Chair</h5>
+          <p class="card-text text-muted">Browse the calendar and claim a meeting. Your service matters.</p>
+          <a href="{{ url_for('calendar_view') }}" class="btn btn-primary">Go to Calendar</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Today’s Meetings</h5>
+          <p class="card-text text-muted">See what’s on today and who’s hosting right now.</p>
+          <a href="{{ url_for('meetings_today') }}" class="btn btn-secondary">View Today</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Chair Resources</h5>
+          <p class="card-text text-muted">Guidelines and downloadable PDFs for chairing with confidence.</p>
+          <a href="{{ url_for('chair_resources') }}" class="btn btn-outline-gold">Open Resources</a>
+        </div>
+      </div>
+    </div>
   </div>
 
   {% if not meetings_by_date %}
-    <p>No upcoming meetings scheduled yet.</p>
+    <div class="alert alert-primary">No upcoming meetings scheduled yet.</div>
   {% else %}
     {% for date_str, meetings in meetings_by_date.items() %}
       <h3 class="mt-4 mb-3">{{ meetings[0].event_date.strftime('%A, %B %d, %Y') }}</h3>

@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="calendar-container">
+<div class="d-flex justify-content-between align-items-center mb-3 calendar-header shadow-sm w-100">
+  <h1 class="mb-0">{{ month_name }} {{ year }}</h1>
+    <div>
+      {% if allow_nav %}
+      <a class="btn btn-light btn-sm rounded-pill" href="{{ url_for('calendar_view', year=prev_year, month=prev_month) }}">◀ Prev</a>
+      <a class="btn btn-light btn-sm rounded-pill" href="{{ url_for('calendar_view', year=next_year, month=next_month) }}">Next ▶</a>
+      <a class="btn btn-light btn-sm rounded-pill" href="{{ url_for('calendar_view', year=today.year, month=today.month) }}">Today</a>
+      {% else %}
+      <a class="btn btn-light btn-sm rounded-pill" href="{{ url_for('calendar_display') }}">Current Month</a>
+      {% endif %}
+      <a class="btn btn-light btn-sm rounded-pill" href="{{ url_for('calendar_month_ics', year=year, month=month) }}">Download .ics</a>
+      <button class="btn btn-light btn-sm rounded-pill" onclick="window.print()">Print</button>
+    </div>
+</div>
+
+<form class="mb-3" method="get" action="{{ url_for('calendar_view') }}">
+  <input type="hidden" name="year" value="{{ year }}">
+  <input type="hidden" name="month" value="{{ month }}">
+  <div class="input-group">
+    <input type="text" class="form-control" name="q" placeholder="Search by meeting title or chair name" value="{{ q }}">
+    <button class="btn btn-primary" type="submit">Search</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('calendar_view', year=year, month=month) }}">Clear</a>
+  </div>
+  {% if q %}
+    <div class="form-text">Filtering results for: "{{ q }}"</div>
+  {% endif %}
+</form>
+
+<div class="table-responsive">
+{% if not current_user %}
+  <div class="alert alert-info d-flex align-items-center" role="alert">
+    <div>
+      Log in to browse other months and claim an open meeting to chair.
+    </div>
+    <a class="btn btn-sm btn-outline-primary ms-3" href="{{ url_for('login', next=request.full_path) }}">Log In</a>
+    <a class="btn btn-sm btn-outline-secondary ms-2" href="{{ url_for('register', next=request.full_path) }}">Register</a>
+  </div>
+{% endif %}
+<table class="table table-bordered align-middle calendar-table">
+  <thead class="table-light">
+    <tr>
+      <th class="text-center">Sun</th>
+      <th class="text-center">Mon</th>
+      <th class="text-center">Tue</th>
+      <th class="text-center">Wed</th>
+      <th class="text-center">Thu</th>
+      <th class="text-center">Fri</th>
+      <th class="text-center">Sat</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for week in weeks %}
+      <tr>
+        {% for cell in week %}
+          <td class="p-2 calendar-cell {% if not cell.in_month %}calendar-out-month{% endif %}" style="vertical-align: top;" {% if cell.date %}data-date="{{ cell.date.strftime('%Y-%m-%d') }}" onclick="openDayModal('{{ cell.date.strftime('%Y-%m-%d') }}')" style="cursor:pointer;"{% endif %}>
+            <div class="d-flex justify-content-between">
+              <strong>{% if cell.date %}{{ cell.date.day }}{% endif %}</strong>
+              {% if cell.date == today %}<span class="badge bg-info text-dark">Today</span>{% endif %}
+            </div>
+            {% if cell.meetings %}
+              <ul class="list-unstyled mt-2 mb-0">
+                {% for m in cell.meetings %}
+                  <li class="mb-2 meeting {% if m.chair_signup %}chaired{% endif %}">
+                    <div class="fw-semibold">
+                      <a href="{{ url_for('meeting_detail', meeting_id=m.id) }}" class="text-decoration-none meeting-title">{{ m.title }}</a>
+                    </div>
+                    <div class="text-muted small meeting-time">
+                      {{ m.start_time.strftime('%I:%M %p') }}{% if m.end_time %} – {{ m.end_time.strftime('%I:%M %p') }}{% endif %}
+                    </div>
+                    <div class="small meeting-chair">
+                      {% if m.chair_signup %}
+                        <span title="Chair: {{ m.chair_signup.display_name_snapshot }}" data-bs-toggle="tooltip">🔒 Taken</span>
+                      {% else %}
+                        <span class="text-muted">No chair yet</span>
+                        {# Claim action removed from grid to keep it clean; use day modal #}
+                      {% endif %}
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="text-muted small mt-2">No chair yet</div>
+            {% endif %}
+          </td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+<!-- Day modal -->
+<div class="modal fade" id="dayModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="dayModalLabel">Meetings</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="dayModalBody">Loading…</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+<script>
+// Enable Bootstrap tooltips
+document.addEventListener('DOMContentLoaded', function() {
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+  tooltipTriggerList.forEach(function (el) { new bootstrap.Tooltip(el); });
+});
+async function openDayModal(dateStr) {
+  const modalEl = document.getElementById('dayModal');
+  const modalBody = document.getElementById('dayModalBody');
+  const titleEl = document.getElementById('dayModalLabel');
+  titleEl.textContent = `Meetings — ${dateStr}`;
+  modalBody.innerHTML = 'Loading…';
+  const bsModal = new bootstrap.Modal(modalEl);
+  bsModal.show();
+  try {
+    const resp = await fetch(`/api/day-meetings?date=${encodeURIComponent(dateStr)}`);
+    const data = await resp.json();
+    if (!data.meetings || data.meetings.length === 0) {
+      modalBody.innerHTML = '<div class="alert alert-info">No meetings scheduled for this day.</div>';
+      return;
+    }
+    let html = '<ul class="list-group">';
+    for (const m of data.meetings) {
+      const takenClass = (!m.is_open) ? ' taken' : '';
+      html += `<li class="list-group-item d-flex justify-content-between align-items-start${takenClass}">
+        <div>
+          <div class="fw-bold">${m.time} • ${m.title}</div>
+          <div class="small text-muted">` + (m.chair_name ? `Chair: ${m.chair_name}` : 'No chair yet') + `</div>
+        </div>
+        <div class="text-nowrap">` + (m.is_open ? `<button class="btn btn-sm btn-outline-success" onclick="claimMeeting(${m.id})">Claim</button>` : `<button class="btn btn-sm btn-outline-secondary" disabled title="Chair: ${m.chair_name || ''}">🔒 Taken</button>`) + `</div>
+      </li>`;
+    }
+    html += '</ul>';
+    modalBody.innerHTML = html;
+  } catch (e) {
+    modalBody.innerHTML = '<div class="alert alert-danger">Failed to load meetings.</div>';
+  }
+}
+
+async function claimMeeting(meetingId) {
+  try {
+    const resp = await fetch(`/api/meetings/${meetingId}/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (resp.status === 401) {
+      alert('Please log in to claim a meeting.');
+      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      return;
+    }
+    const data = await resp.json();
+    if (!data.ok) {
+      alert('Unable to claim meeting: ' + (data.error || 'unknown error'));
+      return;
+    }
+    // Reload page to reflect claim
+    window.location.reload();
+  } catch (e) {
+    alert('Failed to claim meeting.');
+  }
+}
+</script>
+{% endblock %}
