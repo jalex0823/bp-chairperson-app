@@ -1,3 +1,43 @@
+# Python / Flask / Heroku
+# Ignore local virtual environments and Python artifacts
+.venv/
+venv/
+ENV/
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment variables
+.env
+.env.*
+
+# Logs and runtime
+*.log
+
+# Unit test / coverage reports
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# IDE/editor settings
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Packaging
+*.egg-info/
+dist/
+build/
+
+# Heroku
+# Heroku recommends not committing local venvs
+.profile.d/
 # Environment variables
 .env
 .env.local
