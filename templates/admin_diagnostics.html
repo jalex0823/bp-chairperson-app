@@ -51,6 +51,18 @@
       </ul>
     </div>
 
+    <div class="card">
+      <h2>ICS Import</h2>
+      <p><strong>Source URL:</strong> <code>{{ ics_source or 'Not configured' }}</code></p>
+      {% if ics_source %}
+      <p>
+        <a href="{{ url_for('admin_import_ics') }}" class="btn btn-primary">Import Meetings from ICS</a>
+      </p>
+      {% else %}
+      <div class="alert alert-warning">Set <code>SOURCE_MEETINGS_ICS_URL</code> in environment to enable ICS imports.</div>
+      {% endif %}
+    </div>
+
     <p><a href="{{ url_for('admin_meetings') }}">← Back to Admin Meetings</a></p>
   </main>
   </body>

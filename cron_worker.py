@@ -6,7 +6,7 @@ You can extend it to run other maintenance tasks.
 """
 from datetime import datetime
 from app import app
-from app import send_open_slot_reminder
+from app import send_open_slot_reminder, import_meetings_from_ics, SOURCE_MEETINGS_ICS_URL
 
 def main():
     with app.app_context():
@@ -14,6 +14,13 @@ def main():
         now = datetime.now()
         if now.weekday() == 6 and now.hour == 10:  # Sunday at 10am
             send_open_slot_reminder()
+        # Nightly sync of meetings from external ICS at 03:00
+        if SOURCE_MEETINGS_ICS_URL and now.hour == 3:
+            try:
+                count = import_meetings_from_ics(SOURCE_MEETINGS_ICS_URL, replace_future=True)
+                print(f"Cron: Imported {count} meetings from ICS.")
+            except Exception as e:
+                print(f"Cron ICS import failed: {e}")
 
 if __name__ == "__main__":
     main()

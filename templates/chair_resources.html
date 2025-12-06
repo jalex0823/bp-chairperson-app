@@ -27,9 +27,18 @@
           {% endfor %}
         </ul>
       {% else %}
-        <p class="mb-0">No PDFs found in the resources folder. If you have materials to add, contact an admin.</p>
+        <div class="alert alert-warning mb-0">
+          <div class="mb-1">No PDFs found.</div>
+          <div>
+            Add PDFs to the configured folder and they will appear automatically.
+          </div>
+        </div>
       {% endif %}
     </div>
+  </div>
+
+  <div class="small text-muted mb-4">
+    Current PDF folder: <code>{{ (config.EXTERNAL_PDFS_DIR if config and config.EXTERNAL_PDFS_DIR else 'Not configured') }}</code>
   </div>
 
   <h3 class="mt-3">Key Points</h3>

@@ -44,6 +44,15 @@ body {
 .navbar .nav-link, .navbar-brand { color: #fff !important; }
 .navbar .nav-link:hover { color: var(--color-accent) !important; }
 
+/* Footer themed like header */
+.footer-bp {
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--bp-porch-wood) 100%);
+    color: #ffffff;
+    border-top: none;
+}
+.footer-bp a { color: #ffffff; }
+.footer-bp a:hover { color: var(--color-accent); }
+
 .btn-gold {
     color: var(--bp-dark-text);
     background-color: var(--bp-gold);

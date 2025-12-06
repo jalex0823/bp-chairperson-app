@@ -28,6 +28,8 @@ from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
+from urllib.request import urlopen
+from urllib.error import URLError, HTTPError
 
 # Load environment variables from .env file BEFORE importing Config so it can read envs
 load_dotenv()
@@ -57,6 +59,7 @@ EXTERNAL_PDFS_DIR = os.environ.get(
     "EXTERNAL_PDFS_DIR",
     r"C:\\Users\\JefferyAlexander\\Dropbox\\chatbot\\FullSiteNewPages\\assets\\pdfs"
 )
+SOURCE_MEETINGS_ICS_URL = os.environ.get("SOURCE_MEETINGS_ICS_URL")
 
 # Flask 3 removed before_first_request; database initialization is handled
 # via Heroku release phase (see Procfile) and CLI command `flask --app app.py init-db`.
@@ -154,6 +157,93 @@ class ChairSignup(db.Model):
 
 
 # ==========================
+# IMPORTERS / SYNC
+# ==========================
+
+def import_meetings_from_ics(ics_url: str, replace_future: bool = True) -> int:
+    """Import meetings from an external iCal URL into our Meeting table.
+    If replace_future is True, existing future meetings are removed before import.
+    Returns number of meetings imported.
+    """
+    if not ics_url:
+        raise ValueError("ICS URL not provided")
+    # Support local filesystem paths in addition to URLs
+    data = None
+    if ics_url.lower().startswith('file://'):
+        try:
+            with urlopen(ics_url) as resp:
+                data = resp.read()
+        except (URLError, HTTPError) as e:
+            raise RuntimeError(f"Failed to fetch ICS (file URL): {e}")
+    elif os.path.exists(ics_url):
+        try:
+            with open(ics_url, 'rb') as f:
+                data = f.read()
+        except Exception as e:
+            raise RuntimeError(f"Failed to read local ICS file: {e}")
+    else:
+        try:
+            with urlopen(ics_url) as resp:
+                data = resp.read()
+        except (URLError, HTTPError) as e:
+            raise RuntimeError(f"Failed to fetch ICS: {e}")
+
+    try:
+        cal = Calendar.from_ical(data)
+    except Exception as e:
+        raise RuntimeError(f"Invalid ICS content: {e}")
+
+    imported = 0
+    if replace_future:
+        db.session.query(Meeting).filter(Meeting.event_date >= date.today()).delete()
+        db.session.commit()
+
+    for component in cal.walk():
+        if component.name != 'VEVENT':
+            continue
+
+        # Dates
+        dtstart = component.get('dtstart')
+        dtend = component.get('dtend')
+        if not dtstart:
+            continue
+        start_val = dtstart.dt
+        end_val = dtend.dt if dtend else None
+        # Normalize to date + time
+        if hasattr(start_val, 'date') and hasattr(start_val, 'time'):
+            event_date_val = start_val.date()
+            start_time_val = start_val.time()
+        else:
+            # start_val may be a date
+            event_date_val = start_val
+            start_time_val = None
+        end_time_val = None
+        if end_val:
+            if hasattr(end_val, 'time'):
+                end_time_val = end_val.time()
+
+        title = str(component.get('summary') or 'Back Porch Meeting')
+        location = str(component.get('location') or '')
+        description = str(component.get('description') or '')
+
+        m = Meeting(
+            title=title,
+            description=description or None,
+            zoom_link=location or None,
+            event_date=event_date_val,
+            start_time=start_time_val or (datetime.min + timedelta(hours=12)).time(),
+            end_time=end_time_val,
+            is_open=True,
+            gender_restriction=None,
+        )
+        db.session.add(m)
+        imported += 1
+
+    db.session.commit()
+    return imported
+
+
+# ==========================
 # FORMS
 # ==========================
 
@@ -167,9 +257,11 @@ class RegisterForm(FlaskForm):
         "Password",
         validators=[DataRequired(), Length(min=6, message="At least 6 characters")]
     )
-    sobriety_days = IntegerField(
-        "Approx. days sober (optional)",
-        validators=[Optional(), NumberRange(min=0, max=100000)]
+    # Change from approx. days to sobriety date; we'll auto-calc days server-side
+    sobriety_date = DateField(
+        "Sobriety Date (optional)",
+        validators=[Optional()],
+        format="%Y-%m-%d"
     )
     agreed_guidelines = BooleanField(
         "I have at least ~90 days sober and am working with a sponsor (suggested), and I have read the chairperson guidelines.",
@@ -627,11 +719,20 @@ def register():
         if existing:
             flash("An account with that email already exists.", "danger")
         else:
+            # Compute sobriety days from provided sobriety_date (optional)
+            sob_days = None
+            if form.sobriety_date.data:
+                try:
+                    d0 = form.sobriety_date.data
+                    delta = (date.today() - d0).days
+                    sob_days = max(0, delta)
+                except Exception:
+                    sob_days = None
             user = User(
                 display_name=form.display_name.data.strip(),
                 email=form.email.data.lower().strip(),
                 is_admin=False,
-                sobriety_days=form.sobriety_days.data,
+                sobriety_days=sob_days,
                 agreed_guidelines=form.agreed_guidelines.data,
                 gender=form.gender.data,
             )
@@ -644,8 +745,17 @@ def register():
             return redirect(next_url)
     # Provide flag to template so it can lock inputs until a code is entered
     access_codes_configured = bool(app.config.get('REGISTRATION_ACCESS_CODE') or app.config.get('REGISTRATION_ACCESS_CODES'))
+    # Pass optional PDF names for responsibilities and protocol
+    responsibilities_pdf = os.environ.get('CHAIR_RESPONSIBILITIES_PDF', 'Chairperson Responsibilities.pdf')
+    protocol_pdf = os.environ.get('MEETING_PROTOCOL_PDF', 'Meeting Protocol.pdf')
     try:
-        return render_template("register.html", form=form, access_codes_configured=access_codes_configured)
+        return render_template(
+            "register.html",
+            form=form,
+            access_codes_configured=access_codes_configured,
+            responsibilities_pdf=responsibilities_pdf,
+            protocol_pdf=protocol_pdf,
+        )
     except Exception as e:
         import traceback
         print("Register page render error:")
@@ -841,7 +951,23 @@ def admin_meetings():
         .order_by(Meeting.event_date.desc(), Meeting.start_time.desc())
         .all()
     )
-    return render_template("admin_meetings.html", meetings=meetings)
+    return render_template("admin_meetings.html", meetings=meetings, ics_source=SOURCE_MEETINGS_ICS_URL)
+
+
+@app.route("/admin/import-ics")
+@admin_required
+def admin_import_ics():
+    """Admin endpoint to import meetings from configured ICS URL."""
+    url = SOURCE_MEETINGS_ICS_URL
+    if not url:
+        flash("ICS source URL is not configured.", "warning")
+        return redirect(url_for('admin_meetings'))
+    try:
+        count = import_meetings_from_ics(url, replace_future=True)
+        flash(f"Imported {count} meetings from ICS.", "success")
+    except Exception as e:
+        flash(f"ICS import failed: {e}", "danger")
+    return redirect(url_for('admin_meetings'))
 
 
 @app.route("/admin/diagnostics")
@@ -874,6 +1000,7 @@ def admin_diagnostics():
         tables=tables,
         counts=counts,
         mail_settings=mail_settings,
+        ics_source=SOURCE_MEETINGS_ICS_URL,
     )
 
 
@@ -1259,6 +1386,22 @@ def upgrade_schema_command():
 
     conn.close()
     print("Schema upgrade complete.")
+
+
+@app.cli.command("import-ics")
+def import_ics_command():
+    """Import meetings from ICS URL defined in env var SOURCE_MEETINGS_ICS_URL.
+    Run with: flask --app app.py import-ics
+    """
+    url = SOURCE_MEETINGS_ICS_URL
+    if not url:
+        print("SOURCE_MEETINGS_ICS_URL is not set.")
+        return
+    try:
+        count = import_meetings_from_ics(url, replace_future=True)
+        print(f"Imported {count} meetings from ICS.")
+    except Exception as e:
+        print(f"Import failed: {e}")
 
 
 if __name__ == "__main__":

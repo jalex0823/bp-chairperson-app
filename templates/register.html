@@ -19,9 +19,9 @@
 
       {% if access_codes_configured %}
       <div class="mb-3">
-        <label for="access_code" class="form-label">Access Code</label>
-        <input type="text" class="form-control" id="access_code" name="access_code" placeholder="Enter your access code" required>
-        <div class="form-text">Registration is restricted. Enter the access code to unlock the form.</div>
+        <label for="access_code" class="form-label">Registration Key</label>
+        <input type="text" class="form-control" id="access_code" name="access_code" placeholder="Enter your registration key" required>
+        <div class="form-text">Registration is restricted. Enter the registration key to unlock the form fields.</div>
       </div>
       {% endif %}
 
@@ -39,12 +39,20 @@
           {{ form.password(class_='form-control') }}
         </div>
         <div class="mb-3">
-          {{ form.sobriety_days.label(class_='form-label') }}
-          {{ form.sobriety_days(class_='form-control') }}
+          {{ form.sobriety_date.label(class_='form-label') }}
+          {{ form.sobriety_date(class_='form-control', id='sobriety_date') }}
+          <div class="form-text" id="daysSoberText" style="margin-top: 0.25rem;">Days Sober: <span id="daysSoberVal">0</span></div>
         </div>
         <div class="mb-3">
           {{ form.gender.label(class_='form-label') }}
-          {{ form.gender(class_='form-control') }}
+          <div>
+            {% for subfield in form.gender %}
+              <div class="form-check form-check-inline">
+                {{ subfield(class_='form-check-input', id='gender_' ~ loop.index) }}
+                <label class="form-check-label" for="gender_{{ loop.index }}">{{ subfield.label.text }}</label>
+              </div>
+            {% endfor %}
+          </div>
           <div class="form-text">Used to determine eligibility for Men-only or Women-only meetings.</div>
         </div>
         <div class="mb-3 form-check">
@@ -62,6 +70,8 @@
         const accessInput = document.getElementById('access_code');
         const regFields = document.getElementById('regFields');
         const submitBtn = document.getElementById('submitBtn');
+        const sobDate = document.getElementById('sobriety_date');
+        const daysVal = document.getElementById('daysSoberVal');
 
         function setLockedState(locked) {
           if (!regFields) return;
@@ -84,7 +94,35 @@
         } else {
           setLockedState(false);
         }
+
+        // Auto-calc days sober based on selected sobriety date
+        function calcDays() {
+          if (!sobDate || !daysVal) return;
+          const val = sobDate.value;
+          if (!val) { daysVal.textContent = '0'; return; }
+          const d0 = new Date(val + 'T00:00:00');
+          const today = new Date();
+          // strip time portion from today
+          const t0 = Date.UTC(d0.getFullYear(), d0.getMonth(), d0.getDate());
+          const t1 = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+          const diffDays = Math.max(0, Math.floor((t1 - t0) / (1000*60*60*24)));
+          daysVal.textContent = diffDays.toString();
+        }
+        if (sobDate) {
+          sobDate.addEventListener('change', calcDays);
+          sobDate.addEventListener('input', calcDays);
+          calcDays();
+        }
       })();
     </script>
+
+    <div class="mt-4">
+      <hr />
+      <p class="mb-2">Please review these chairperson resources:</p>
+      <ul class="mb-0">
+        <li><a href="{{ url_for('serve_pdf', filename=responsibilities_pdf) }}" target="_blank" rel="noopener">Chairperson Responsibilities (PDF)</a></li>
+        <li><a href="{{ url_for('serve_pdf', filename=protocol_pdf) }}" target="_blank" rel="noopener">Meeting Protocol (PDF)</a></li>
+      </ul>
+    </div>
   </div>
 {% endblock %}
