@@ -15,11 +15,12 @@ class Config:
         SQLALCHEMY_DATABASE_URI = raw_url
     else:
         # MySQL (DreamHost) connection details
-        DB_HOST = os.environ.get("DB_HOST", "localhost")
+        DB_HOST = os.environ.get("DB_HOST", "mysql.therealbackporch.com")
         DB_PORT = os.environ.get("DB_PORT", "3306")
         DB_NAME = os.environ.get("DB_NAME", "chairameeting")
         DB_USER = os.environ.get("DB_USER", "chairperson")
-        DB_PASSWORD = os.environ.get("DB_PASSWORD", "12!Gratitudeee")
+        # Do not hard-code passwords; require via environment
+        DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
 
         SQLALCHEMY_DATABASE_URI = (
             f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
