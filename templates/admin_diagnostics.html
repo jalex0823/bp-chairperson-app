@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Diagnostics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <style>
+    .card { border: 1px solid #ddd; padding: 1rem; margin: 1rem 0; border-radius: 8px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    code { background: #f7f7f7; padding: 0.2rem 0.4rem; border-radius: 4px; }
+  </style>
+  </head>
+<body>
+  <main class="container">
+    <h1>Admin Diagnostics</h1>
+
+    <div class="card">
+      <h2>Database</h2>
+      <p><strong>Engine URL:</strong> <code>{{ engine_url }}</code></p>
+      <div class="grid">
+        <div>
+          <h3>Tables</h3>
+          <ul>
+            {% for t in tables %}
+            <li>{{ t }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div>
+          <h3>Row Counts</h3>
+          <ul>
+            {% for t, c in counts.items() %}
+            <li>{{ t }}: {{ c if c is not none else 'n/a' }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Email Configuration</h2>
+      <ul>
+        <li>MAIL_SERVER: <code>{{ mail_settings.MAIL_SERVER }}</code></li>
+        <li>MAIL_PORT: <code>{{ mail_settings.MAIL_PORT }}</code></li>
+        <li>MAIL_USE_TLS: <code>{{ mail_settings.MAIL_USE_TLS }}</code></li>
+        <li>MAIL_USE_SSL: <code>{{ mail_settings.MAIL_USE_SSL }}</code></li>
+        <li>MAIL_DEFAULT_SENDER: <code>{{ mail_settings.MAIL_DEFAULT_SENDER }}</code></li>
+        <li>MAIL_USERNAME set: <code>{{ mail_settings.MAIL_USERNAME_set }}</code></li>
+        <li>MAIL_PASSWORD set: <code>{{ mail_settings.MAIL_PASSWORD_set }}</code></li>
+      </ul>
+    </div>
+
+    <p><a href="{{ url_for('admin_meetings') }}">← Back to Admin Meetings</a></p>
+  </main>
+  </body>
+  </html>

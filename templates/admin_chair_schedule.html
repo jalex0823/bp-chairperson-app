@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chair Schedule</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <style>
+    .day { margin: 1rem 0; }
+    .card { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.5rem; border-bottom: 1px solid #eee; text-align: left; }
+    .open { color: #b45309; font-weight: 600; }
+    .filled { color: #065f46; }
+  </style>
+  </head>
+<body>
+  <main class="container">
+    <h1>Chair Schedule</h1>
+    <p>
+      <a href="{{ url_for('admin_report_chair_schedule', format='csv') }}">Download CSV</a>
+      &nbsp;|&nbsp;
+      <a href="{{ url_for('admin_meetings') }}">Back to Admin Meetings</a>
+    </p>
+
+    {% for date, items in grouped.items() %}
+    <section class="day">
+      <div class="card">
+        <h2>{{ date }} ({{ items[0].weekday }})</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Start</th>
+              <th>Title</th>
+              <th>Chair Name</th>
+              <th>BP-ID</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in items %}
+            <tr>
+              <td>{{ r.start }}</td>
+              <td>{{ r.title }}</td>
+              <td>{{ r.chair_name or '—' }}</td>
+              <td>{{ r.bp_id or '—' }}</td>
+              <td>
+                {% if r.is_open %}
+                  <span class="open">Open</span>
+                {% else %}
+                  <span class="filled">Filled</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endfor %}
+
+  </main>
+  </body>
+  </html>

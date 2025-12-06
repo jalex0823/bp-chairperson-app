@@ -1,0 +1,50 @@
+:root {
+    --bp-green: #166534; /* A standard green, like Bootstrap's 'success' */
+    --bp-gold: #ca8a04;  /* A standard gold/yellow, like Bootstrap's 'warning' */
+    --bp-white: #ffffff;
+    --bp-light-gray: #f8f9fa;
+    --bp-dark-text: #212529;
+}
+
+body {
+    background-color: var(--bp-light-gray);
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.navbar.bg-bp-green {
+    background-color: var(--bp-green) !important;
+}
+
+.btn-gold {
+    color: var(--bp-dark-text);
+    background-color: var(--bp-gold);
+    border-color: var(--bp-gold);
+}
+
+.btn-gold:hover {
+    color: var(--bp-dark-text);
+    background-color: #eab308; /* A slightly lighter gold for hover */
+    border-color: #eab308;
+}
+
+.btn-outline-gold {
+    color: var(--bp-gold);
+    border-color: var(--bp-gold);
+}
+
+.btn-outline-gold:hover {
+    color: var(--bp-dark-text);
+    background-color: var(--bp-gold);
+    border-color: var(--bp-gold);
+}
+
+.card {
+    border: 1px solid #dee2e6;
+}
+
+.badge.bg-bp-green {
+    background-color: var(--bp-green) !important;
+}

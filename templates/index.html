@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1 class="mb-3">Back Porch Chairperson Calendar</h1>
+  <p class="text-muted">
+    Sign up to chair an upcoming Back Porch meeting. We suggest at least 90 days sober
+    and working with a sponsor. Thank you for your service.
+  </p>
+
+  <div class="mb-3">
+    <a href="{{ url_for('calendar_ics') }}" class="btn btn-outline-primary">
+      📅 Subscribe to Calendar (iCal)
+    </a>
+  </div>
+
+  {% if not meetings_by_date %}
+    <p>No upcoming meetings scheduled yet.</p>
+  {% else %}
+    {% for date_str, meetings in meetings_by_date.items() %}
+      <h3 class="mt-4 mb-3">{{ meetings[0].event_date.strftime('%A, %B %d, %Y') }}</h3>
+      <div class="row">
+        {% for m in meetings %}
+          <div class="col-md-6 mb-3">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">{{ m.title }}</h5>
+                <h6 class="card-subtitle mb-2 text-muted">
+                  {{ m.start_time.strftime('%I:%M %p') }}
+                  {% if m.end_time %}
+                    – {{ m.end_time.strftime('%I:%M %p') }}
+                  {% endif %}
+                </h6>
+
+                {% if m.description %}
+                  <p class="card-text">{{ m.description }}</p>
+                {% endif %}
+
+                <p class="mb-1">
+                  <strong>Chair:</strong>
+                  {% if m.chair_signup %}
+                    {{ m.chair_signup.display_name_snapshot }} ({{ m.chair_signup.user.bp_id }})
+                  {% else %}
+                    <span class="text-muted">No chair yet</span>
+                  {% endif %}
+                </p>
+
+                {% if m.is_open and not m.chair_signup %}
+                  <span class="badge bg-success">Chair Needed</span>
+                {% elif m.chair_signup %}
+                  <span class="badge bg-primary">Chaired</span>
+                {% else %}
+                  <span class="badge bg-secondary">Closed</span>
+                {% endif %}
+
+                <div class="mt-3">
+                  <a href="{{ url_for('meeting_detail', meeting_id=m.id) }}"
+                     class="btn btn-sm btn-primary">
+                    View / Chair This Meeting
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endblock %}
