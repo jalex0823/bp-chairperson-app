@@ -22,8 +22,13 @@ class Config:
         # Do not hard-code passwords; require via environment
         DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
 
+        # URL-encode user and password to safely handle special characters (e.g., ! @ : / ? #)
+        from urllib.parse import quote_plus
+        enc_user = quote_plus(DB_USER)
+        enc_password = quote_plus(DB_PASSWORD)
+
         SQLALCHEMY_DATABASE_URI = (
-            f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
+            f"mysql+pymysql://{enc_user}:{enc_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
         )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
