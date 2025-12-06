@@ -1,123 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1 class="mb-3">How Do I Host / Chair a Back Porch Meeting?</h1>
-
-  <p class="lead">
-    Chairperson resources, sign-up calendar, and guidelines for hosting meetings.
-  </p>
-
-  <hr>
-
-  <h3>Chairperson Sign-Up Calendar & Resources</h3>
-  <p>
-    It is suggested that a Back Porch chairperson:
-  </p>
-  <ul>
-    <li>Is a regular member of this group</li>
-    <li>Has at least 90 days of sobriety</li>
-    <li>Is actively working the steps with a sponsor</li>
-    <li>Signs up for a weekly meeting for at least four weeks (suggested)</li>
-  </ul>
-
-  <h3 class="mt-4">“I Want to Chair, but I Don’t Know if I Can...”</h3>
-  <p>
-    This technology can be daunting at first. Many of us were new to Zoom and online meetings.
-    It isn’t as hard as you may think. There are great tutorial videos to watch prior to
-    chairing your first meeting that will make it much more comfortable.
-  </p>
-
-  <ul>
-    <li>📄 <a href="#" target="_blank">Back Porch Meeting Format Guide</a></li>
-    <li>🛡️ <a href="#" target="_blank">Handling Meeting Disruptions</a></li>
-    <li>▶️ <a href="#" target="_blank">How to Host/Chair a Zoom Meeting (Video)</a></li>
-  </ul>
-
-  <hr>
-
-  <h3>Chairperson Sign-Up</h3>
-  <p>
-    Meetings should be opened <strong>15 minutes prior</strong> for fellowship.
-  </p>
-  <p>
-    Email <a href="mailto:backporchmeetings@outlook.com">backporchmeetings@outlook.com</a>
-    or text <a href="tel:17196961608">719-696-1608</a> if unable to access the Zoom room.
-  </p>
-  <p>
-    Confirmation emails are sent from our online sign-up system and include all items
-    necessary to chair.
-  </p>
+  <h2 class="mb-3">Chairperson Resources</h2>
+  <p class="text-muted">Guidelines and helpful tools for chairing Back Porch meetings.</p>
 
   <p class="mt-3">
     <a href="{{ url_for('index') }}" class="btn btn-primary">
       Go to Chairperson Sign-Up Calendar
     </a>
   </p>
-
-  <hr>
-
-  <h3>Chairperson Resources — Please Read</h3>
-  <p>
-    Your service is vital to the ongoing success of our meetings. Please:
-  </p>
-  <ul>
-    <li>Read the instructions on how to chair a meeting</li>
-    <li>Sign in and practice in advance, especially for your first few meetings</li>
-    <li>Read the resources on handling disruptions and practice using the tools</li>
-  </ul>
-  <p>
-    It is strongly suggested that each meeting elect a group admin or co-host to
-    manage participants while the meeting secretary runs the meeting.
-  </p>
-
-  <h3 class="mt-4">Zoom Bombing & Online Safety</h3>
-  <p>
-    Finding balance between our primary purpose and protecting the community is an ongoing
-    priority. Our resource <em>Handling Online Meeting Disruptions in the Moment</em> is meant
-    to help you keep going if your meeting gets “Zoombombed.”
-  </p>
-  <p>
-    While we cannot be 100% safe from internet trolls and remain accessible, we can reduce
-    risk with best practices:
-  </p>
-  <ul>
-    <li>🔒 Personal Anonymity Guidelines</li>
-    <li>⚙️ Default Settings for Protection</li>
-    <li>👥 Managing Meeting Participants in Zoom</li>
-  </ul>
-  <p>
-    Please rehearse these tools in practice meetings.
-  </p>
-
-  <hr>
-
-  <h3>Downloadable Resources (PDF)</h3>
-  <ul>
-    <li>📄 <a href="#" target="_blank">Handling Online Meeting Disruptions in the Moment</a></li>
-    <li>📄 <a href="#" target="_blank">Back Porch Meeting Chair How-To Guide for Zoom</a></li>
-    <li>📄 <a href="#" target="_blank">Modified Chairpersons Instructions</a></li>
-    <li>📄 <a href="#" target="_blank">Proposed Instructions for Chairpersons</a></li>
-    <li>📞 <a href="#" target="_blank">Emergency Contact Information</a></li>
-  </ul>
-
-  <h3 class="mt-4">Technical Support</h3>
-  <p>
-    Email: <a href="mailto:backporchmeetings@outlook.com">backporchmeetings@outlook.com</a><br>
-    Text: <a href="tel:17196961608">719-696-1608</a>
-  </p>
-  <p>
-    Contact immediately if unable to access the Zoom room.
-  </p>
-
-  <h3 class="mt-4">Essential Zoom Resources</h3>
-  <ul>
-    <li>🔒 <a href="#" target="_blank">Personal Anonymity Guidelines</a></li>
-    <li>⚙️ <a href="#" target="_blank">Default Settings for Protection</a></li>
-    <li>👥 <a href="#" target="_blank">Managing Meeting Participants</a></li>
-  </ul>
-{% extends 'base.html' %}
-{% block content %}
-  <h2 class="mb-3">Chairperson Resources</h2>
-  <p class="text-muted">Guidelines and helpful tools for chairing Back Porch meetings.</p>
 
   <div class="card mb-4">
     <div class="card-header">Reference PDFs</div>
@@ -127,7 +17,6 @@
           {% for p in pdfs %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
               <span>
-                <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
                 {{ p.name }}
               </span>
               <span>

@@ -11,7 +11,7 @@ from flask_wtf import FlaskForm
 from flask_mail import Mail, Message
 from wtforms import (
     StringField, TextAreaField, BooleanField,
-    DateField, TimeField, PasswordField, SubmitField, IntegerField
+    DateField, TimeField, PasswordField, SubmitField, IntegerField, RadioField
 )
 from wtforms.validators import (
     DataRequired, Optional, Email, Length, NumberRange
@@ -176,7 +176,6 @@ class RegisterForm(FlaskForm):
         validators=[DataRequired(message="Please confirm you have read and agree to the guidelines.")]
     )
     # Gender selection for meeting restrictions
-    from wtforms import RadioField
     gender = RadioField(
         "Gender",
         choices=[('male','Male'),('female','Female')],
@@ -622,7 +621,8 @@ def register():
                         valid_codes.add(c)
             if provided_code not in valid_codes:
                 flash("Invalid access code.", "danger")
-                return render_template("register.html", form=form)
+                access_codes_configured = True
+                return render_template("register.html", form=form, access_codes_configured=access_codes_configured)
         existing = User.query.filter_by(email=form.email.data.lower().strip()).first()
         if existing:
             flash("An account with that email already exists.", "danger")
@@ -642,7 +642,15 @@ def register():
             flash("Chairperson account created. Thank you for your service!", "success")
             next_url = request.args.get("next") or url_for("index")
             return redirect(next_url)
-    return render_template("register.html", form=form)
+    # Provide flag to template so it can lock inputs until a code is entered
+    access_codes_configured = bool(app.config.get('REGISTRATION_ACCESS_CODE') or app.config.get('REGISTRATION_ACCESS_CODES'))
+    try:
+        return render_template("register.html", form=form, access_codes_configured=access_codes_configured)
+    except Exception as e:
+        import traceback
+        print("Register page render error:")
+        print(traceback.format_exc())
+        return f"Register page error: {e}", 500
 
 
 @app.route("/login", methods=["GET", "POST"])

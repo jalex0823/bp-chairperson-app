@@ -26,8 +26,8 @@
       <div class="card h-100">
         <div class="card-body">
           <h5 class="card-title">Sign Up to Chair</h5>
+          <a href="{{ url_for('calendar_view') }}" class="btn btn-primary align-self-start mb-2">Go to Calendar</a>
           <p class="card-text text-muted">Browse the calendar and claim a meeting. Your service matters.</p>
-          <a href="{{ url_for('calendar_view') }}" class="btn btn-primary">Go to Calendar</a>
         </div>
       </div>
     </div>
@@ -35,8 +35,8 @@
       <div class="card h-100">
         <div class="card-body">
           <h5 class="card-title">Today’s Meetings</h5>
+          <a href="{{ url_for('meetings_today') }}" class="btn btn-secondary align-self-start mb-2">View Today</a>
           <p class="card-text text-muted">See what’s on today and who’s hosting right now.</p>
-          <a href="{{ url_for('meetings_today') }}" class="btn btn-secondary">View Today</a>
         </div>
       </div>
     </div>
@@ -44,8 +44,8 @@
       <div class="card h-100">
         <div class="card-body">
           <h5 class="card-title">Chair Resources</h5>
+          <a href="{{ url_for('chair_resources') }}" class="btn btn-outline-gold align-self-start mb-2">Open Resources</a>
           <p class="card-text text-muted">Guidelines and downloadable PDFs for chairing with confidence.</p>
-          <a href="{{ url_for('chair_resources') }}" class="btn btn-outline-gold">Open Resources</a>
         </div>
       </div>
     </div>

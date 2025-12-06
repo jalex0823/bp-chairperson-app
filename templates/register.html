@@ -1,16 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2>Create Back Porch Chairperson Account</h2>
   <div class="container py-4">
-    <h2 class="mb-3">Register</h2>
-    {% with messages = get_flashed_messages() %}
+    <h2 class="mb-3">Create Back Porch Chairperson Account</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div class="alert alert-warning">{{ messages[0] }}</div>
+        {% for category, msg in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
       {% endif %}
     {% endwith %}
 
     <form id="registerForm" method="POST" action="{{ url_for('register') }}">
       {{ form.hidden_tag() }}
+
       {% if access_codes_configured %}
       <div class="mb-3">
         <label for="access_code" class="form-label">Access Code</label>
@@ -21,8 +27,8 @@
 
       <fieldset id="regFields">
         <div class="mb-3">
-          {{ form.username.label(class_='form-label') }}
-          {{ form.username(class_='form-control') }}
+          {{ form.display_name.label(class_='form-label') }}
+          {{ form.display_name(class_='form-control') }}
         </div>
         <div class="mb-3">
           {{ form.email.label(class_='form-label') }}
@@ -33,22 +39,21 @@
           {{ form.password(class_='form-control') }}
         </div>
         <div class="mb-3">
-          {{ form.confirm.label(class_='form-label') }}
-          {{ form.confirm(class_='form-control') }}
+          {{ form.sobriety_days.label(class_='form-label') }}
+          {{ form.sobriety_days(class_='form-control') }}
         </div>
         <div class="mb-3">
           {{ form.gender.label(class_='form-label') }}
-          {{ form.gender(class_='form-select') }}
-          <div class="form-text">Your gender helps determine eligibility for certain meetings.</div>
+          {{ form.gender(class_='form-control') }}
+          <div class="form-text">Used to determine eligibility for Men-only or Women-only meetings.</div>
         </div>
-        <div class="mb-3">
-          {{ form.display_name.label(class_='form-label') }}
-          {{ form.display_name(class_='form-control') }}
-          <div class="form-text">Optional: a friendly name shown on the calendar instead of your full username.</div>
+        <div class="mb-3 form-check">
+          {{ form.agreed_guidelines(class_='form-check-input', id='agreed_guidelines') }}
+          <label class="form-check-label" for="agreed_guidelines">{{ form.agreed_guidelines.label.text }}</label>
         </div>
       </fieldset>
 
-      <button id="submitBtn" type="submit" class="btn btn-primary">Create Account</button>
+      {{ form.submit(class_='btn btn-primary', id='submitBtn') }}
     </form>
 
     <script>
@@ -66,7 +71,6 @@
           if (submitBtn) submitBtn.disabled = locked;
         }
 
-        // On load: if access is configured, lock until a non-empty code is entered.
         if (accessConfigured) {
           setLockedState(true);
           if (accessInput) {
@@ -75,24 +79,12 @@
               setLockedState(!hasCode);
             };
             accessInput.addEventListener('input', toggle);
-            // Initialize once in case browser restores value
             toggle();
           }
         } else {
-          // No access code required; keep form enabled
           setLockedState(false);
         }
       })();
     </script>
   </div>
-        {{ form.gender(class="form-check-input", value='male') }}
-        <label class="form-check-label me-3">Male</label>
-        {{ form.gender(class="form-check-input", value='female') }}
-        <label class="form-check-label">Female</label>
-      </div>
-      <div class="form-text">Used to determine eligibility for Men-only or Women-only meetings.</div>
-    </div>
-
-    {{ form.submit(class="btn btn-primary") }}
-  </form>
 {% endblock %}
