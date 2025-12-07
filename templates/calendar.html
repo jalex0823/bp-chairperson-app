@@ -262,22 +262,40 @@ async function openDayModal(dateStr) {
   try {
     const resp = await fetch(`/api/day-meetings?date=${encodeURIComponent(dateStr)}`);
     const data = await resp.json();
+    
+    let html = '';
+    
     if (!data.meetings || data.meetings.length === 0) {
-      modalBody.innerHTML = '<div class="alert alert-info">No meetings scheduled for this day.</div>';
-      return;
+      html = `<div class="alert alert-info">
+        <h6>No meetings scheduled for this day</h6>
+        <p class="mb-2">Would you like to volunteer to chair a meeting if one gets scheduled for this date?</p>
+        <a href="/volunteer-date/${dateStr}" class="btn btn-primary btn-sm">
+          <i class="fas fa-hand"></i> Volunteer to Chair
+        </a>
+      </div>`;
+    } else {
+      html = '<ul class="list-group mb-3">';
+      for (const m of data.meetings) {
+        const takenClass = (!m.is_open) ? ' taken' : '';
+        html += `<li class="list-group-item d-flex justify-content-between align-items-start${takenClass}">
+          <div>
+            <div class="fw-bold">${m.time} • ${m.title}</div>
+            <div class="small text-muted">` + (m.chair_name ? `Chair: ${m.chair_name}` : 'No chair yet') + `</div>
+          </div>
+          <div class="text-nowrap">` + (m.is_open ? `<button class="btn btn-sm btn-outline-success" onclick="claimMeeting(${m.id})">Claim</button>` : `<button class="btn btn-sm btn-outline-secondary" disabled title="Chair: ${m.chair_name || ''}">🔒 Taken</button>`) + `</div>
+        </li>`;
+      }
+      html += '</ul>';
+      
+      // Add volunteer option even when meetings exist
+      html += `<div class="border-top pt-3">
+        <h6 class="text-muted">Available for additional meetings?</h6>
+        <a href="/volunteer-date/${dateStr}" class="btn btn-outline-primary btn-sm">
+          <i class="fas fa-plus"></i> Volunteer for More Meetings
+        </a>
+      </div>`;
     }
-    let html = '<ul class="list-group">';
-    for (const m of data.meetings) {
-      const takenClass = (!m.is_open) ? ' taken' : '';
-      html += `<li class="list-group-item d-flex justify-content-between align-items-start${takenClass}">
-        <div>
-          <div class="fw-bold">${m.time} • ${m.title}</div>
-          <div class="small text-muted">` + (m.chair_name ? `Chair: ${m.chair_name}` : 'No chair yet') + `</div>
-        </div>
-        <div class="text-nowrap">` + (m.is_open ? `<button class="btn btn-sm btn-outline-success" onclick="claimMeeting(${m.id})">Claim</button>` : `<button class="btn btn-sm btn-outline-secondary" disabled title="Chair: ${m.chair_name || ''}">🔒 Taken</button>`) + `</div>
-      </li>`;
-    }
-    html += '</ul>';
+    
     modalBody.innerHTML = html;
   } catch (e) {
     modalBody.innerHTML = '<div class="alert alert-danger">Failed to load meetings.</div>';

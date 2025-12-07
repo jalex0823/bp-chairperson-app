@@ -43,6 +43,10 @@ class Config:
 
     # Scheduler configuration
     SCHEDULER_API_ENABLED = True
+    
+    # CSRF configuration
+    WTF_CSRF_ENABLED = os.environ.get("WTF_CSRF_ENABLED", "True").lower() == "true"
+    WTF_CSRF_TIME_LIMIT = int(os.environ.get("WTF_CSRF_TIME_LIMIT", 3600))  # 1 hour
 
     # Registration gating
     REGISTRATION_ENABLED = os.environ.get("REGISTRATION_ENABLED", "True").lower() == "true"

@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-bar"></i> Analytics Dashboard</h2>
+    <div>
+      <button class="btn btn-outline-secondary btn-sm" onclick="refreshCharts()">
+        <i class="fas fa-sync-alt"></i> Refresh Data
+      </button>
+      <a href="{{ url_for('admin_meetings') }}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-arrow-left"></i> Back to Meetings
+      </a>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3 mb-3">
+      <div class="card bg-primary text-white h-100">
+        <div class="card-body text-center">
+          <i class="fas fa-calendar-check fa-2x mb-2"></i>
+          <h3 class="mb-1">{{ total_meetings }}</h3>
+          <small>Total Meetings</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card bg-success text-white h-100">
+        <div class="card-body text-center">
+          <i class="fas fa-users fa-2x mb-2"></i>
+          <h3 class="mb-1">{{ active_chairpersons }}</h3>
+          <small>Active Chairpersons</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card bg-warning text-dark h-100">
+        <div class="card-body text-center">
+          <i class="fas fa-percentage fa-2x mb-2"></i>
+          <h3 class="mb-1">{{ coverage_percentage }}%</h3>
+          <small>Meeting Coverage</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card bg-info text-white h-100">
+        <div class="card-body text-center">
+          <i class="fas fa-clock fa-2x mb-2"></i>
+          <h3 class="mb-1">{{ avg_signup_time }}</h3>
+          <small>Avg. Signup Time</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-chart-line"></i> Meeting Attendance Trends</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="attendanceTrendsChart" width="400" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="fas fa-pie-chart"></i> Meeting Types</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="meetingTypesChart" width="400" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 -->
+  <div class="row mb-4">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0"><i class="fas fa-clock"></i> Popular Time Slots</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="timeSlotChart" width="400" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="fas fa-calendar-week"></i> Weekly Distribution</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="weeklyDistributionChart" width="400" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Tables -->
+  <div class="row">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="mb-0"><i class="fas fa-trophy"></i> Top Chairpersons</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>Chairperson</th>
+                  <th>Meetings</th>
+                  <th>This Month</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for chair in top_chairpersons %}
+                <tr>
+                  <td>{{ chair.display_name }}</td>
+                  <td><span class="badge bg-primary">{{ chair.total_meetings }}</span></td>
+                  <td><span class="badge bg-success">{{ chair.this_month }}</span></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Meetings Needing Chairs</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>Date</th>
+                  <th>Meeting</th>
+                  <th>Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for meeting in uncovered_meetings %}
+                <tr>
+                  <td>{{ meeting.event_date.strftime('%m/%d') }}</td>
+                  <td>
+                    <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}">
+                      {{ meeting.title }}
+                    </a>
+                  </td>
+                  <td>
+                    <span class="badge {{ meeting.type_badge_class }}">
+                      <i class="{{ meeting.type_icon }}"></i> {{ meeting.meeting_type }}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Chart configuration and data
+const chartData = {
+  attendanceTrends: {{ attendance_trends_data | safe }},
+  meetingTypes: {{ meeting_types_data | safe }},
+  timeSlots: {{ time_slots_data | safe }},
+  weeklyDistribution: {{ weekly_distribution_data | safe }}
+};
+
+// Chart.js default configuration
+Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
+Chart.defaults.color = '#6c757d';
+
+// Attendance Trends Chart
+const attendanceTrendsCtx = document.getElementById('attendanceTrendsChart').getContext('2d');
+const attendanceTrendsChart = new Chart(attendanceTrendsCtx, {
+  type: 'line',
+  data: {
+    labels: chartData.attendanceTrends.labels,
+    datasets: [{
+      label: 'Meetings Covered',
+      data: chartData.attendanceTrends.covered,
+      borderColor: '#0f6f75',
+      backgroundColor: 'rgba(15, 111, 117, 0.1)',
+      tension: 0.4,
+      fill: true
+    }, {
+      label: 'Total Meetings',
+      data: chartData.attendanceTrends.total,
+      borderColor: '#f7b733',
+      backgroundColor: 'rgba(247, 183, 51, 0.1)',
+      tension: 0.4,
+      fill: false
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  }
+});
+
+// Meeting Types Pie Chart
+const meetingTypesCtx = document.getElementById('meetingTypesChart').getContext('2d');
+const meetingTypesChart = new Chart(meetingTypesCtx, {
+  type: 'doughnut',
+  data: {
+    labels: chartData.meetingTypes.labels,
+    datasets: [{
+      data: chartData.meetingTypes.data,
+      backgroundColor: ['#0f6f75', '#f7b733', '#dc3545', '#17a2b8'],
+      borderWidth: 2,
+      borderColor: '#ffffff'
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'bottom'
+      }
+    }
+  }
+});
+
+// Time Slots Chart
+const timeSlotsCtx = document.getElementById('timeSlotChart').getContext('2d');
+const timeSlotsChart = new Chart(timeSlotsCtx, {
+  type: 'bar',
+  data: {
+    labels: chartData.timeSlots.labels,
+    datasets: [{
+      label: 'Number of Meetings',
+      data: chartData.timeSlots.data,
+      backgroundColor: '#0f6f75',
+      borderColor: '#0b5257',
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  }
+});
+
+// Weekly Distribution Chart
+const weeklyDistributionCtx = document.getElementById('weeklyDistributionChart').getContext('2d');
+const weeklyDistributionChart = new Chart(weeklyDistributionCtx, {
+  type: 'radar',
+  data: {
+    labels: chartData.weeklyDistribution.labels,
+    datasets: [{
+      label: 'Meetings per Day',
+      data: chartData.weeklyDistribution.data,
+      backgroundColor: 'rgba(15, 111, 117, 0.2)',
+      borderColor: '#0f6f75',
+      borderWidth: 2,
+      pointBackgroundColor: '#0f6f75',
+      pointBorderColor: '#ffffff',
+      pointBorderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false
+      }
+    },
+    scales: {
+      r: {
+        beginAtZero: true
+      }
+    }
+  }
+});
+
+// Refresh function
+function refreshCharts() {
+  window.location.reload();
+}
+
+// Add smooth animations
+document.addEventListener('DOMContentLoaded', function() {
+  // Animate cards on load
+  const cards = document.querySelectorAll('.card');
+  cards.forEach((card, index) => {
+    setTimeout(() => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(20px)';
+      card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      
+      setTimeout(() => {
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, 50);
+    }, index * 100);
+  });
+});
+</script>
+
+<style>
+.card {
+  transition: transform 0.2s ease-in-out;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.table th {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.badge {
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .container-fluid {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  
+  .card-body canvas {
+    height: 250px !important;
+  }
+}
+</style>
+{% endblock %}

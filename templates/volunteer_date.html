@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-calendar-plus"></i>
+                        Volunteer to Chair — {{ date.strftime('%A, %B %d, %Y') }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if existing_availability %}
+                        <div class="alert alert-info" role="alert">
+                            <h5><i class="fas fa-check-circle"></i> Already Volunteered</h5>
+                            <p class="mb-1">You have already volunteered to chair a meeting on this date.</p>
+                            <small class="text-muted">
+                                Time preference: {{ existing_availability.time_preference.title() }} | 
+                                Signed up: {{ existing_availability.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                            </small>
+                        </div>
+                    {% endif %}
+
+                    {% if meetings %}
+                        <div class="alert alert-warning" role="alert">
+                            <h6><i class="fas fa-calendar"></i> Existing Meetings on This Date</h6>
+                            <p class="mb-2">There are already {{ meetings|length }} meeting(s) scheduled for this date:</p>
+                            <ul class="mb-0">
+                                {% for meeting in meetings %}
+                                <li>
+                                    <strong>{{ meeting.title }}</strong> - {{ meeting.start_time.strftime('%I:%M %p') }}
+                                    {% if meeting.chair_signup %}
+                                        <span class="text-success">(Chair: {{ meeting.chair_signup.display_name_snapshot }})</span>
+                                    {% else %}
+                                        <span class="text-muted">(No chair yet)</span>
+                                        <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" class="btn btn-sm btn-outline-primary ms-2">Sign Up</a>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if not existing_availability %}
+                        <div class="mb-4">
+                            <h5>Express Your Interest</h5>
+                            <p class="text-muted">
+                                By volunteering, you're indicating your willingness to chair a meeting on this date. 
+                                {% if meetings %}
+                                You can still volunteer even though meetings exist - this helps us know you're available for additional meetings or as backup.
+                                {% else %}
+                                If a meeting gets scheduled for this date, we'll let you know and you'll receive a reminder email.
+                                {% endif %}
+                            </p>
+                        </div>
+
+                        <form method="POST">
+                            {{ form.hidden_tag() }}
+                            
+                            <div class="mb-3">
+                                {{ form.time_preference.label(class="form-label fw-bold") }}
+                                <div class="mt-2">
+                                    {% for subfield in form.time_preference %}
+                                        <div class="form-check">
+                                            {{ subfield(class="form-check-input") }}
+                                            {{ subfield.label(class="form-check-label") }}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                {% if form.time_preference.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.time_preference.errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.notes.label(class="form-label fw-bold") }}
+                                {{ form.notes(class="form-control", rows="3", placeholder="Any additional notes about your availability...") }}
+                                {% if form.notes.description %}
+                                    <small class="form-text text-muted">{{ form.notes.description }}</small>
+                                {% endif %}
+                                {% if form.notes.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.notes.errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                {{ form.submit(class="btn btn-primary") }}
+                                <a href="{{ url_for('calendar_view') }}" class="btn btn-secondary">Cancel</a>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('calendar_view') }}" class="btn btn-primary">Back to Calendar</a>
+                            <a href="{{ url_for('profile') }}" class="btn btn-outline-primary">View My Signups</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card-header {
+    background: linear-gradient(135deg, #007bff, #0056b3) !important;
+}
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+}
+.alert-info {
+    background-color: #e7f3ff;
+    color: #004085;
+}
+.alert-warning {
+    background-color: #fff8e1;
+    color: #856404;
+}
+.form-check {
+    padding: 0.5rem 0;
+}
+.form-check-label {
+    font-weight: normal;
+    margin-left: 0.5rem;
+}
+</style>
+{% endblock %}

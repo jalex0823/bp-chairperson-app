@@ -36,6 +36,18 @@
           <strong>{{ meeting.chair_signup.display_name_snapshot }} ({{ meeting.chair_signup.user.bp_id }})</strong><br>
           <small class="text-muted">Thank you for your service!</small>
         </p>
+        
+        {% if user and meeting.chair_signup.user_id == user.id %}
+          <div class="alert alert-success d-flex align-items-center">
+            <i class="fas fa-check-circle me-2"></i>
+            <div class="flex-grow-1">
+              <strong>You are chairing this meeting!</strong>
+            </div>
+            <a href="{{ url_for('google_calendar_add', meeting_id=meeting.id) }}" class="btn btn-sm btn-primary ms-2" target="_blank">
+              <i class="fab fa-google"></i> Add to Google Calendar
+            </a>
+          </div>
+        {% endif %}
       {% else %}
         <p>No one has signed up to chair this meeting yet.</p>
       {% endif %}

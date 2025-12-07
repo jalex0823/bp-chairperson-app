@@ -1,51 +1,433 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container my-4">
-  <div class="d-flex justify-content-between align-items-center">
-    <h1 class="mb-0">Your Dashboard</h1>
-    <div>
-      <a class="btn btn-outline-primary" href="{{ url_for('profile') }}">Edit Profile</a>
-      <a class="btn btn-outline-secondary" href="{{ url_for('calendar_view') }}">Interactive Calendar</a>
-      <a class="btn btn-outline-secondary" href="{{ url_for('calendar_display') }}">Display Calendar</a>
+<div class="container-fluid py-4">
+  
+  <!-- PWA Install Banner -->
+  <div id="install-banner" class="alert alert-info alert-dismissible fade show d-none" role="alert">
+    <div class="d-flex align-items-center">
+      <i class="fas fa-mobile-alt me-2"></i>
+      <div class="flex-grow-1">
+        <strong>Install App:</strong> Add this to your home screen for quick access!
+      </div>
+      <button id="install-button" class="btn btn-outline-primary btn-sm me-2">Install</button>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
   </div>
 
-  <div class="mt-4">
-    <h5>Profile</h5>
-    <p>
-      <strong>Name:</strong> {{ user.display_name }}<br>
-      <strong>Email:</strong> {{ user.email }}<br>
-      <strong>Gender:</strong> {{ user.gender or '—' }}
-    </p>
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="mb-1">Welcome back, {{ user.display_name }}!</h1>
+          <p class="text-muted mb-0">{{ "Saturday" if today.weekday() == 5 else "Sunday" if today.weekday() == 6 else "Monday" if today.weekday() == 0 else "Tuesday" if today.weekday() == 1 else "Wednesday" if today.weekday() == 2 else "Thursday" if today.weekday() == 3 else "Friday" }}, {{ today.strftime('%B %d, %Y') }}</p>
+        </div>
+        <div class="d-flex gap-2">
+          <a class="btn btn-outline-primary" href="{{ url_for('calendar_view') }}">
+            <i class="fas fa-calendar"></i> Calendar
+          </a>
+          <a class="btn btn-outline-secondary" href="{{ url_for('profile') }}">
+            <i class="fas fa-user"></i> Profile
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="mt-4">
-    <h5>Your Upcoming Meetings (as Chair)</h5>
-    {% if my_meetings %}
-      <ul class="list-group">
-        {% for m in my_meetings %}
-          <li class="list-group-item d-flex justify-content-between align-items-start">
+  <!-- Quick Stats Row -->
+  <div class="row mb-4">
+    <div class="col-md-3 mb-3">
+      <div class="card bg-primary text-white h-100">
+        <div class="card-body text-center">
+          <i class="fas fa-calendar-check fa-2x mb-2"></i>
+          <h3 class="mb-1">{{ upcoming_commitments }}</h3>
+          <small>Upcoming Meetings</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card bg-success text-white h-100">
+        <div class="card-body text-center">
+          <i class="fas fa-trophy fa-2x mb-2"></i>
+          <h3 class="mb-1">{{ total_meetings_chaired }}</h3>
+          <small>Total Meetings Chaired</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card bg-warning text-white h-100">
+        <div class="card-body text-center">
+          <i class="fas fa-hand fa-2x mb-2"></i>
+          <h3 class="mb-1">{{ volunteer_signups }}</h3>
+          <small>Volunteer Signups</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card bg-info text-white h-100">
+        <div class="card-body text-center">
+          <i class="fas fa-chart-line fa-2x mb-2"></i>
+          <h3 class="mb-1">{{ recent_meetings_count }}</h3>
+          <small>Recent Service (30 days)</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Row -->
+  <div class="row">
+    
+    <!-- Left Column -->
+    <div class="col-lg-8">
+      
+      <!-- Today's Meetings -->
+      {% if todays_meetings %}
+      <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0"><i class="fas fa-star"></i> Today's Meetings</h5>
+        </div>
+        <div class="card-body">
+          {% for meeting in todays_meetings %}
+          <div class="alert alert-warning d-flex justify-content-between align-items-center mb-3">
             <div>
-              <div class="fw-bold">{{ m.event_date.strftime('%A, %B %d, %Y') }} • {{ m.start_time.strftime('%I:%M %p') }}</div>
-              <div>{{ m.title }}</div>
+              <h6 class="mb-1">
+                <i class="fas fa-clock"></i> {{ meeting.start_time.strftime('%I:%M %p') }} - {{ meeting.title }}
+                <span class="badge {{ meeting.type_badge_class }} ms-2">
+                  <i class="{{ meeting.type_icon }}"></i> {{ meeting.meeting_type }}
+                </span>
+              </h6>
+              <p class="mb-1">{{ meeting.description or 'No description' }}</p>
+              <small class="text-muted">Duration: {% if meeting.end_time %}{{ ((meeting.end_time.hour * 60 + meeting.end_time.minute) - (meeting.start_time.hour * 60 + meeting.start_time.minute)) // 60 }}h {{ ((meeting.end_time.hour * 60 + meeting.end_time.minute) - (meeting.start_time.hour * 60 + meeting.start_time.minute)) % 60 }}m{% else %}Not specified{% endif %}</small>
             </div>
             <div class="text-nowrap">
-              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('meeting_detail', meeting_id=m.id) }}">Details</a>
+              {% if meeting.zoom_link %}
+                <a href="{{ meeting.zoom_link }}" target="_blank" class="btn btn-success btn-sm me-2">
+                  <i class="fas fa-video"></i> Join Now
+                </a>
+              {% endif %}
+              <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" class="btn btn-outline-primary btn-sm">
+                Details
+              </a>
             </div>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <div class="alert alert-info">You haven't claimed any meetings yet.</div>
-    {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Next Meeting Countdown -->
+      {% if next_meeting and days_until_next is not none %}
+      <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-clock"></i> Next Meeting</h5>
+        </div>
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h6 class="mb-1">
+                {{ next_meeting.title }}
+                <span class="badge {{ next_meeting.type_badge_class }} ms-2">
+                  <i class="{{ next_meeting.type_icon }}"></i> {{ next_meeting.meeting_type }}
+                </span>
+              </h6>
+              <p class="mb-1">{{ next_meeting.event_date.strftime('%A, %B %d, %Y') }} at {{ next_meeting.start_time.strftime('%I:%M %p') }}</p>
+              <small class="text-muted">{{ next_meeting.description or 'No description' }}</small>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="bg-light rounded p-3">
+                <h4 class="mb-0 text-primary">{% if days_until_next == 0 %}TODAY{% elif days_until_next == 1 %}TOMORROW{% else %}{{ days_until_next }} DAYS{% endif %}</h4>
+                <small class="text-muted">{% if days_until_next == 0 %}It's today!{% elif days_until_next == 1 %}Almost here{% else %}to go{% endif %}</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Upcoming Meetings -->
+      <div class="card mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Upcoming Commitments</h5>
+          {% if upcoming_commitments > 5 %}
+            <span class="badge bg-light text-dark">Showing 5 of {{ upcoming_commitments }}</span>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          {% if upcoming_meetings %}
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Meeting</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for meeting in upcoming_meetings %}
+                  <tr>
+                    <td>
+                      <strong>{{ meeting.event_date.strftime('%a, %b %d') }}</strong><br>
+                      <small class="text-muted">{{ meeting.event_date.strftime('%Y') }}</small>
+                    </td>
+                    <td>
+                      <strong>{{ meeting.start_time.strftime('%I:%M %p') }}</strong>
+                      {% if meeting.end_time %}
+                        <br><small class="text-muted">{{ meeting.end_time.strftime('%I:%M %p') }}</small>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <strong>{{ meeting.title }}</strong>
+                      {% if meeting.description %}
+                        <br><small class="text-muted">{{ meeting.description }}</small>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <span class="badge {{ meeting.type_badge_class }}">
+                        <i class="{{ meeting.type_icon }}"></i> {{ meeting.meeting_type }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm">
+                        {% if meeting.zoom_link %}
+                          <a href="{{ meeting.zoom_link }}" target="_blank" class="btn btn-outline-success" title="Join Zoom">
+                            <i class="fas fa-video"></i>
+                          </a>
+                        {% endif %}
+                        <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" class="btn btn-outline-primary" title="View Details">
+                          <i class="fas fa-eye"></i>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% if upcoming_commitments > 5 %}
+              <div class="text-center mt-3">
+                <a href="{{ url_for('profile') }}" class="btn btn-outline-primary btn-sm">
+                  View All Commitments
+                </a>
+              </div>
+            {% endif %}
+          {% else %}
+            <div class="text-center py-4">
+              <i class="fas fa-calendar-plus fa-3x text-muted mb-3"></i>
+              <h6>No upcoming meetings</h6>
+              <p class="text-muted mb-3">Ready to serve? Sign up for meetings or volunteer for dates.</p>
+              <a href="{{ url_for('calendar_view') }}" class="btn btn-primary">
+                <i class="fas fa-calendar"></i> Browse Calendar
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+      
+      <!-- Quick Actions -->
+      <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+          <h6 class="mb-0"><i class="fas fa-bolt"></i> Quick Actions</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <a href="{{ url_for('calendar_view') }}" class="btn btn-outline-primary">
+              <i class="fas fa-calendar-plus"></i> Sign Up for Meeting
+            </a>
+            <a href="{{ url_for('chair_resources') }}" class="btn btn-outline-info">
+              <i class="fas fa-book"></i> Chairperson Resources
+            </a>
+            <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary">
+              <i class="fas fa-user-edit"></i> Edit Profile
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Volunteer Availability -->
+      {% if upcoming_availability %}
+      <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="mb-0"><i class="fas fa-hand"></i> Your Volunteer Dates</h6>
+        </div>
+        <div class="card-body">
+          {% for availability in upcoming_availability %}
+          <div class="mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+            <h6 class="mb-1">{{ availability.volunteer_date.strftime('%a, %b %d') }}</h6>
+            <small class="text-muted">
+              <i class="fas fa-clock"></i> {{ availability.time_preference.title() }}
+              {% if availability.notes %}
+              <br><i class="fas fa-sticky-note"></i> {{ availability.notes }}
+              {% endif %}
+            </small>
+          </div>
+          {% endfor %}
+          {% if volunteer_signups > 3 %}
+            <a href="{{ url_for('profile') }}" class="btn btn-sm btn-outline-warning">
+              View All {{ volunteer_signups }} Signups
+            </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Recent Activity -->
+      {% if past_meetings %}
+      <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+          <h6 class="mb-0"><i class="fas fa-history"></i> Recent Service</h6>
+        </div>
+        <div class="card-body">
+          {% for meeting in past_meetings %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <small class="fw-bold">{{ meeting.title }}</small><br>
+              <small class="text-muted">{{ meeting.event_date.strftime('%b %d') }}</small>
+            </div>
+            <span class="badge bg-success">✓</span>
+          </div>
+          {% endfor %}
+          <div class="text-center mt-3">
+            <a href="{{ url_for('profile') }}" class="btn btn-sm btn-outline-secondary">
+              View Full History
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Admin Quick Access -->
+      {% if current_user and current_user.is_admin %}
+      <div class="card mb-4 border-danger">
+        <div class="card-header bg-danger text-white">
+          <h6 class="mb-0"><i class="fas fa-shield-alt"></i> Admin Tools</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <a class="btn btn-outline-danger btn-sm" href="{{ url_for('admin_meetings') }}">
+              <i class="fas fa-cogs"></i> Manage Meetings
+            </a>
+            <a class="btn btn-outline-danger btn-sm" href="{{ url_for('admin_monthly_html') }}">
+              <i class="fas fa-chart-bar"></i> Monthly Report
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
   </div>
 
-  {% if current_user and current_user.is_admin %}
-  <div class="mt-4">
-    <h5>Admin Shortcuts</h5>
-    <a class="btn btn-sm btn-outline-danger" href="{{ url_for('admin_meetings') }}">Manage Meetings</a>
-    <a class="btn btn-sm btn-outline-danger" href="{{ url_for('admin_monthly_html') }}">Monthly Report</a>
-  </div>
-  {% endif %}
 </div>
+
+<!-- Add some custom styles -->
+<style>
+.card {
+  transition: transform 0.2s ease-in-out;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.bg-primary { background-color: #007bff !important; }
+.bg-success { background-color: #28a745 !important; }
+.bg-warning { background-color: #ffc107 !important; }
+.bg-info { background-color: #17a2b8 !important; }
+.bg-danger { background-color: #dc3545 !important; }
+
+.btn-group-sm > .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .container-fluid {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  
+  .d-flex.gap-2 {
+    flex-direction: column;
+  }
+  
+  .d-flex.gap-2 .btn {
+    margin-bottom: 0.5rem;
+  }
+}
+</style>
+
+<!-- Add keyboard shortcuts -->
+<script>
+document.addEventListener('keydown', function(e) {
+  // Ctrl+C for Calendar
+  if (e.ctrlKey && e.key === 'c' && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    window.location.href = "{{ url_for('calendar_view') }}";
+  }
+  
+  // Ctrl+P for Profile
+  if (e.ctrlKey && e.key === 'p' && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    window.location.href = "{{ url_for('profile') }}";
+  }
+  
+  // Ctrl+H for Home/Dashboard
+  if (e.ctrlKey && e.key === 'h' && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    window.location.href = "{{ url_for('dashboard') }}";
+  }
+});
+
+// PWA Install Prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').classList.remove('d-none');
+});
+
+document.getElementById('install-button').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  
+  if (outcome === 'accepted') {
+    document.getElementById('install-banner').style.display = 'none';
+  }
+  
+  deferredPrompt = null;
+});
+
+// Hide banner if already installed
+if (window.matchMedia('(display-mode: standalone)').matches) {
+  document.getElementById('install-banner').style.display = 'none';
+}
+
+// Add keyboard shortcuts help
+document.addEventListener('DOMContentLoaded', function() {
+  // Add a small help indicator
+  const helpHtml = `
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1000;">
+      <small class="text-muted">
+        <i class="fas fa-keyboard"></i> 
+        <strong>Shortcuts:</strong> Ctrl+C (Calendar), Ctrl+P (Profile), Ctrl+H (Home)
+      </small>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', helpHtml);
+});
+</script>
 {% endblock %}

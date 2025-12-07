@@ -1,9 +1,15 @@
 from datetime import datetime, date, timedelta
 from functools import wraps
+import json
+import os
+import hashlib
+import secrets
+from datetime import timezone
+import time
 
 from flask import (
     Flask, render_template, redirect, url_for,
-    request, flash, session, make_response, jsonify
+    request, flash, session, make_response, jsonify, abort, g
 )
 from flask import send_from_directory
 from flask_sqlalchemy import SQLAlchemy
@@ -11,25 +17,34 @@ from flask_wtf import FlaskForm
 from flask_mail import Mail, Message
 from wtforms import (
     StringField, TextAreaField, BooleanField,
-    DateField, TimeField, PasswordField, SubmitField, IntegerField, RadioField
+    DateField, TimeField, PasswordField, SubmitField, IntegerField, RadioField, SelectField
 )
 from wtforms.validators import (
     DataRequired, Optional, Email, Length, NumberRange
 )
 from werkzeug.security import generate_password_hash, check_password_hash
-from icalendar import Calendar, Event
+from icalendar import Calendar, Event, Alarm
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-import os
 from dotenv import load_dotenv
 import calendar
 from io import BytesIO
+import subprocess
+import tempfile
 
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from urllib.request import urlopen
 from urllib.error import URLError, HTTPError
+
+# Try to import Redis for caching
+try:
+    import redis
+    from flask_caching import Cache
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
 
 # Load environment variables from .env file BEFORE importing Config so it can read envs
 load_dotenv()
@@ -40,6 +55,49 @@ app = Flask(__name__)
 app.config.from_object(Config)
 db = SQLAlchemy(app)
 mail = Mail(app)
+
+# Configure caching
+if REDIS_AVAILABLE and os.getenv('REDIS_URL'):
+    # Use Redis for caching in production
+    cache = Cache(app, config={
+        'CACHE_TYPE': 'RedisCache',
+        'CACHE_REDIS_URL': os.getenv('REDIS_URL'),
+        'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutes default
+    })
+elif REDIS_AVAILABLE:
+    # Use Redis locally if available
+    cache = Cache(app, config={
+        'CACHE_TYPE': 'RedisCache',
+        'CACHE_REDIS_HOST': 'localhost',
+        'CACHE_REDIS_PORT': 6379,
+        'CACHE_REDIS_DB': 0,
+        'CACHE_DEFAULT_TIMEOUT': 300
+    })
+else:
+    # Fallback to simple cache
+    cache = Cache(app, config={
+        'CACHE_TYPE': 'SimpleCache',
+        'CACHE_DEFAULT_TIMEOUT': 300
+    })
+
+# Performance monitoring
+@app.before_request
+def before_request():
+    g.start_time = time.time()
+
+@app.after_request
+def after_request(response):
+    # Add performance headers
+    if hasattr(g, 'start_time'):
+        response_time = time.time() - g.start_time
+        response.headers['X-Response-Time'] = f"{response_time:.3f}s"
+    
+    # Security headers
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    
+    return response
 
 # Expose a simple asset version for cache-busting static resources
 @app.context_processor
@@ -92,15 +150,19 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     display_name = db.Column(db.String(80), nullable=False)  # e.g. "Jeff A."
-    email = db.Column(db.String(255), unique=True, nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)  # Index for login lookups
     password_hash = db.Column(db.String(255), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
+    is_admin = db.Column(db.Boolean, default=False, index=True)  # Index for admin filtering
     sobriety_days = db.Column(db.Integer, nullable=True)
     agreed_guidelines = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    gender = db.Column(db.String(10), nullable=True)  # 'male' or 'female'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)  # Index for user stats
+    gender = db.Column(db.String(10), nullable=True, index=True)  # Index for gender filtering
+    last_login = db.Column(db.DateTime, nullable=True, index=True)  # Index for activity tracking
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.DateTime, nullable=True, index=True)  # Index for locked account queries
 
     chair_signups = db.relationship("ChairSignup", back_populates="user")
+    availability_signups = db.relationship("ChairpersonAvailability", back_populates="user")
 
     @property
     def bp_id(self):
@@ -112,6 +174,29 @@ class User(db.Model):
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
+
+    def has_role(self, role_name):
+        """Check if user has a specific role."""
+        return any(
+            role.role == role_name and role.is_active and 
+            (role.expires_at is None or role.expires_at > datetime.now(timezone.utc))
+            for role in self.roles
+        )
+
+    def is_locked(self):
+        """Check if user account is locked due to failed login attempts."""
+        return self.locked_until and self.locked_until > datetime.now(timezone.utc)
+
+    def lock_account(self, duration_minutes=30):
+        """Lock user account for specified duration."""
+        self.locked_until = datetime.now(timezone.utc) + timedelta(minutes=duration_minutes)
+        db.session.commit()
+
+    def unlock_account(self):
+        """Unlock user account and reset failed attempts."""
+        self.locked_until = None
+        self.failed_login_attempts = 0
+        db.session.commit()
 
 
 class Meeting(db.Model):
@@ -125,12 +210,13 @@ class Meeting(db.Model):
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)           # format / focus
     zoom_link = db.Column(db.String(500), nullable=True)      # meeting URL
-    event_date = db.Column(db.Date, nullable=False)
-    start_time = db.Column(db.Time, nullable=False)
+    event_date = db.Column(db.Date, nullable=False, index=True)  # Index for date queries
+    start_time = db.Column(db.Time, nullable=False, index=True)  # Index for time queries
     end_time = db.Column(db.Time, nullable=True)
-    is_open = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    gender_restriction = db.Column(db.String(10), nullable=True)  # None, 'male', 'female'
+    is_open = db.Column(db.Boolean, default=True, index=True)   # Index for filtering
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    gender_restriction = db.Column(db.String(10), nullable=True, index=True)  # Index for filtering
+    meeting_type = db.Column(db.String(50), nullable=False, default='Regular', index=True)  # Index for filtering
 
     chair_signup = db.relationship(
         "ChairSignup",
@@ -142,6 +228,28 @@ class Meeting(db.Model):
     @property
     def has_chair(self) -> bool:
         return self.chair_signup is not None
+
+    @property
+    def type_badge_class(self) -> str:
+        """Return Bootstrap badge class for meeting type"""
+        type_classes = {
+            'Regular': 'bg-primary',
+            'Special': 'bg-warning text-dark',
+            'Holiday': 'bg-danger',
+            'Workshop': 'bg-info'
+        }
+        return type_classes.get(self.meeting_type, 'bg-secondary')
+
+    @property
+    def type_icon(self) -> str:
+        """Return Font Awesome icon class for meeting type"""
+        type_icons = {
+            'Regular': 'fas fa-users',
+            'Special': 'fas fa-star',
+            'Holiday': 'fas fa-holly-berry',
+            'Workshop': 'fas fa-chalkboard-teacher'
+        }
+        return type_icons.get(self.meeting_type, 'fas fa-circle')
 
 
 class ChairSignup(db.Model):
@@ -168,6 +276,139 @@ class ChairSignup(db.Model):
 
     meeting = db.relationship("Meeting", back_populates="chair_signup")
     user = db.relationship("User", back_populates="chair_signups")
+
+
+class ChairpersonAvailability(db.Model):
+    """
+    Record when a user volunteers to chair on a specific date where no meeting exists yet.
+    This allows users to express interest in chairing before meetings are scheduled.
+    """
+    __tablename__ = "chairperson_availability"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    volunteer_date = db.Column(db.Date, nullable=False)
+    time_preference = db.Column(db.String(50), nullable=True)  # "morning", "afternoon", "evening", "any"
+    notes = db.Column(db.Text, nullable=True)
+    display_name_snapshot = db.Column(db.String(80), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)  # Can be deactivated if converted to actual meeting
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", back_populates="availability_signups")
+
+
+class AuditLog(db.Model):
+    """
+    Audit trail for important security events and administrative actions.
+    """
+    __tablename__ = "audit_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)  # Index for user filtering
+    action = db.Column(db.String(100), nullable=False, index=True)  # Index for action filtering
+    resource_type = db.Column(db.String(50), nullable=True, index=True)  # Index for resource filtering
+    resource_id = db.Column(db.Integer, nullable=True, index=True)  # Index for resource lookups
+    ip_address = db.Column(db.String(45), nullable=True, index=True)  # Index for IP tracking
+    user_agent = db.Column(db.Text, nullable=True)
+    details = db.Column(db.JSON, nullable=True)  # additional structured data
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)  # Index for time-based queries
+
+    user = db.relationship("User", backref="audit_logs")
+
+
+class SecurityToken(db.Model):
+    """
+    Security tokens for password resets, email verification, and two-factor authentication.
+    """
+    __tablename__ = "security_tokens"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token_type = db.Column(db.String(20), nullable=False)  # password_reset, email_verify, totp_backup
+    token_hash = db.Column(db.String(255), nullable=False)  # hashed token
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = db.relationship("User", backref="security_tokens")
+
+    @classmethod
+    def create_token(cls, user_id, token_type, expires_in_hours=24):
+        """Create a new security token and return the unhashed version."""
+        token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        
+        security_token = cls(
+            user_id=user_id,
+            token_type=token_type,
+            token_hash=token_hash,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=expires_in_hours)
+        )
+        db.session.add(security_token)
+        return token, security_token
+
+    @classmethod
+    def verify_token(cls, token, token_type):
+        """Verify a token and mark it as used if valid."""
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        
+        security_token = cls.query.filter_by(
+            token_hash=token_hash,
+            token_type=token_type,
+            used_at=None
+        ).filter(cls.expires_at > datetime.now(timezone.utc)).first()
+        
+        if security_token:
+            security_token.used_at = datetime.now(timezone.utc)
+            db.session.commit()
+            return security_token.user
+        return None
+
+
+class UserRole(db.Model):
+    """
+    Role-based access control for enhanced security.
+    """
+    __tablename__ = "user_roles"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    role = db.Column(db.String(50), nullable=False)  # admin, moderator, chairperson, readonly
+    granted_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    granted_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    expires_at = db.Column(db.DateTime, nullable=True)  # null for permanent roles
+    is_active = db.Column(db.Boolean, default=True)
+
+    user = db.relationship("User", foreign_keys=[user_id], backref="roles")
+    granted_by_user = db.relationship("User", foreign_keys=[granted_by])
+
+
+class BackupLog(db.Model):
+    """
+    Track database backup operations.
+    """
+    __tablename__ = "backup_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    backup_type = db.Column(db.String(20), nullable=False)  # manual, scheduled, pre_update
+    file_path = db.Column(db.String(500), nullable=True)
+    file_size = db.Column(db.BigInteger, nullable=True)
+    checksum = db.Column(db.String(64), nullable=True)  # SHA-256
+    status = db.Column(db.String(20), nullable=False, default='started')  # started, completed, failed
+    error_message = db.Column(db.Text, nullable=True)
+    initiated_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    completed_at = db.Column(db.DateTime, nullable=True)
+
+    initiated_by_user = db.relationship("User", backref="initiated_backups")
+
+    user = db.relationship("User", backref="availability_signups")
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'volunteer_date', name='uq_user_date_availability'),)
 
 
 # ==========================
@@ -511,6 +752,7 @@ def import_meetings_from_webpage(page_url: str, weeks: int = 12, replace_future:
 # ==========================
 
 class RegisterForm(FlaskForm):
+    access_code = StringField("Access Code", validators=[Optional(), Length(max=64)])
     display_name = StringField(
         "Name to display (first name & last initial or alias)",
         validators=[DataRequired(), Length(max=80)]
@@ -557,12 +799,22 @@ class MeetingForm(FlaskForm):
     start_time = TimeField("Start Time", validators=[DataRequired()], format="%H:%M")
     end_time = TimeField("End Time (optional)", validators=[Optional()], format="%H:%M")
     is_open = BooleanField("Open for chair sign-ups?", default=True)
-    from wtforms import SelectField
     gender_restriction = SelectField(
         "Gender Restriction",
         choices=[('','None'),('male','Men only'),('female','Women only')],
         validators=[Optional()],
         default=''
+    )
+    meeting_type = SelectField(
+        "Meeting Type",
+        choices=[
+            ('Regular', 'Regular Meeting'),
+            ('Special', 'Special Meeting'),
+            ('Holiday', 'Holiday Meeting'),
+            ('Workshop', 'Workshop/Study')
+        ],
+        validators=[DataRequired()],
+        default='Regular'
     )
     submit = SubmitField("Save Meeting")
 
@@ -575,6 +827,167 @@ class ChairSignupForm(FlaskForm):
     submit = SubmitField("Sign Up to Chair This Meeting")
 
 
+class ChairpersonAvailabilityForm(FlaskForm):
+    time_preference = RadioField(
+        "Time Preference",
+        choices=[
+            ('any', 'Any time'),
+            ('morning', 'Morning (before 12 PM)'),
+            ('afternoon', 'Afternoon (12 PM - 6 PM)'),
+            ('evening', 'Evening (after 6 PM)')
+        ],
+        default='any',
+        validators=[DataRequired()]
+    )
+    notes = TextAreaField(
+        "Notes (optional)",
+        validators=[Optional(), Length(max=500)],
+        description="Any additional notes about your availability or preferences"
+    )
+    submit = SubmitField("Volunteer for This Date")
+    submit = SubmitField("Volunteer for This Date")
+
+
+# ==========================
+# SECURITY FUNCTIONS
+# ==========================
+
+def log_audit_event(action, user_id=None, resource_type=None, resource_id=None, details=None):
+    """Log security and administrative events."""
+    try:
+        audit_log = AuditLog(
+            user_id=user_id,
+            action=action,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            ip_address=request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr),
+            user_agent=request.environ.get('HTTP_USER_AGENT'),
+            details=details
+        )
+        db.session.add(audit_log)
+        db.session.commit()
+    except Exception as e:
+        print(f"Failed to log audit event: {e}")
+
+
+def require_role(role_name):
+    """Decorator to require specific role for access."""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user = get_current_user()
+            if not user:
+                flash("Please log in to access this page.", "warning")
+                return redirect(url_for('login'))
+            
+            if not user.has_role(role_name) and not user.is_admin:
+                log_audit_event('unauthorized_access_attempt', user.id, details={'required_role': role_name, 'requested_url': request.url})
+                flash("You don't have permission to access this page.", "danger")
+                abort(403)
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def backup_database(backup_type='manual', initiated_by_user_id=None):
+    """Create a database backup and log the operation."""
+    backup_log = BackupLog(
+        backup_type=backup_type,
+        initiated_by=initiated_by_user_id,
+        status='started'
+    )
+    db.session.add(backup_log)
+    db.session.commit()
+    
+    try:
+        # Create backup filename with timestamp
+        timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
+        backup_filename = f"backup_{backup_type}_{timestamp}.sql"
+        backup_path = os.path.join(tempfile.gettempdir(), backup_filename)
+        
+        # Get database URL from config
+        db_url = app.config['SQLALCHEMY_DATABASE_URI']
+        
+        if db_url.startswith('sqlite:///'):
+            # SQLite backup
+            import shutil
+            source_path = db_url.replace('sqlite:///', '')
+            shutil.copy2(source_path, backup_path.replace('.sql', '.db'))
+            backup_path = backup_path.replace('.sql', '.db')
+        else:
+            # MySQL/PostgreSQL backup using mysqldump/pg_dump
+            if 'mysql' in db_url:
+                # Parse MySQL connection details
+                import urllib.parse as urlparse
+                parsed = urlparse.urlparse(db_url)
+                username = parsed.username
+                password = parsed.password
+                hostname = parsed.hostname
+                port = parsed.port or 3306
+                database = parsed.path[1:]  # Remove leading /
+                
+                cmd = [
+                    'mysqldump',
+                    f'--host={hostname}',
+                    f'--port={port}',
+                    f'--user={username}',
+                    f'--password={password}',
+                    database
+                ]
+                
+                with open(backup_path, 'w') as f:
+                    subprocess.run(cmd, stdout=f, check=True)
+            else:
+                raise ValueError(f"Unsupported database type in URL: {db_url}")
+        
+        # Calculate file size and checksum
+        file_size = os.path.getsize(backup_path)
+        with open(backup_path, 'rb') as f:
+            checksum = hashlib.sha256(f.read()).hexdigest()
+        
+        # Update backup log
+        backup_log.file_path = backup_path
+        backup_log.file_size = file_size
+        backup_log.checksum = checksum
+        backup_log.status = 'completed'
+        backup_log.completed_at = datetime.now(timezone.utc)
+        db.session.commit()
+        
+        log_audit_event('database_backup', initiated_by_user_id, details={
+            'backup_type': backup_type,
+            'file_size': file_size,
+            'checksum': checksum
+        })
+        
+        return backup_log
+        
+    except Exception as e:
+        backup_log.status = 'failed'
+        backup_log.error_message = str(e)
+        backup_log.completed_at = datetime.now(timezone.utc)
+        db.session.commit()
+        
+        log_audit_event('database_backup_failed', initiated_by_user_id, details={
+            'backup_type': backup_type,
+            'error': str(e)
+        })
+        
+        raise
+
+
+def check_rate_limit(action, user_id, limit_per_hour=10):
+    """Simple rate limiting for sensitive actions."""
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
+    recent_attempts = AuditLog.query.filter(
+        AuditLog.user_id == user_id,
+        AuditLog.action == action,
+        AuditLog.created_at > cutoff
+    ).count()
+    
+    return recent_attempts < limit_per_hour
+
+
 # ==========================
 # AUTH HELPERS
 # ==========================
@@ -583,7 +996,11 @@ def get_current_user():
     user_id = session.get("user_id")
     if not user_id:
         return None
-    return User.query.get(user_id)
+    try:
+        return User.query.get(user_id)
+    except Exception:
+        # If database is unavailable, user is not logged in
+        return None
 
 
 def login_required(view_func):
@@ -613,7 +1030,11 @@ def admin_required(view_func):
 
 @app.context_processor
 def inject_globals():
-    return {"current_user": get_current_user()}
+    try:
+        return {"current_user": get_current_user()}
+    except Exception:
+        # If database is unavailable, provide None user
+        return {"current_user": None}
 
 # Ensure there are always meetings to show: if database is empty and
 # static schedule is enabled, auto-seed a minimal horizon on the first request.
@@ -625,6 +1046,16 @@ def ensure_meetings_exist():
     global _auto_seed_done
     if _auto_seed_done:
         return
+    
+    # Skip database operations for API endpoints that don't need them
+    if request.endpoint and request.endpoint.startswith('api_'):
+        return
+    
+    # Skip for specific endpoints that should work without database
+    skip_endpoints = ['api_validate_registration_key']
+    if request.endpoint in skip_endpoints:
+        return
+        
     try:
         total = Meeting.query.count()
         if total == 0 and app.config.get('STATIC_SCHEDULE_ENABLED', True):
@@ -677,6 +1108,13 @@ def chair_resources():
 def host_signup_instructions():
     """Host Sign-Up Instructions page with clear steps for hosting/zoom duties."""
     return render_template("host_signup_instructions.html")
+
+
+@app.route("/registration-instructions")
+def registration_instructions():
+    """Registration Instructions page explaining how to register and what to expect."""
+    return render_template("registration_instructions.html")
+
 
 @app.route('/resources/pdfs/<path:filename>')
 def serve_pdf(filename):
@@ -915,6 +1353,13 @@ def meeting_detail(meeting_id):
             db.session.add(signup)
             db.session.commit()
             
+            # Send confirmation email immediately
+            try:
+                send_chair_confirmation(signup)
+                print(f"Sent confirmation email to {user.email} for meeting {meeting.id}")
+            except Exception as e:
+                print(f"Failed to send confirmation email: {e}")
+            
             # Schedule reminder email 24 hours before meeting (only in development)
             if scheduler:
                 reminder_time = datetime.combine(meeting.event_date, meeting.start_time) - timedelta(hours=24)
@@ -971,6 +1416,144 @@ def calendar_ics():
     return response
 
 
+@app.route("/my-calendar.ics")
+@require_login
+def my_calendar_ics():
+    """Export user's committed meetings as iCal calendar feed."""
+    user = get_current_user()
+    if not user:
+        abort(403)
+    
+    # Get meetings where this user is the chair
+    my_meetings = (
+        Meeting.query
+        .join(ChairSignup)
+        .filter(
+            ChairSignup.user_id == user.id,
+            Meeting.event_date >= date.today() - timedelta(days=30)  # Include recent past
+        )
+        .order_by(Meeting.event_date.asc(), Meeting.start_time.asc())
+        .all()
+    )
+    
+    cal = Calendar()
+    cal.add('prodid', '-//Back Porch Meetings//backporchmeetings.org//')
+    cal.add('version', '2.0')
+    cal.add('x-wr-calname', f'My Back Porch Meetings - {user.display_name}')
+    
+    for m in my_meetings:
+        event = Event()
+        start_dt = datetime.combine(m.event_date, m.start_time)
+        end_dt = datetime.combine(m.event_date, m.end_time) if m.end_time else start_dt + timedelta(hours=1)
+        
+        event.add('summary', f"Chair: {m.title}")
+        event.add('dtstart', start_dt)
+        event.add('dtend', end_dt)
+        event.add('location', m.zoom_link or 'Online')
+        event.add('description', f"You are chairing this meeting.\n\n{m.description or ''}")
+        event.add('url', url_for('meeting_detail', meeting_id=m.id, _external=True))
+        event.add('uid', f"my-meeting-{m.id}@backporchmeetings.org")
+        
+        # Add reminder 24 hours before
+        alarm = Alarm()
+        alarm.add('action', 'DISPLAY')
+        alarm.add('description', f'Reminder: You are chairing {m.title} tomorrow')
+        alarm.add('trigger', timedelta(hours=-24))
+        event.add_component(alarm)
+        
+        # Add reminder 1 hour before
+        alarm2 = Alarm()
+        alarm2.add('action', 'DISPLAY')
+        alarm2.add('description', f'Reminder: You are chairing {m.title} in 1 hour')
+        alarm2.add('trigger', timedelta(hours=-1))
+        event.add_component(alarm2)
+        
+        cal.add_component(event)
+    
+    response = make_response(cal.to_ical())
+    response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename=my-backporch-meetings.ics'
+    return response
+
+
+@app.route("/calendar/google-add/<int:meeting_id>")
+@require_login
+def google_calendar_add(meeting_id):
+    """Generate Google Calendar add link for a specific meeting."""
+    meeting = Meeting.query.get_or_404(meeting_id)
+    user = get_current_user()
+    
+    # Only allow if user is the chair
+    if not meeting.chair_signup or meeting.chair_signup.user_id != user.id:
+        flash("You can only add meetings you're chairing to your calendar.", "warning")
+        return redirect(url_for('meeting_detail', meeting_id=meeting_id))
+    
+    # Format for Google Calendar URL
+    start_dt = datetime.combine(meeting.event_date, meeting.start_time)
+    end_dt = datetime.combine(meeting.event_date, meeting.end_time) if meeting.end_time else start_dt + timedelta(hours=1)
+    
+    # Google Calendar date format: YYYYMMDDTHHMMSSZ
+    start_str = start_dt.strftime('%Y%m%dT%H%M%S')
+    end_str = end_dt.strftime('%Y%m%dT%H%M%S')
+    
+    title = f"Chair: {meeting.title}"
+    details = f"You are chairing this Back Porch meeting.\n\n{meeting.description or ''}\n\nMeeting Link: {meeting.zoom_link or 'TBD'}"
+    location = meeting.zoom_link or "Online"
+    
+    # Encode URL parameters
+    from urllib.parse import quote
+    
+    google_url = (
+        f"https://calendar.google.com/calendar/render?"
+        f"action=TEMPLATE"
+        f"&text={quote(title)}"
+        f"&dates={start_str}/{end_str}"
+        f"&details={quote(details)}"
+        f"&location={quote(location)}"
+        f"&sf=true&output=xml"
+    )
+    
+    return redirect(google_url)
+
+
+# ==========================
+# CALENDAR INTEGRATION ROUTES
+# ==========================
+
+@app.route("/calendar/export")
+@require_login
+def calendar_export():
+    """Calendar export options page."""
+    user = get_current_user()
+    
+    # Get user's upcoming meetings
+    upcoming_meetings = (
+        Meeting.query
+        .join(ChairSignup)
+        .filter(
+            ChairSignup.user_id == user.id,
+            Meeting.event_date >= date.today()
+        )
+        .order_by(Meeting.event_date.asc())
+        .limit(5)
+        .all()
+    )
+    
+    # Generate calendar subscription URLs
+    ics_url = url_for('my_calendar_ics', _external=True)
+    webcal_url = ics_url.replace('http://', 'webcal://').replace('https://', 'webcal://')
+    
+    return render_template(
+        'calendar_export.html',
+        upcoming_meetings=upcoming_meetings,
+        ics_url=ics_url,
+        webcal_url=webcal_url
+    )
+    response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
+    response.headers['Content-Disposition'] = 'attachment; filename=backporch-calendar.ics'
+    return response
+
+
 # ==========================
 # AUTH ROUTES
 # ==========================
@@ -981,14 +1564,21 @@ def register():
     if not app.config.get('REGISTRATION_ENABLED', True):
         flash("Registration is currently disabled. Please contact the admin.", "warning")
         return redirect(url_for("index"))
-    if get_current_user():
-        flash("You are already logged in.", "info")
-        return redirect(url_for("index"))
+    
+    # Check if user is logged in (graceful handling of DB issues)
+    try:
+        current_user = get_current_user()
+        if current_user:
+            flash("You are already logged in.", "info")
+            return redirect(url_for("index"))
+    except Exception:
+        # If DB is unavailable, assume user is not logged in
+        pass
 
     form = RegisterForm()
     if form.validate_on_submit():
         # Enforce access code(s) if configured
-        provided_code = (request.form.get('access_code') or '').strip()
+        provided_code = (form.access_code.data or '').strip()
         required_code = app.config.get('REGISTRATION_ACCESS_CODE')
         codes_list_raw = app.config.get('REGISTRATION_ACCESS_CODES')  # optional comma-separated list
         if required_code or codes_list_raw:
@@ -1004,9 +1594,20 @@ def register():
                 flash("Invalid access code.", "danger")
                 access_codes_configured = True
                 return render_template("register.html", form=form, access_codes_configured=access_codes_configured)
-        existing = User.query.filter_by(email=form.email.data.lower().strip()).first()
+        
+        # Check for existing user
+        try:
+            existing = User.query.filter_by(email=form.email.data.lower().strip()).first()
+        except Exception as e:
+            app.logger.error(f"Database error checking existing user: {e}")
+            flash("Database connection error. Please try again later or contact support.", "danger")
+            access_codes_configured = bool(app.config.get('REGISTRATION_ACCESS_CODE') or app.config.get('REGISTRATION_ACCESS_CODES'))
+            return render_template("register.html", form=form, access_codes_configured=access_codes_configured)
+            
         if existing:
             flash("An account with that email already exists.", "danger")
+            access_codes_configured = bool(app.config.get('REGISTRATION_ACCESS_CODE') or app.config.get('REGISTRATION_ACCESS_CODES'))
+            return render_template("register.html", form=form, access_codes_configured=access_codes_configured)
         else:
             # Compute sobriety days from provided sobriety_date (optional)
             sob_days = None
@@ -1017,6 +1618,7 @@ def register():
                     sob_days = max(0, delta)
                 except Exception:
                     sob_days = None
+            
             user = User(
                 display_name=form.display_name.data.strip(),
                 email=form.email.data.lower().strip(),
@@ -1026,12 +1628,27 @@ def register():
                 gender=form.gender.data,
             )
             user.set_password(form.password.data)
-            db.session.add(user)
-            db.session.commit()
-            session["user_id"] = user.id
-            flash("Chairperson account created. Thank you for your service!", "success")
-            next_url = request.args.get("next") or url_for("index")
-            return redirect(next_url)
+            
+            try:
+                db.session.add(user)
+                db.session.commit()
+                session["user_id"] = user.id
+                app.logger.info(f"New user registered: {user.email} (ID: {user.id})")
+                flash("Chairperson account created. Thank you for your service!", "success")
+                next_url = request.args.get("next") or url_for("index")
+                return redirect(next_url)
+            except Exception as e:
+                db.session.rollback()
+                # Check if this is a duplicate email constraint violation
+                error_str = str(e).lower()
+                if 'unique constraint failed' in error_str or 'duplicate entry' in error_str or 'duplicate key' in error_str:
+                    app.logger.warning(f"Duplicate email registration attempt: {user.email}")
+                    flash("An account with that email already exists.", "danger")
+                else:
+                    app.logger.error(f"Database error saving user registration: {e}")
+                    flash("Registration failed due to database error. Please try again later or contact support.", "danger")
+                access_codes_configured = bool(app.config.get('REGISTRATION_ACCESS_CODE') or app.config.get('REGISTRATION_ACCESS_CODES'))
+                return render_template("register.html", form=form, access_codes_configured=access_codes_configured)
     # Provide flag to template so it can lock inputs until a code is entered
     access_codes_configured = bool(app.config.get('REGISTRATION_ACCESS_CODE') or app.config.get('REGISTRATION_ACCESS_CODES'))
     # Pass optional PDF names for responsibilities and protocol
@@ -1074,18 +1691,54 @@ def login():
 
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data.lower().strip()).first()
-        if user and user.check_password(form.password.data):
-            session["user_id"] = user.id
-            flash("Logged in successfully.", "success")
-            next_url = request.args.get("next") or url_for("index")
-            return redirect(next_url)
-        flash("Invalid email or password.", "danger")
+        email = form.email.data.lower().strip()
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            # Check if account is locked
+            if user.is_locked():
+                log_audit_event('login_attempt_locked_account', user.id, details={'email': email})
+                flash("Account is temporarily locked due to too many failed login attempts. Please try again later.", "danger")
+                return render_template("login.html", form=form)
+            
+            # Check password
+            if user.check_password(form.password.data):
+                # Successful login
+                session["user_id"] = user.id
+                user.last_login = datetime.now(timezone.utc)
+                user.failed_login_attempts = 0  # Reset failed attempts
+                db.session.commit()
+                
+                log_audit_event('login_success', user.id, details={'email': email})
+                flash("Logged in successfully.", "success")
+                
+                next_url = request.args.get("next") or url_for("index")
+                return redirect(next_url)
+            else:
+                # Failed login - increment attempts
+                user.failed_login_attempts += 1
+                if user.failed_login_attempts >= 5:
+                    user.lock_account(30)  # Lock for 30 minutes
+                    log_audit_event('account_locked', user.id, details={'email': email, 'failed_attempts': user.failed_login_attempts})
+                    flash("Account locked due to too many failed login attempts. Please try again in 30 minutes.", "danger")
+                else:
+                    db.session.commit()
+                    log_audit_event('login_failure', user.id, details={'email': email, 'failed_attempts': user.failed_login_attempts})
+                    flash(f"Invalid password. {5 - user.failed_login_attempts} attempts remaining.", "danger")
+        else:
+            # User not found
+            log_audit_event('login_attempt_invalid_user', details={'email': email})
+            flash("Invalid email or password.", "danger")
+            
     return render_template("login.html", form=form)
 
 
 @app.route("/logout")
 def logout():
+    user = get_current_user()
+    if user:
+        log_audit_event('logout', user.id)
+    
     session.pop("user_id", None)
     flash("Logged out.", "info")
     return redirect(url_for("index"))
@@ -1122,15 +1775,165 @@ def api_validate_registration_key():
 @login_required
 def dashboard():
     user = get_current_user()
-    # Meetings user has claimed
-    my_meetings = (
+    today = date.today()
+    
+    # Cache key based on user ID and current date
+    cache_key = f"dashboard_data_{user.id}_{today.isoformat()}"
+    cached_data = cache.get(cache_key)
+    
+    if cached_data is None:
+        # Get user's meetings (past and future) with optimized query
+        all_meetings = (
+            Meeting.query
+            .join(ChairSignup, ChairSignup.meeting_id == Meeting.id)
+            .filter(ChairSignup.user_id == user.id)
+            .options(db.joinedload(Meeting.chair_signup))
+            .order_by(Meeting.event_date.asc(), Meeting.start_time.asc())
+            .all()
+        )
+        
+        # Separate today's, upcoming, and past meetings
+        todays_meetings = [m for m in all_meetings if m.event_date == today]
+        upcoming_meetings = [m for m in all_meetings if m.event_date > today]
+        past_meetings = [m for m in all_meetings if m.event_date < today]
+        
+        # Get next upcoming meeting
+        next_meeting = upcoming_meetings[0] if upcoming_meetings else None
+        
+        # Get user's availability signups
+        upcoming_availability = (
+            ChairpersonAvailability.query
+            .filter_by(user_id=user.id, is_active=True)
+            .filter(ChairpersonAvailability.volunteer_date >= today)
+            .order_by(ChairpersonAvailability.volunteer_date.asc())
+            .all()
+        )
+        
+        # Calculate service stats
+        total_meetings_chaired = len(past_meetings)
+        upcoming_commitments = len(upcoming_meetings)
+        volunteer_signups = len(upcoming_availability)
+        
+        cached_data = {
+            'todays_meetings': todays_meetings,
+            'upcoming_meetings': upcoming_meetings[:5],  # Limit for performance
+            'past_meetings': past_meetings[-10:],  # Last 10 for performance
+            'next_meeting': next_meeting,
+            'upcoming_availability': upcoming_availability[:5],
+            'total_meetings_chaired': total_meetings_chaired,
+            'upcoming_commitments': upcoming_commitments,
+            'volunteer_signups': volunteer_signups
+        }
+        
+        # Cache for 5 minutes
+        cache.set(cache_key, cached_data, timeout=300)
+    
+    # Get recent open meetings that need chairs (cached separately)
+    open_meetings = get_open_meetings_cached()
+    
+    return render_template(
+        "dashboard.html",
+        user=user,
+        todays_meetings=cached_data['todays_meetings'],
+        upcoming_meetings=cached_data['upcoming_meetings'],
+        past_meetings=cached_data['past_meetings'],
+        next_meeting=cached_data['next_meeting'],
+        upcoming_availability=cached_data['upcoming_availability'],
+        total_meetings_chaired=cached_data['total_meetings_chaired'],
+        upcoming_commitments=cached_data['upcoming_commitments'],
+        volunteer_signups=cached_data['volunteer_signups'],
+        open_meetings=open_meetings[:5]  # Show top 5 open meetings
+    )
+
+
+@cache.memoize(timeout=180)  # Cache for 3 minutes
+def get_open_meetings_cached():
+    """Get open meetings that need chairs - cached for performance."""
+    today = date.today()
+    
+    return (
         Meeting.query
-        .join(ChairSignup, ChairSignup.meeting_id == Meeting.id)
-        .filter(ChairSignup.user_id == user.id)
+        .filter(
+            Meeting.event_date >= today,
+            Meeting.event_date <= today + timedelta(days=30),
+            Meeting.is_open == True,
+            ~Meeting.chair_signup.has()
+        )
         .order_by(Meeting.event_date.asc(), Meeting.start_time.asc())
+        .limit(20)  # Reasonable limit
         .all()
     )
-    return render_template("dashboard.html", user=user, my_meetings=my_meetings)
+
+
+@cache.memoize(timeout=600)  # Cache for 10 minutes
+def get_meeting_stats_cached():
+    """Get meeting statistics - cached for performance."""
+    today = date.today()
+    
+    # Use more efficient count queries
+    total_meetings = Meeting.query.count()
+    upcoming_meetings = Meeting.query.filter(Meeting.event_date >= today).count()
+    need_chairs = Meeting.query.filter(
+        Meeting.event_date >= today,
+        Meeting.is_open == True,
+        ~Meeting.chair_signup.has()
+    ).count()
+    
+    return {
+        'total_meetings': total_meetings,
+        'upcoming_meetings': upcoming_meetings,
+        'need_chairs': need_chairs
+    }
+
+
+@cache.memoize(timeout=1800)  # Cache for 30 minutes
+def get_analytics_data_cached():
+    """Get analytics data for admin dashboard - cached for performance."""
+    # This would contain the heavy analytics queries
+    # Moved from admin_analytics route for better performance
+    pass
+
+
+# Cache busting function for when data changes
+def clear_dashboard_cache(user_id=None):
+    """Clear dashboard cache when meetings change."""
+    if user_id:
+        # Clear specific user's cache
+        today = date.today()
+        cache.delete(f"dashboard_data_{user_id}_{today.isoformat()}")
+    else:
+        # Clear all dashboard caches (less efficient but thorough)
+        cache.clear()
+
+
+# Cache busting when meetings are modified
+def invalidate_meeting_caches():
+    """Invalidate all meeting-related caches."""
+    cache.delete_memoized(get_open_meetings_cached)
+    cache.delete_memoized(get_meeting_stats_cached)
+    cache.delete_memoized(get_analytics_data_cached)
+    
+    # Get recent activity (last 30 days)
+    recent_cutoff = today - timedelta(days=30)
+    recent_meetings = [m for m in past_meetings if m.event_date >= recent_cutoff]
+    
+    # Calculate days until next meeting
+    days_until_next = None
+    if next_meeting:
+        days_until_next = (next_meeting.event_date - today).days
+    
+    return render_template("dashboard.html", 
+                         user=user,
+                         todays_meetings=todays_meetings,
+                         upcoming_meetings=upcoming_meetings[:5],  # Next 5 meetings
+                         past_meetings=past_meetings[-10:],  # Last 10 meetings
+                         next_meeting=next_meeting,
+                         upcoming_availability=upcoming_availability[:3],  # Next 3 volunteer dates
+                         total_meetings_chaired=total_meetings_chaired,
+                         upcoming_commitments=upcoming_commitments,
+                         volunteer_signups=volunteer_signups,
+                         recent_meetings_count=len(recent_meetings),
+                         days_until_next=days_until_next)
 
 
 class ProfileForm(FlaskForm):
@@ -1149,13 +1952,110 @@ class ProfileForm(FlaskForm):
 def profile():
     user = get_current_user()
     form = ProfileForm(obj=user)
+    
+    # Get search and filter parameters for meeting history
+    search_query = request.args.get('search', '').strip()
+    meeting_type_filter = request.args.get('meeting_type', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    show_section = request.args.get('show', 'upcoming')  # upcoming, past, availability
+    
+    # Base query for user's chair signups
+    base_query = (
+        ChairSignup.query
+        .filter_by(user_id=user.id)
+        .join(Meeting)
+        .options(db.joinedload(ChairSignup.meeting))
+    )
+    
+    # Apply search filter to meetings
+    if search_query:
+        base_query = base_query.filter(
+            db.or_(
+                Meeting.title.ilike(f'%{search_query}%'),
+                Meeting.description.ilike(f'%{search_query}%')
+            )
+        )
+    
+    # Apply meeting type filter
+    if meeting_type_filter:
+        base_query = base_query.filter(Meeting.meeting_type == meeting_type_filter)
+    
+    # Apply date range filters
+    if date_from:
+        try:
+            from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
+            base_query = base_query.filter(Meeting.event_date >= from_date)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
+            base_query = base_query.filter(Meeting.event_date <= to_date)
+        except ValueError:
+            pass
+    
+    # Get all filtered chair signups
+    chair_signups = base_query.order_by(Meeting.event_date.asc(), Meeting.start_time.asc()).all()
+    
+    # Get user's availability signups (volunteer dates)
+    availability_query = ChairpersonAvailability.query.filter_by(user_id=user.id, is_active=True)
+    
+    # Apply date range filters to availability if provided
+    if date_from:
+        try:
+            from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
+            availability_query = availability_query.filter(ChairpersonAvailability.volunteer_date >= from_date)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
+            availability_query = availability_query.filter(ChairpersonAvailability.volunteer_date <= to_date)
+        except ValueError:
+            pass
+    
+    availability_signups = availability_query.order_by(ChairpersonAvailability.volunteer_date.asc()).all()
+    
+    # Separate past and future meetings
+    from datetime import date
+    today = date.today()
+    
+    past_meetings = [signup for signup in chair_signups if signup.meeting.event_date < today]
+    upcoming_meetings = [signup for signup in chair_signups if signup.meeting.event_date >= today]
+    
+    # Separate past and future availability
+    past_availability = [avail for avail in availability_signups if avail.volunteer_date < today]
+    upcoming_availability = [avail for avail in availability_signups if avail.volunteer_date >= today]
+    
+    # Get unique meeting types for filter dropdown
+    user_meeting_types = db.session.query(Meeting.meeting_type).join(ChairSignup).filter(ChairSignup.user_id == user.id).distinct().all()
+    user_meeting_types = [mt[0] for mt in user_meeting_types if mt[0]]
+    
     if form.validate_on_submit():
         user.display_name = form.display_name.data.strip()
         user.gender = form.gender.data or None
         db.session.commit()
         flash("Profile updated.", "success")
-        return redirect(url_for("dashboard"))
-    return render_template("profile.html", form=form)
+        return redirect(url_for("profile"))
+        
+    return render_template("profile.html", 
+                         form=form, 
+                         user=user,
+                         upcoming_meetings=upcoming_meetings,
+                         past_meetings=past_meetings,
+                         upcoming_availability=upcoming_availability,
+                         past_availability=past_availability,
+                         user_meeting_types=user_meeting_types,
+                         show_section=show_section,
+                         current_filters={
+                             'search': search_query,
+                             'meeting_type': meeting_type_filter,
+                             'date_from': date_from,
+                             'date_to': date_to
+                         })
 
 
 # ==========================
@@ -1172,28 +2072,172 @@ def send_email(to, subject, body):
         print(f"Email send failed: {e}")
         return False
 
-def send_chair_reminder(meeting_id):
-    """Send reminder email to chair 24 hours before meeting."""
+def send_chair_reminder(meeting_id, hours_before=24):
+    """Send reminder email to chair before meeting."""
     meeting = Meeting.query.get(meeting_id)
     if not meeting or not meeting.chair_signup:
-        return
+        return False
     
     chair = meeting.chair_signup.user
-    subject = f"Heads up! You're hosting tomorrow — {meeting.title}"
+    
+    # Determine subject and content based on timing
+    if hours_before == 24:
+        subject = f"Reminder: You're chairing tomorrow — {meeting.title}"
+        timing_text = "tomorrow"
+        prep_text = """
+Preparation reminders:
+• Review the meeting format and agenda
+• Test your Zoom connection and screen sharing
+• Prepare any announcements or readings
+• Have backup contact information ready
+
+Resources:
+• Chairperson Guidelines: [Available in your profile]
+• Zoom Host Guide: [Available in your profile]
+"""
+    else:  # 1 hour before
+        subject = f"Starting soon: {meeting.title} in 1 hour"
+        timing_text = "in about 1 hour"
+        prep_text = """
+Final checklist:
+• Join Zoom 10-15 minutes early
+• Enable waiting room if needed
+• Have your opening/closing ready
+• Check that screen sharing works
+
+"""
+    
     body = f"""Hi {chair.display_name},
 
-Heads up — you're scheduled to host tomorrow. Here are the details:
+Your meeting starts {timing_text}:
 
-• Meeting: {meeting.title}
-• Date: {meeting.event_date.strftime('%A, %B %d, %Y')}
-• Time: {meeting.start_time.strftime('%I:%M %p')}
-• Description: {meeting.description or 'N/A'}
-• Zoom Link: {meeting.zoom_link or 'Contact group for link'}
+📅 {meeting.title}
+📍 {meeting.event_date.strftime('%A, %B %d, %Y')}
+🕐 {meeting.start_time.strftime('%I:%M %p')}
+📝 {meeting.description or 'Standard format'}
+📧 Meeting Type: {getattr(meeting, 'meeting_type', 'Regular')}
 
-Thanks for serving the Back Porch community!
+{prep_text}
+🔗 Zoom Link: {meeting.zoom_link or 'Contact admin for meeting link'}
 
-— Back Porch Meetings
+Thank you for serving the Back Porch community!
+
+— Back Porch Meetings System
 """
+    
+    return send_email(chair.email, subject, body)
+
+
+def send_meeting_confirmations():
+    """Send confirmation emails for newly assigned meetings."""
+    from datetime import datetime, timedelta
+    
+    # Find meetings in the next 30 days that were recently assigned (created in last 24 hours)
+    cutoff_time = datetime.utcnow() - timedelta(hours=24)
+    upcoming_start = datetime.utcnow().date()
+    upcoming_end = (datetime.utcnow() + timedelta(days=30)).date()
+    
+    recent_signups = (
+        ChairSignup.query
+        .join(Meeting)
+        .filter(
+            ChairSignup.created_at >= cutoff_time,
+            Meeting.event_date >= upcoming_start,
+            Meeting.event_date <= upcoming_end
+        )
+        .all()
+    )
+    
+    sent_count = 0
+    for signup in recent_signups:
+        if send_chair_confirmation(signup):
+            sent_count += 1
+    
+    return sent_count
+
+
+def send_chair_confirmation(chair_signup):
+    """Send confirmation email when someone signs up to chair."""
+    meeting = chair_signup.meeting
+    chair = chair_signup.user
+    
+    subject = f"Confirmed: You're chairing {meeting.title}"
+    body = f"""Hi {chair.display_name},
+
+Great news! You're confirmed to chair this meeting:
+
+📅 {meeting.title}
+📍 {meeting.event_date.strftime('%A, %B %d, %Y')}
+🕐 {meeting.start_time.strftime('%I:%M %p')}
+📝 {meeting.description or 'Standard meeting format'}
+📧 Meeting Type: {getattr(meeting, 'meeting_type', 'Regular')}
+
+What happens next:
+• You'll get a reminder email 24 hours before
+• Another reminder 1 hour before the meeting
+• Meeting details and Zoom link: {meeting.zoom_link or 'Will be provided'}
+
+Need help? Check out the chairperson resources in your profile or contact the admin team.
+
+Thank you for stepping up to serve!
+
+— Back Porch Meetings System
+"""
+    
+    return send_email(chair.email, subject, body)
+
+
+def check_and_send_reminders():
+    """Check for meetings that need reminder emails and send them."""
+    from datetime import datetime, timedelta
+    
+    now = datetime.utcnow()
+    
+    # Find meetings needing 24-hour reminders
+    tomorrow_start = now + timedelta(hours=23)
+    tomorrow_end = now + timedelta(hours=25)
+    
+    meetings_24h = (
+        Meeting.query
+        .join(ChairSignup)
+        .filter(
+            Meeting.event_date == tomorrow_start.date(),
+            Meeting.start_time >= tomorrow_start.time(),
+            Meeting.start_time <= tomorrow_end.time()
+        )
+        .all()
+    )
+    
+    # Find meetings needing 1-hour reminders
+    hour_start = now + timedelta(minutes=55)
+    hour_end = now + timedelta(minutes=65)
+    
+    meetings_1h = (
+        Meeting.query
+        .join(ChairSignup)
+        .filter(
+            Meeting.event_date == now.date(),
+            Meeting.start_time >= hour_start.time(),
+            Meeting.start_time <= hour_end.time()
+        )
+        .all()
+    )
+    
+    sent_count = 0
+    
+    # Send 24-hour reminders
+    for meeting in meetings_24h:
+        if send_chair_reminder(meeting.id, hours_before=24):
+            sent_count += 1
+            print(f"Sent 24h reminder for meeting {meeting.id}")
+    
+    # Send 1-hour reminders
+    for meeting in meetings_1h:
+        if send_chair_reminder(meeting.id, hours_before=1):
+            sent_count += 1
+            print(f"Sent 1h reminder for meeting {meeting.id}")
+    
+    return sent_count
     
     send_email(chair.email, subject, body)
 
@@ -1265,6 +2309,37 @@ def send_day_of_chair_reminders(run_date: date = None):
     return sent
 
 
+def send_availability_confirmation_email(user, volunteer_date, time_preference):
+    """Send confirmation email when user volunteers for a date."""
+    time_text = {
+        'any': 'any time',
+        'morning': 'morning (before 12 PM)',
+        'afternoon': 'afternoon (12 PM - 6 PM)', 
+        'evening': 'evening (after 6 PM)'
+    }.get(time_preference, 'any time')
+    
+    subject = f"Chairperson Volunteer Confirmation — {volunteer_date.strftime('%B %d, %Y')}"
+    body = f"""Hi {user.display_name},
+
+Thank you for volunteering to chair a Back Porch meeting!
+
+Your volunteer details:
+• Date: {volunteer_date.strftime('%A, %B %d, %Y')}
+• Time Preference: {time_text}
+
+What happens next:
+- We'll let you know if a meeting gets scheduled for this date
+- You'll receive a reminder email 24 hours before any meeting
+- If plans change, you can contact the admin team
+
+Thanks for your willingness to serve the Back Porch community!
+
+— Back Porch Meetings
+"""
+    
+    send_email(user.email, subject, body)
+
+
 # ==========================
 # ADMIN ROUTES
 # ==========================
@@ -1272,12 +2347,93 @@ def send_day_of_chair_reminders(run_date: date = None):
 @app.route("/admin/meetings")
 @admin_required
 def admin_meetings():
-    meetings = (
-        Meeting.query
-        .order_by(Meeting.event_date.desc(), Meeting.start_time.desc())
-        .all()
+    # Get search and filter parameters
+    search_query = request.args.get('search', '').strip()
+    meeting_type_filter = request.args.get('meeting_type', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    chair_status = request.args.get('chair_status', '')
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)  # Configurable page size
+    
+    # Validate per_page limits for performance
+    per_page = min(max(per_page, 10), 100)  # Between 10 and 100
+    
+    # Start with base query with optimized loading
+    query = Meeting.query.options(
+        db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user)
     )
-    return render_template("admin_meetings.html", meetings=meetings, ics_source=SOURCE_MEETINGS_ICS_URL, web_source=SOURCE_MEETINGS_WEB_URL, static_schedule_enabled=STATIC_SCHEDULE_ENABLED)
+    
+    # Apply search filter with index-friendly queries
+    if search_query:
+        query = query.filter(
+            db.or_(
+                Meeting.title.ilike(f'%{search_query}%'),
+                Meeting.description.ilike(f'%{search_query}%')
+            )
+        )
+    
+    # Apply meeting type filter (uses index)
+    if meeting_type_filter:
+        query = query.filter(Meeting.meeting_type == meeting_type_filter)
+    
+    # Apply date range filters (uses indexes)
+    if date_from:
+        try:
+            from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
+            query = query.filter(Meeting.event_date >= from_date)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
+            query = query.filter(Meeting.event_date <= to_date)
+        except ValueError:
+            pass
+    
+    # Apply chair status filter
+    if chair_status == 'has_chair':
+        query = query.join(ChairSignup)
+    elif chair_status == 'needs_chair':
+        query = query.filter(~Meeting.chair_signup.has())
+    
+    # Order by date and time with index optimization
+    query = query.order_by(Meeting.event_date.desc(), Meeting.start_time.desc())
+    
+    # Paginate results for performance
+    pagination = query.paginate(
+        page=page, 
+        per_page=per_page, 
+        error_out=False
+    )
+    meetings = pagination.items
+    
+    # Get meeting type options for filter dropdown (cached)
+    meeting_types = cache.get('meeting_types_list')
+    if meeting_types is None:
+        meeting_types = db.session.query(Meeting.meeting_type).distinct().all()
+        meeting_types = [mt[0] for mt in meeting_types if mt[0]]
+        cache.set('meeting_types_list', meeting_types, timeout=3600)  # Cache for 1 hour
+    
+    return render_template(
+        "admin_meetings.html", 
+        meetings=meetings,
+        pagination=pagination,
+        ics_source=SOURCE_MEETINGS_ICS_URL, 
+        web_source=SOURCE_MEETINGS_WEB_URL, 
+        static_schedule_enabled=STATIC_SCHEDULE_ENABLED,
+        meeting_types=meeting_types,
+        current_filters={
+            'search': search_query,
+            'meeting_type': meeting_type_filter,
+            'date_from': date_from,
+            'date_to': date_to,
+            'chair_status': chair_status,
+            'page': page,
+            'per_page': per_page
+        }
+    )
 
 
 @app.route("/admin/import-ics")
@@ -1544,6 +2700,7 @@ def admin_meeting_new():
             end_time=form.end_time.data,
             is_open=form.is_open.data,
             gender_restriction=form.gender_restriction.data or None,
+            meeting_type=form.meeting_type.data,
         )
         db.session.add(meeting)
         db.session.commit()
@@ -1567,6 +2724,7 @@ def admin_meeting_edit(meeting_id):
         meeting.end_time = form.end_time.data
         meeting.is_open = form.is_open.data
         meeting.gender_restriction = form.gender_restriction.data or None
+        meeting.meeting_type = form.meeting_type.data
         db.session.commit()
         flash("Meeting updated.", "success")
         return redirect(url_for("admin_meetings"))
@@ -1595,6 +2753,59 @@ def admin_meeting_clear_chair(meeting_id):
     else:
         flash("This meeting currently has no chair to clear.", "warning")
     return redirect(url_for("admin_meetings"))
+
+
+@app.route("/admin/reminders/send", methods=["POST"])
+@admin_required
+def admin_send_reminders():
+    """Manually trigger reminder emails for upcoming meetings."""
+    try:
+        sent_count = check_and_send_reminders()
+        flash(f"Sent {sent_count} reminder emails.", "success")
+    except Exception as e:
+        flash(f"Error sending reminders: {str(e)}", "danger")
+    
+    return redirect(url_for("admin_meetings"))
+
+
+@app.route("/admin/reminders/test/<int:meeting_id>", methods=["POST"])
+@admin_required
+def admin_test_reminder(meeting_id):
+    """Send a test reminder email for a specific meeting."""
+    meeting = Meeting.query.get_or_404(meeting_id)
+    
+    if not meeting.chair_signup:
+        flash("Cannot send reminder - no chair assigned to this meeting.", "warning")
+        return redirect(url_for("admin_meetings"))
+    
+    try:
+        if send_chair_reminder(meeting_id, hours_before=24):
+            flash(f"Test reminder sent to {meeting.chair_signup.user.display_name}.", "success")
+        else:
+            flash("Failed to send test reminder.", "danger")
+    except Exception as e:
+        flash(f"Error sending test reminder: {str(e)}", "danger")
+    
+    return redirect(url_for("admin_meetings"))
+
+
+@app.route("/admin/confirmations/send", methods=["POST"])
+@admin_required
+def admin_send_confirmations():
+    """Manually send confirmation emails for recent signups."""
+    try:
+        sent_count = send_meeting_confirmations()
+        flash(f"Sent {sent_count} confirmation emails.", "success")
+    except Exception as e:
+        flash(f"Error sending confirmations: {str(e)}", "danger")
+    
+    return redirect(url_for("admin_meetings"))
+
+
+@app.route("/offline")
+def offline():
+    """Offline fallback page for PWA."""
+    return render_template("offline.html")
 
 
 # ==========================
@@ -1672,8 +2883,522 @@ def api_meeting_claim(meeting_id):
     })
 
 
+@app.route("/api/volunteer-date", methods=["POST"])
+def api_volunteer_date():
+    """API endpoint for volunteering to chair on a specific date."""
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "login_required"}), 401
+
+    data = request.get_json()
+    if not data or 'date' not in data:
+        return jsonify({"error": "date_required"}), 400
+
+    try:
+        volunteer_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({"error": "invalid_date_format"}), 400
+
+    # Check if date is in the past
+    if volunteer_date < date.today():
+        return jsonify({"error": "past_date"}), 400
+
+    # Check if user already volunteered for this date
+    existing = ChairpersonAvailability.query.filter_by(
+        user_id=user.id, 
+        volunteer_date=volunteer_date, 
+        is_active=True
+    ).first()
+    
+    if existing:
+        return jsonify({"error": "already_volunteered"}), 400
+
+    # Check if there are already meetings scheduled for this date
+    existing_meetings = Meeting.query.filter_by(event_date=volunteer_date).count()
+    
+    # Create availability record
+    availability = ChairpersonAvailability(
+        user_id=user.id,
+        volunteer_date=volunteer_date,
+        time_preference=data.get('time_preference', 'any'),
+        notes=data.get('notes', '').strip() if data.get('notes') else None,
+        display_name_snapshot=user.display_name
+    )
+    
+    db.session.add(availability)
+    db.session.commit()
+
+    # Send confirmation email
+    try:
+        send_availability_confirmation_email(user, volunteer_date, availability.time_preference)
+    except Exception as e:
+        app.logger.error(f"Failed to send availability confirmation email: {e}")
+
+    return jsonify({
+        "ok": True,
+        "message": "Thank you for volunteering! You'll receive an email confirmation.",
+        "date": volunteer_date.strftime('%Y-%m-%d'),
+        "existing_meetings": existing_meetings
+    })
+
+
+@app.route("/volunteer-date/<date_str>", methods=["GET", "POST"])
+def volunteer_date_page(date_str):
+    """Page for volunteering to chair on a specific date."""
+    try:
+        volunteer_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        flash("Invalid date format.", "danger")
+        return redirect(url_for('calendar_view'))
+
+    if volunteer_date < date.today():
+        flash("Cannot volunteer for past dates.", "warning")
+        return redirect(url_for('calendar_view'))
+
+    user = get_current_user()
+    if not user:
+        flash("Please log in to volunteer for chairperson duties.", "warning")
+        return redirect(url_for("login", next=request.path))
+
+    # Check for existing meetings on this date
+    meetings = Meeting.query.filter_by(event_date=volunteer_date).all()
+    
+    # Check if user already volunteered
+    existing_availability = ChairpersonAvailability.query.filter_by(
+        user_id=user.id, 
+        volunteer_date=volunteer_date, 
+        is_active=True
+    ).first()
+
+    form = ChairpersonAvailabilityForm()
+    
+    if form.validate_on_submit():
+        if existing_availability:
+            flash("You have already volunteered for this date.", "info")
+        else:
+            availability = ChairpersonAvailability(
+                user_id=user.id,
+                volunteer_date=volunteer_date,
+                time_preference=form.time_preference.data,
+                notes=form.notes.data.strip() if form.notes.data else None,
+                display_name_snapshot=user.display_name
+            )
+            
+            db.session.add(availability)
+            db.session.commit()
+
+            # Send confirmation email
+            try:
+                send_availability_confirmation_email(user, volunteer_date, availability.time_preference)
+            except Exception as e:
+                app.logger.error(f"Failed to send availability confirmation email: {e}")
+
+            flash("Thank you for volunteering to chair! You'll receive an email confirmation.", "success")
+            return redirect(url_for('calendar_view'))
+
+    return render_template('volunteer_date.html', 
+                         date=volunteer_date, 
+                         meetings=meetings, 
+                         existing_availability=existing_availability,
+                         form=form)
+
+
 # ==========================
 # CLI: init DB + default admin
+# ==========================
+# ANALYTICS ROUTES
+# ==========================
+
+@app.route("/admin/analytics")
+@require_login
+def admin_analytics():
+    """Advanced analytics dashboard for administrators."""
+    # Summary statistics
+    total_meetings = Meeting.query.count()
+    active_chairpersons = User.query.join(ChairSignup).distinct().count()
+    covered_meetings = Meeting.query.join(ChairSignup).count()
+    coverage_percentage = round((covered_meetings / total_meetings * 100) if total_meetings > 0 else 0)
+    
+    # Average signup time (days before meeting)
+    signups_with_days = db.session.query(
+        func.avg(
+            func.datediff(
+                func.concat(Meeting.event_date, ' ', func.coalesce(Meeting.start_time, '00:00:00')),
+                ChairSignup.created_at
+            )
+        )
+    ).join(Meeting).scalar()
+    avg_signup_time = f"{int(signups_with_days or 0)} days" if signups_with_days else "N/A"
+    
+    # Attendance trends (last 12 weeks)
+    end_date = date.today()
+    start_date = end_date - timedelta(weeks=12)
+    
+    attendance_trends = []
+    labels = []
+    covered_data = []
+    total_data = []
+    
+    current_date = start_date
+    while current_date <= end_date:
+        week_end = current_date + timedelta(days=6)
+        
+        week_meetings = Meeting.query.filter(
+            Meeting.event_date >= current_date,
+            Meeting.event_date <= week_end
+        ).count()
+        
+        week_covered = Meeting.query.filter(
+            Meeting.event_date >= current_date,
+            Meeting.event_date <= week_end
+        ).join(ChairSignup).count()
+        
+        labels.append(current_date.strftime('%m/%d'))
+        total_data.append(week_meetings)
+        covered_data.append(week_covered)
+        
+        current_date += timedelta(weeks=1)
+    
+    attendance_trends_data = {
+        'labels': labels,
+        'total': total_data,
+        'covered': covered_data
+    }
+    
+    # Meeting types distribution
+    meeting_types = db.session.query(
+        Meeting.meeting_type,
+        func.count(Meeting.id)
+    ).group_by(Meeting.meeting_type).all()
+    
+    meeting_types_data = {
+        'labels': [mt[0] or 'Regular' for mt in meeting_types],
+        'data': [mt[1] for mt in meeting_types]
+    }
+    
+    # Popular time slots
+    time_slots = db.session.query(
+        func.hour(Meeting.start_time).label('hour'),
+        func.count(Meeting.id).label('count')
+    ).filter(Meeting.start_time.isnot(None)).group_by('hour').order_by('hour').all()
+    
+    time_slots_data = {
+        'labels': [f"{ts[0]}:00" for ts in time_slots],
+        'data': [ts[1] for ts in time_slots]
+    }
+    
+    # Weekly distribution (day of week)
+    weekly_dist = db.session.query(
+        func.dayofweek(Meeting.event_date).label('day'),
+        func.count(Meeting.id).label('count')
+    ).group_by('day').order_by('day').all()
+    
+    day_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    weekly_data = [0] * 7
+    for day, count in weekly_dist:
+        weekly_data[day-1] = count  # MySQL dayofweek returns 1-7
+    
+    weekly_distribution_data = {
+        'labels': day_names,
+        'data': weekly_data
+    }
+    
+    # Top chairpersons
+    top_chairpersons = db.session.query(
+        User.display_name,
+        func.count(ChairSignup.id).label('total_meetings'),
+        func.sum(
+            func.case(
+                (Meeting.event_date >= date.today().replace(day=1), 1),
+                else_=0
+            )
+        ).label('this_month')
+    ).join(ChairSignup).join(Meeting).group_by(User.id).order_by(func.count(ChairSignup.id).desc()).limit(10).all()
+    
+    # Convert to list of dicts for easier template access
+    top_chairpersons_list = [
+        {
+            'display_name': chair[0],
+            'total_meetings': chair[1],
+            'this_month': chair[2] or 0
+        }
+        for chair in top_chairpersons
+    ]
+    
+    # Meetings needing chairs (next 30 days)
+    uncovered_meetings = Meeting.query.filter(
+        Meeting.event_date >= date.today(),
+        Meeting.event_date <= date.today() + timedelta(days=30),
+        ~Meeting.chair_signup.has()
+    ).order_by(Meeting.event_date.asc(), Meeting.start_time.asc()).limit(10).all()
+    
+    return render_template(
+        "admin_analytics.html",
+        total_meetings=total_meetings,
+        active_chairpersons=active_chairpersons,
+        coverage_percentage=coverage_percentage,
+        avg_signup_time=avg_signup_time,
+        attendance_trends_data=json.dumps(attendance_trends_data),
+        meeting_types_data=json.dumps(meeting_types_data),
+        time_slots_data=json.dumps(time_slots_data),
+        weekly_distribution_data=json.dumps(weekly_distribution_data),
+        top_chairpersons=top_chairpersons_list,
+        uncovered_meetings=uncovered_meetings
+    )
+
+
+@app.route("/admin/security")
+@require_login
+def admin_security():
+    """Security dashboard for administrators."""
+    current_user = get_current_user()
+    if not current_user.is_admin:
+        abort(403)
+    
+    # Security overview stats
+    total_users = User.query.count()
+    active_sessions = AuditLog.query.filter(
+        AuditLog.action == 'login_success',
+        AuditLog.created_at > datetime.now(timezone.utc) - timedelta(hours=24)
+    ).count()
+    
+    failed_logins_today = AuditLog.query.filter(
+        AuditLog.action.like('login_failure%'),
+        AuditLog.created_at > datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    ).count()
+    
+    recent_backups = BackupLog.query.filter(
+        BackupLog.created_at > datetime.now(timezone.utc) - timedelta(weeks=1)
+    ).count()
+    
+    # Recent audit logs (last 100)
+    audit_logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(100).all()
+    
+    # All users with role information
+    users = User.query.order_by(User.created_at.desc()).all()
+    
+    # Recent backup logs
+    backup_logs = BackupLog.query.order_by(BackupLog.created_at.desc()).limit(20).all()
+    
+    return render_template(
+        "admin_security.html",
+        total_users=total_users,
+        active_sessions=active_sessions,
+        failed_logins_today=failed_logins_today,
+        recent_backups=recent_backups,
+        audit_logs=audit_logs,
+        users=users,
+        backup_logs=backup_logs
+    )
+
+
+@app.route("/admin/security/backup", methods=["POST"])
+@require_login
+def admin_create_backup():
+    """Create a manual database backup."""
+    current_user = get_current_user()
+    if not current_user.is_admin:
+        abort(403)
+    
+    try:
+        # Check rate limiting
+        if not check_rate_limit('manual_backup', current_user.id, 5):  # Max 5 per hour
+            return jsonify({"success": False, "error": "Too many backup requests. Please try again later."}), 429
+        
+        backup_log = backup_database('manual', current_user.id)
+        return jsonify({"success": True, "backup_id": backup_log.id})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/admin/security/users/<int:user_id>/unlock", methods=["POST"])
+@require_login
+def admin_unlock_user(user_id):
+    """Unlock a user account."""
+    current_user = get_current_user()
+    if not current_user.is_admin:
+        abort(403)
+    
+    try:
+        user = User.query.get_or_404(user_id)
+        user.unlock_account()
+        
+        log_audit_event('admin_unlock_account', current_user.id, 'user', user_id, {
+            'target_user': user.email,
+            'unlocked_by': current_user.email
+        })
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/admin/meetings/bulk-delete", methods=["POST"])
+@require_login
+def admin_bulk_delete_meetings():
+    """Bulk delete meetings."""
+    current_user = get_current_user()
+    if not current_user.is_admin:
+        abort(403)
+    
+    try:
+        data = request.get_json()
+        meeting_ids = data.get('meeting_ids', [])
+        
+        if not meeting_ids:
+            return jsonify({"success": False, "error": "No meetings selected"}), 400
+        
+        # Validate all meeting IDs exist
+        meetings = Meeting.query.filter(Meeting.id.in_(meeting_ids)).all()
+        if len(meetings) != len(meeting_ids):
+            return jsonify({"success": False, "error": "Some meetings not found"}), 404
+        
+        # Check rate limiting
+        if not check_rate_limit('bulk_delete', current_user.id, 3):  # Max 3 bulk deletes per hour
+            return jsonify({"success": False, "error": "Too many bulk operations. Please try again later."}), 429
+        
+        # Delete meetings and associated chair signups
+        deleted_count = 0
+        for meeting in meetings:
+            # Log the deletion
+            log_audit_event('meeting_delete', current_user.id, 'meeting', meeting.id, {
+                'title': meeting.title,
+                'date': meeting.event_date.isoformat(),
+                'bulk_operation': True
+            })
+            
+            db.session.delete(meeting)
+            deleted_count += 1
+        
+        db.session.commit()
+        
+        # Invalidate caches
+        invalidate_meeting_caches()
+        
+        log_audit_event('bulk_delete_meetings', current_user.id, details={
+            'meeting_count': deleted_count,
+            'meeting_ids': meeting_ids
+        })
+        
+        return jsonify({"success": True, "deleted_count": deleted_count})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/admin/meetings/export")
+@require_login
+def admin_export_meetings():
+    """Export selected meetings as CSV or ICS."""
+    current_user = get_current_user()
+    if not current_user.is_admin:
+        abort(403)
+    
+    meeting_ids = request.args.getlist('ids[]')
+    format_type = request.args.get('format', 'csv')
+    
+    if not meeting_ids:
+        flash("No meetings selected for export.", "warning")
+        return redirect(url_for('admin_meetings'))
+    
+    # Get meetings with chair information
+    meetings = (
+        Meeting.query
+        .filter(Meeting.id.in_(meeting_ids))
+        .options(db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user))
+        .order_by(Meeting.event_date.asc(), Meeting.start_time.asc())
+        .all()
+    )
+    
+    if format_type == 'ics':
+        return export_meetings_ics(meetings)
+    else:
+        return export_meetings_csv(meetings)
+
+
+def export_meetings_csv(meetings):
+    """Export meetings as CSV."""
+    import csv
+    from io import StringIO
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow([
+        'ID', 'Title', 'Description', 'Date', 'Start Time', 'End Time', 
+        'Meeting Type', 'Chair Name', 'Chair Email', 'Chair BP ID', 'Zoom Link'
+    ])
+    
+    # Write meeting data
+    for meeting in meetings:
+        chair = meeting.chair_signup
+        writer.writerow([
+            meeting.id,
+            meeting.title,
+            meeting.description or '',
+            meeting.event_date.strftime('%Y-%m-%d'),
+            meeting.start_time.strftime('%H:%M') if meeting.start_time else '',
+            meeting.end_time.strftime('%H:%M') if meeting.end_time else '',
+            meeting.meeting_type,
+            chair.display_name_snapshot if chair else '',
+            chair.user.email if chair else '',
+            chair.user.bp_id if chair else '',
+            meeting.zoom_link or ''
+        ])
+    
+    # Create response
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = f'attachment; filename=meetings_export_{date.today().isoformat()}.csv'
+    
+    log_audit_event('export_meetings', get_current_user().id, details={
+        'format': 'csv',
+        'meeting_count': len(meetings)
+    })
+    
+    return response
+
+
+def export_meetings_ics(meetings):
+    """Export meetings as ICS calendar file."""
+    cal = Calendar()
+    cal.add('prodid', '-//Back Porch Meetings Export//backporchmeetings.org//')
+    cal.add('version', '2.0')
+    cal.add('x-wr-calname', 'Back Porch Meetings Export')
+    
+    for meeting in meetings:
+        event = Event()
+        start_dt = datetime.combine(meeting.event_date, meeting.start_time)
+        end_dt = datetime.combine(meeting.event_date, meeting.end_time) if meeting.end_time else start_dt + timedelta(hours=1)
+        
+        event.add('summary', meeting.title)
+        event.add('dtstart', start_dt)
+        event.add('dtend', end_dt)
+        event.add('location', meeting.zoom_link or 'Online')
+        
+        description = meeting.description or ''
+        if meeting.chair_signup:
+            description += f"\n\nChair: {meeting.chair_signup.display_name_snapshot} ({meeting.chair_signup.user.bp_id})"
+        
+        event.add('description', description)
+        event.add('uid', f"export-meeting-{meeting.id}@backporchmeetings.org")
+        
+        cal.add_component(event)
+    
+    response = make_response(cal.to_ical())
+    response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename=meetings_export_{date.today().isoformat()}.ics'
+    
+    log_audit_event('export_meetings', get_current_user().id, details={
+        'format': 'ics',
+        'meeting_count': len(meetings)
+    })
+    
+    return response
+
+
 # ==========================
 
 @app.cli.command("init-db")

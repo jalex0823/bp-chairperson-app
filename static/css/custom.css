@@ -1,31 +1,42 @@
 :root {
-    /* Back Porch logo-inspired palette */
-    --bp-teal: #0f6f75;           /* primary teal ring */
-    --bp-deep-teal: #0b5257;      /* darker teal accents */
-    --bp-sunset-orange: #f0752b;  /* sunset orange */
-    --bp-sunrise-yellow: #f7b733; /* sunrise yellow */
-    --bp-porch-wood: #176f7a;     /* teal wood deck tint */
-    --bp-cream: #fff7e6;          /* warm cream background */
-    --bp-slate: #2f3b3d;          /* dark slate text */
-    --bp-muted: #6c7a7d;          /* muted text */
+    /* Back Porch Primary Color Palette */
+    --bp-green: #0f6f75;           /* Primary teal green */
+    --bp-green-dark: #0b5257;      /* Darker green for hover states */
+    --bp-green-light: #e6f3f4;     /* Light green for backgrounds */
+    --bp-white: #ffffff;           /* Pure white */
+    --bp-gold: #f7b733;            /* Accent gold */
+    --bp-gold-dark: #e6a429;       /* Darker gold for hover */
+    --bp-gold-light: #fef9e6;      /* Light gold background */
+    
+    /* Extended Palette */
+    --bp-cream: #fff7e6;           /* Warm cream background */
+    --bp-slate: #2f3b3d;          /* Dark slate text */
+    --bp-muted: #6c7a7d;          /* Muted text */
+    --bp-light-gray: #f8f9fa;     /* Light gray background */
+    --bp-success: #0f6f75;        /* Use primary green for success */
+    --bp-warning: #f7b733;        /* Use gold for warnings */
+    --bp-danger: #dc3545;         /* Standard red for danger */
+    --bp-info: #17a2b8;           /* Standard info blue */
 
-    /* Legacy tokens kept for compatibility */
-    --bp-green: var(--bp-teal);
-    --bp-gold: var(--bp-sunset-orange);
-    --bp-white: #ffffff;
-    --bp-light-gray: #f8f9fa;
-    --bp-dark-text: #212529;
-
-    /* Semantic tokens */
-    --color-primary: var(--bp-teal);
-    --color-primary-dark: var(--bp-deep-teal);
-    --color-secondary: var(--bp-sunset-orange);
-    --color-accent: var(--bp-sunrise-yellow);
-    --color-bg: #ffffff;
+    /* Semantic Color Assignments */
+    --color-primary: var(--bp-green);
+    --color-primary-dark: var(--bp-green-dark);
+    --color-primary-light: var(--bp-green-light);
+    --color-secondary: var(--bp-gold);
+    --color-secondary-dark: var(--bp-gold-dark);
+    --color-secondary-light: var(--bp-gold-light);
+    --color-bg: var(--bp-white);
     --color-bg-muted: var(--bp-cream);
     --color-text: var(--bp-slate);
     --color-text-muted: var(--bp-muted);
     --color-border: #e3e6e8;
+    
+    /* Bootstrap Override Variables */
+    --bs-primary: var(--bp-green);
+    --bs-primary-rgb: 15, 111, 117;
+    --bs-secondary: var(--bp-gold);
+    --bs-success: var(--bp-green);
+    --bs-warning: var(--bp-gold);
 }
 
 body {
@@ -37,16 +48,93 @@ body {
     font-weight: bold;
 }
 
+/* Navigation Bar - Primary Green Theme */
 .navbar.bg-bp-green {
-    background: linear-gradient(90deg, var(--color-primary) 0%, var(--bp-porch-wood) 100%) !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-    border-bottom: 1px solid rgba(255,255,255,0.15);
+    background: var(--color-primary) !important;
+    box-shadow: 0 2px 8px rgba(15, 111, 117, 0.2);
+    border-bottom: 1px solid var(--color-primary-dark);
 }
-.navbar .nav-link, .navbar-brand { color: #fff !important; }
-.navbar .nav-link:hover { color: var(--color-accent) !important; }
-/* Compact navbar spacing for a cleaner header */
-.navbar .container { padding-top: 0.35rem; padding-bottom: 0.35rem; }
-.navbar-brand img { box-shadow: 0 0 0 2px rgba(255,255,255,0.15); }
+
+.navbar-brand, .navbar .nav-link { 
+    color: var(--bp-white) !important; 
+    font-weight: 500;
+}
+
+.navbar .nav-link:hover { 
+    color: var(--bp-gold) !important; 
+    transition: color 0.3s ease;
+}
+
+/* Compact navbar spacing */
+.navbar .container { 
+    padding-top: 0.4rem; 
+    padding-bottom: 0.4rem; 
+}
+
+.navbar-brand img { 
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.15); 
+    border-radius: 4px;
+}
+
+/* Buttons - Consistent Theme */
+.btn-primary { 
+    background-color: var(--color-primary); 
+    border-color: var(--color-primary);
+    color: var(--bp-white);
+    font-weight: 500;
+}
+
+.btn-primary:hover, .btn-primary:focus { 
+    background-color: var(--color-primary-dark); 
+    border-color: var(--color-primary-dark);
+    color: var(--bp-white);
+}
+
+.btn-secondary { 
+    background-color: var(--color-secondary); 
+    border-color: var(--color-secondary); 
+    color: var(--bp-slate);
+    font-weight: 500;
+}
+
+.btn-secondary:hover, .btn-secondary:focus { 
+    background-color: var(--color-secondary-dark); 
+    border-color: var(--color-secondary-dark); 
+    color: var(--bp-slate);
+}
+
+.btn-success {
+    background-color: var(--bp-success);
+    border-color: var(--bp-success);
+}
+
+.btn-warning {
+    background-color: var(--bp-warning);
+    border-color: var(--bp-warning);
+    color: var(--bp-slate);
+}
+
+.btn-outline-primary {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--bp-white);
+}
+
+.btn-outline-secondary {
+    color: var(--color-secondary);
+    border-color: var(--color-secondary);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--color-secondary);
+    border-color: var(--color-secondary);
+    color: var(--bp-slate);
+}
 
 /* Footer themed like header */
 .footer-bp {
@@ -187,13 +275,94 @@ body {
 a { color: var(--color-primary); }
 a:hover { color: var(--color-secondary); }
 
-/* Tooltips */
-.tooltip-inner { background-color: var(--color-primary); }
-.bs-tooltip-auto[data-popper-placement^="top"] .tooltip-arrow::before { border-top-color: var(--color-primary); }
-.bs-tooltip-auto[data-popper-placement^="bottom"] .tooltip-arrow::before { border-bottom-color: var(--color-primary); }
+/* Tables */
+.table th {
+    background-color: var(--bp-light-gray);
+    color: var(--color-text);
+    border-color: var(--color-border);
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--color-primary-light);
+}
 
 /* Forms */
+.form-control, .form-select {
+    border-color: var(--color-border);
+}
+
 .form-control:focus, .form-select:focus {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 0.2rem rgba(15, 111, 117, 0.2);
+}
+
+.form-label {
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+/* Links */
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--color-primary-dark);
+}
+
+/* Footer */
+footer.footer-bp {
+    background-color: var(--color-primary);
+    color: var(--bp-white);
+}
+
+footer.bg-bp-green {
+    background-color: var(--color-primary) !important;
+}
+
+footer.bg-bp-green .container {
+    color: var(--bp-white) !important;
+}
+
+/* Hero sections */
+.hero-gradient {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: var(--bp-white);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(15, 111, 117, 0.2);
+}
+
+/* Meeting type badges - enhanced colors */
+.badge.bg-primary { background-color: var(--color-primary) !important; }
+.badge.bg-warning { background-color: var(--bp-warning) !important; color: var(--bp-slate) !important; }
+.badge.bg-danger { background-color: var(--bp-danger) !important; }
+.badge.bg-info { background-color: var(--bp-info) !important; }
+
+/* Dashboard widgets */
+.card.bg-primary { background-color: var(--color-primary) !important; }
+.card.bg-success { background-color: var(--bp-success) !important; }
+.card.bg-warning { background-color: var(--bp-warning) !important; }
+.card.bg-info { background-color: var(--bp-info) !important; }
+
+/* Calendar enhancements */
+.calendar-header {
+    background: var(--color-primary);
+    color: var(--bp-white);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .btn {
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .card-header {
+        font-size: 0.95rem;
+    }
 }
