@@ -1493,14 +1493,15 @@ def cancel_chair_signup(meeting_id):
         db.session.commit()
         
         # Clear cache to ensure dashboard and calendar reflect the change
-        cache.delete_memoized(dashboard)
+        cache.clear()
         
-        flash("Your chair signup has been canceled successfully.", "success")
+        flash("You have successfully withdrawn from chairing this meeting.", "success")
     except Exception as e:
         db.session.rollback()
+        app.logger.error(f"Error canceling signup: {e}")
         flash(f"Error canceling signup: {str(e)}", "danger")
     
-    return redirect(url_for("meeting_detail", meeting_id=meeting_id))
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/calendar.ics")
@@ -1911,6 +1912,11 @@ def dashboard():
             .order_by(Meeting.event_date.asc(), Meeting.start_time.asc())
             .all()
         )
+        
+        # Debug logging
+        app.logger.info(f"Dashboard for user {user.id} ({user.email}): Found {len(all_meetings)} total meetings")
+        for m in all_meetings:
+            app.logger.info(f"  - Meeting {m.id}: {m.title} on {m.event_date}")
         
         # Separate today's, upcoming, and past meetings
         todays_meetings = [m for m in all_meetings if m.event_date == today]
