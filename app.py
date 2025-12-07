@@ -615,6 +615,19 @@ def admin_required(view_func):
 def inject_globals():
     return {"current_user": get_current_user()}
 
+# Ensure there are always meetings to show: if database is empty and
+# static schedule is enabled, auto-seed a minimal horizon on first request.
+@app.before_first_request
+def ensure_meetings_exist():
+    try:
+        total = Meeting.query.count()
+        if total == 0 and app.config.get('STATIC_SCHEDULE_ENABLED', True):
+            # Seed next 12 weeks so the homepage and calendar never look empty
+            seed_meetings_from_static_schedule(weeks=12, replace_future=True)
+            app.logger.info("Auto-seeded 12 weeks from static schedule (DB was empty).")
+    except Exception as e:
+        app.logger.warning(f"Auto-seed skipped due to error: {e}")
+
 @app.route("/")
 def index():
     """List upcoming meetings grouped by date for calendar view."""
@@ -651,6 +664,11 @@ def chair_resources():
     except Exception:
         pdfs = []
     return render_template("chair_resources.html", pdfs=pdfs)
+
+@app.route("/host-signup-instructions")
+def host_signup_instructions():
+    """Host Sign-Up Instructions page with clear steps for hosting/zoom duties."""
+    return render_template("host_signup_instructions.html")
 
 @app.route('/resources/pdfs/<path:filename>')
 def serve_pdf(filename):
