@@ -10,18 +10,26 @@ import pymysql
 from urllib.parse import urlparse
 
 def get_database_info():
-    """Determine database type from DATABASE_URL."""
-    database_url = os.environ.get('DATABASE_URL', 'sqlite:///instance/bp_chair.sqlite3')
+    """Determine database type from DATABASE_URL or individual environment variables."""
+    database_url = os.environ.get('DATABASE_URL')
     
-    if database_url.startswith('sqlite'):
-        db_path = database_url.replace('sqlite:///', '')
-        return 'sqlite', db_path
-    elif database_url.startswith('postgres'):
-        return 'postgres', database_url
-    elif database_url.startswith('mysql'):
-        return 'mysql', database_url
+    if database_url:
+        # DATABASE_URL is set (Heroku Postgres or other)
+        if database_url.startswith('postgres'):
+            return 'postgres', database_url
+        elif database_url.startswith('mysql'):
+            return 'mysql', database_url
+        elif database_url.startswith('sqlite'):
+            db_path = database_url.replace('sqlite:///', '')
+            return 'sqlite', db_path
+        else:
+            return 'unknown', database_url
+    elif os.environ.get('DB_HOST'):
+        # Individual MySQL env vars are set (DreamHost)
+        return 'mysql', None
     else:
-        return 'unknown', database_url
+        # Default to SQLite for local development
+        return 'sqlite', 'instance/bp_chair.sqlite3'
 
 def migrate_sqlite(db_path):
     """Add meeting_type column to SQLite database."""
@@ -56,15 +64,31 @@ def migrate_sqlite(db_path):
 
 def migrate_mysql(database_url):
     """Add meeting_type column to MySQL database."""
-    parsed = urlparse(database_url)
-    
-    conn = pymysql.connect(
-        host=parsed.hostname,
-        user=parsed.username,
-        password=parsed.password,
-        database=parsed.path[1:],  # Remove leading /
-        port=parsed.port or 3306
-    )
+    if database_url:
+        # Parse DATABASE_URL
+        parsed = urlparse(database_url)
+        conn = pymysql.connect(
+            host=parsed.hostname,
+            user=parsed.username,
+            password=parsed.password,
+            database=parsed.path[1:],  # Remove leading /
+            port=parsed.port or 3306
+        )
+    else:
+        # Use individual environment variables (DreamHost)
+        db_host = os.environ.get("DB_HOST", "mysql.therealbackporch.com")
+        db_port = int(os.environ.get("DB_PORT", "3306"))
+        db_name = os.environ.get("DB_NAME", "chairameeting")
+        db_user = os.environ.get("DB_USER", "chairperson")
+        db_password = os.environ.get("DB_PASSWORD", "")
+        
+        conn = pymysql.connect(
+            host=db_host,
+            port=db_port,
+            database=db_name,
+            user=db_user,
+            password=db_password
+        )
     
     cursor = conn.cursor()
     
