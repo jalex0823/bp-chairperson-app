@@ -47,6 +47,12 @@
             aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
+    
+    <!-- Theme Toggle (Lantern) - Always Visible -->
+    <button id="themeToggle" class="btn btn-link text-light p-0 me-2" title="Toggle Dark/Light Theme" style="font-size: 1.5rem; border: none; background: none;">
+      <i class="fas fa-lightbulb" id="themeIcon"></i>
+    </button>
+    
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
@@ -106,10 +112,6 @@
             </small>
           </div>
           
-          <!-- Theme Toggle (Lantern) -->
-          <button id="themeToggle" class="btn btn-link text-light p-0 me-3" title="Toggle Dark/Light Theme" style="font-size: 1.3rem; border: none; background: none;">
-            <i class="fas fa-lightbulb" id="themeIcon"></i>
-          </button>
           <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
             Logout
           </a>
