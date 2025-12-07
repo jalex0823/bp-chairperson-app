@@ -38,11 +38,6 @@
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-bp-green mb-4">
   <div class="container">
-    <!-- Theme Toggle (Lantern) - Far Left -->
-    <button id="themeToggle" class="btn btn-link text-light p-0 me-3" title="Toggle Dark/Light Theme" style="font-size: 1.5rem; border: none; background: none;">
-      <i class="fas fa-lightbulb" id="themeIcon"></i>
-    </button>
-    
     <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
       <img src="{{ url_for('static', filename='img/backporch-logo.png') }}?v={{ asset_version }}" alt="Back Porch Logo" width="28" height="28" class="me-2" style="border-radius: 50%; object-fit: cover;">
       <span>Back Porch Chair</span>
@@ -93,9 +88,13 @@
               <i class="fas fa-user text-light"></i>
             </div>
           {% endif %}
-          <span class="navbar-text text-light me-2">
+          <span class="navbar-text text-light me-3">
             {{ current_user.display_name }}
           </span>
+          <!-- Theme Toggle (Lantern) -->
+          <button id="themeToggle" class="btn btn-link text-light p-0 me-3" title="Toggle Dark/Light Theme" style="font-size: 1.3rem; border: none; background: none;">
+            <i class="fas fa-lightbulb" id="themeIcon"></i>
+          </button>
           <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
             Logout
           </a>
