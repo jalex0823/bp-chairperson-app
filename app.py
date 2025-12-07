@@ -1407,11 +1407,16 @@ def calendar_day_ics():
 def meeting_detail(meeting_id):
     """Show a single meeting and allow chair sign-up if open & unclaimed."""
     try:
-        meeting = Meeting.query.options(db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user)).get_or_404(meeting_id)
+        meeting = Meeting.query.options(db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user)).filter_by(id=meeting_id).first()
+        if not meeting:
+            flash("Meeting not found.", "danger")
+            return redirect(url_for("calendar_view"))
         user = get_current_user()
         form = ChairSignupForm()
     except Exception as e:
         app.logger.error(f"Error loading meeting {meeting_id}: {e}")
+        import traceback
+        traceback.print_exc()
         flash("Error loading meeting details. Please try again.", "danger")
         return redirect(url_for("calendar_view"))
 

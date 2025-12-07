@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-  /* Sidebar (dark portion) */
-  .calendar-layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.5rem; }
+  /* Sidebar (dark portion) - Made smaller to fit full month in view */
+  .calendar-layout { display: grid; grid-template-columns: 200px 1fr; gap: 1rem; }
   @media (max-width: 992px) { .calendar-layout { grid-template-columns: 1fr; } }
   .calendar-sidebar { background: #1e1e1e; color: #e7e9ec; border-radius: .75rem; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
-  .calendar-sidebar .sidebar-header { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,.08); display:flex; align-items:center; gap:.5rem; }
-  .calendar-sidebar .mini-calendar { padding: .75rem 1.25rem; font-size: .95rem; color: #fff; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,.06); }
-  .calendar-sidebar .mini-calendar .year { color: #ff6b6b; margin-left: .25rem; }
-  .calendar-sidebar .list-section { padding: 1rem 1.25rem; }
-  .calendar-sidebar .list-title { color: #9ca3af; font-size: .75rem; margin-bottom: .75rem; letter-spacing: .05em; text-transform: uppercase; font-weight: 600; }
-  .calendar-sidebar .meeting-item { padding: .75rem; border-radius: .5rem; background: rgba(255,255,255,.06); margin-bottom: .5rem; border-left: 3px solid #3b82f6; }
-  .calendar-sidebar .meeting-item .time { color:#60a5fa; font-weight: 700; font-size: .85rem; display: block; margin-bottom: .25rem; }
-  .calendar-sidebar .meeting-item .title { color:#e7e9ec; font-weight: 600; font-size: .9rem; display: block; margin-bottom: .25rem; }
-  .calendar-sidebar .meeting-item .chair { color:#9ca3af; font-size: .8rem; }
+  .calendar-sidebar .sidebar-header { padding: .65rem .85rem; border-bottom: 1px solid rgba(255,255,255,.08); display:flex; align-items:center; gap:.5rem; }
+  .calendar-sidebar .mini-calendar { padding: .5rem .85rem; font-size: .85rem; color: #fff; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .calendar-sidebar .mini-calendar .year { color: #ff6b6b; margin-left: .15rem; }
+  .calendar-sidebar .list-section { padding: .65rem .85rem; }
+  .calendar-sidebar .list-title { color: #9ca3af; font-size: .7rem; margin-bottom: .5rem; letter-spacing: .05em; text-transform: uppercase; font-weight: 600; }
+  .calendar-sidebar .meeting-item { padding: .5rem; border-radius: .4rem; background: rgba(255,255,255,.06); margin-bottom: .35rem; border-left: 2px solid #3b82f6; }
+  .calendar-sidebar .meeting-item .time { color:#60a5fa; font-weight: 700; font-size: .75rem; display: block; margin-bottom: .15rem; }
+  .calendar-sidebar .meeting-item .title { color:#e7e9ec; font-weight: 600; font-size: .8rem; display: block; margin-bottom: .15rem; }
+  .calendar-sidebar .meeting-item .chair { color:#9ca3af; font-size: .7rem; }
   .calendar-sidebar .weather { padding: .5rem 0; color: #9ca3af; font-size: .85rem; }
 
   /* Month grid (main calendar) */
@@ -261,7 +261,7 @@
   <!-- Dark sidebar -->
   <aside class="calendar-sidebar">
     <div class="sidebar-header">
-      <span class="fw-bold fs-5">January<span class="year">{{ year }}</span></span>
+      <span class="fw-bold fs-6">{{ month_name }}<span class="year">{{ year }}</span></span>
     </div>
     <div class="mini-calendar">
       <div class="d-flex justify-content-between align-items-center mb-2">
