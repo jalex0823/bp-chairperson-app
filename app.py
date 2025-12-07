@@ -2044,28 +2044,6 @@ def invalidate_meeting_caches():
     cache.delete_memoized(get_open_meetings_cached)
     cache.delete_memoized(get_meeting_stats_cached)
     cache.delete_memoized(get_analytics_data_cached)
-    
-    # Get recent activity (last 30 days)
-    recent_cutoff = today - timedelta(days=30)
-    recent_meetings = [m for m in past_meetings if m.event_date >= recent_cutoff]
-    
-    # Calculate days until next meeting
-    days_until_next = None
-    if next_meeting:
-        days_until_next = (next_meeting.event_date - today).days
-    
-    return render_template("dashboard.html", 
-                         user=user,
-                         todays_meetings=todays_meetings,
-                         upcoming_meetings=upcoming_meetings[:5],  # Next 5 meetings
-                         past_meetings=past_meetings[-10:],  # Last 10 meetings
-                         next_meeting=next_meeting,
-                         upcoming_availability=upcoming_availability[:3],  # Next 3 volunteer dates
-                         total_meetings_chaired=total_meetings_chaired,
-                         upcoming_commitments=upcoming_commitments,
-                         volunteer_signups=volunteer_signups,
-                         recent_meetings_count=len(recent_meetings),
-                         days_until_next=days_until_next)
 
 
 class ProfileForm(FlaskForm):
