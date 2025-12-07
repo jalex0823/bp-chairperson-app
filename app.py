@@ -1892,31 +1892,32 @@ def api_validate_registration_key():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    user = get_current_user()
-    today = date.today()
-    
-    # Cache key based on user ID and current date
-    cache_key = f"dashboard_data_{user.id}_{today.isoformat()}"
-    cached_data = cache.get(cache_key)
-    
-    if cached_data is None:
-        # Get user's meetings (past and future) with optimized query
-        all_meetings = (
-            Meeting.query
-            .join(ChairSignup, ChairSignup.meeting_id == Meeting.id)
-            .filter(ChairSignup.user_id == user.id)
-            .options(db.joinedload(Meeting.chair_signup))
-            .order_by(Meeting.event_date.asc(), Meeting.start_time.asc())
-            .all()
-        )
+    try:
+        user = get_current_user()
+        today = date.today()
         
-        # Separate today's, upcoming, and past meetings
-        todays_meetings = [m for m in all_meetings if m.event_date == today]
-        upcoming_meetings = [m for m in all_meetings if m.event_date > today]
-        past_meetings = [m for m in all_meetings if m.event_date < today]
+        # Cache key based on user ID and current date
+        cache_key = f"dashboard_data_{user.id}_{today.isoformat()}"
+        cached_data = cache.get(cache_key)
         
-        # Get next upcoming meeting
-        next_meeting = upcoming_meetings[0] if upcoming_meetings else None
+        if cached_data is None:
+            # Get user's meetings (past and future) with optimized query
+            all_meetings = (
+                Meeting.query
+                .join(ChairSignup, ChairSignup.meeting_id == Meeting.id)
+                .filter(ChairSignup.user_id == user.id)
+                .options(db.joinedload(Meeting.chair_signup))
+                .order_by(Meeting.event_date.asc(), Meeting.start_time.asc())
+                .all()
+            )
+            
+            # Separate today's, upcoming, and past meetings
+            todays_meetings = [m for m in all_meetings if m.event_date == today]
+            upcoming_meetings = [m for m in all_meetings if m.event_date > today]
+            past_meetings = [m for m in all_meetings if m.event_date < today]
+            
+            # Get next upcoming meeting
+            next_meeting = upcoming_meetings[0] if upcoming_meetings else None
         
         # Get user's availability signups
         upcoming_availability = (
@@ -1953,7 +1954,11 @@ def dashboard():
         cache.set(cache_key, cached_data, timeout=300)
     
     # Get recent open meetings that need chairs (cached separately)
-    open_meetings = get_open_meetings_cached()
+    try:
+        open_meetings = get_open_meetings_cached()
+    except Exception as e:
+        app.logger.error(f"Error getting open meetings: {e}")
+        open_meetings = []
     
     # Calculate days until next meeting
     days_until_next = None
@@ -1974,8 +1979,14 @@ def dashboard():
         upcoming_commitments=cached_data['upcoming_commitments'],
         volunteer_signups=cached_data['volunteer_signups'],
         recent_meetings_count=cached_data['recent_meetings_count'],
-        open_meetings=open_meetings[:5]  # Show top 5 open meetings
+        open_meetings=open_meetings[:5] if open_meetings else []  # Show top 5 open meetings
     )
+    except Exception as e:
+        app.logger.error(f"Dashboard error for user {user.id if user else 'unknown'}: {e}")
+        import traceback
+        traceback.print_exc()
+        flash("Error loading dashboard. Please try again or contact support.", "danger")
+        return redirect(url_for("index"))
 
 
 @cache.memoize(timeout=180)  # Cache for 3 minutes
