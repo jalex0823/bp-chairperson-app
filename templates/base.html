@@ -69,6 +69,12 @@
       </ul>
       <div class="d-flex align-items-center">
         {% if current_user %}
+          {% if current_user.profile_image %}
+            <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_image) }}" 
+                 alt="{{ current_user.display_name }}" 
+                 class="rounded-circle me-2" 
+                 style="width: 32px; height: 32px; object-fit: cover; border: 2px solid white;">
+          {% endif %}
           <span class="navbar-text text-light me-2">
             {{ current_user.display_name }}
           </span>

@@ -1,64 +1,151 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-  /* Sidebar (black portion) */
-  .calendar-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1rem; }
+  /* Sidebar (dark portion) */
+  .calendar-layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.5rem; }
   @media (max-width: 992px) { .calendar-layout { grid-template-columns: 1fr; } }
-  .calendar-sidebar { background: #121416; color: #e7e9ec; border-radius: .5rem; overflow: hidden; }
-  .calendar-sidebar .sidebar-header { padding: .75rem 1rem; border-bottom: 1px solid rgba(255,255,255,.08); display:flex; align-items:center; gap:.5rem; }
-  .calendar-sidebar .mini-calendar { padding: .5rem 1rem; font-size: .9rem; color: #b8bdc3; border-bottom: 1px solid rgba(255,255,255,.06); }
-  .calendar-sidebar .list-section { padding: .75rem 1rem; }
-  .calendar-sidebar .list-title { color: #b8bdc3; font-size: .85rem; margin-bottom: .5rem; letter-spacing: .02em; }
-  .calendar-sidebar .meeting-item { padding: .5rem; border-radius: .375rem; background: rgba(255,255,255,.05); margin-bottom: .5rem; }
-  .calendar-sidebar .meeting-item .time { color:#6dd3ff; font-weight: 600; margin-right: .5rem; }
-  .calendar-sidebar .meeting-item .title { color:#e7e9ec; font-weight: 600; }
-  .calendar-sidebar .meeting-item .chair { color:#b8bdc3; font-size: .85rem; }
+  .calendar-sidebar { background: #1e1e1e; color: #e7e9ec; border-radius: .75rem; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+  .calendar-sidebar .sidebar-header { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,.08); display:flex; align-items:center; gap:.5rem; }
+  .calendar-sidebar .mini-calendar { padding: .75rem 1.25rem; font-size: .95rem; color: #fff; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .calendar-sidebar .mini-calendar .year { color: #ff6b6b; margin-left: .25rem; }
+  .calendar-sidebar .list-section { padding: 1rem 1.25rem; }
+  .calendar-sidebar .list-title { color: #9ca3af; font-size: .75rem; margin-bottom: .75rem; letter-spacing: .05em; text-transform: uppercase; font-weight: 600; }
+  .calendar-sidebar .meeting-item { padding: .75rem; border-radius: .5rem; background: rgba(255,255,255,.06); margin-bottom: .5rem; border-left: 3px solid #3b82f6; }
+  .calendar-sidebar .meeting-item .time { color:#60a5fa; font-weight: 700; font-size: .85rem; display: block; margin-bottom: .25rem; }
+  .calendar-sidebar .meeting-item .title { color:#e7e9ec; font-weight: 600; font-size: .9rem; display: block; margin-bottom: .25rem; }
+  .calendar-sidebar .meeting-item .chair { color:#9ca3af; font-size: .8rem; }
+  .calendar-sidebar .weather { padding: .5rem 0; color: #9ca3af; font-size: .85rem; }
 
-  /* Month grid (white portion) */
-  .calendar-table thead th { text-transform: uppercase; font-size: .8rem; letter-spacing: .04em; }
-  .calendar-cell { min-height: 140px; border: 1px solid #dee2e6; }
-  .calendar-out-month { background-color: #f7f7f8; }
+  /* Month grid (main calendar) */
+  .calendar-main { background: white; border-radius: .75rem; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .calendar-table { margin-bottom: 0; }
+  .calendar-table thead th { 
+    text-transform: uppercase; 
+    font-size: .7rem; 
+    letter-spacing: .08em; 
+    padding: 1rem .5rem;
+    font-weight: 700;
+    color: #6b7280;
+    background: #f9fafb;
+    border: none;
+    text-align: left;
+  }
+  .calendar-cell { 
+    min-height: 120px; 
+    border: 1px solid #e5e7eb; 
+    padding: .5rem;
+    vertical-align: top;
+    background: white;
+    position: relative;
+  }
+  .calendar-cell:hover { background: #f9fafb; }
+  .calendar-out-month { background-color: #fafafa; color: #9ca3af; }
+  .calendar-out-month:hover { background-color: #f5f5f5; }
+  .calendar-cell .day-number { 
+    font-weight: 600; 
+    font-size: .9rem; 
+    color: #374151;
+    margin-bottom: .5rem;
+  }
+  .calendar-out-month .day-number { color: #9ca3af; }
+  
+  /* Today indicator */
+  .calendar-cell.today { background: #eff6ff; }
+  .calendar-cell.today .day-number { 
+    background: #3b82f6; 
+    color: white; 
+    width: 26px; 
+    height: 26px; 
+    border-radius: 50%; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center;
+    font-size: .85rem;
+  }
+
+  /* Meeting items in calendar */
+  .meeting-badge { 
+    font-size: .75rem; 
+    padding: .35rem .6rem; 
+    border-radius: .375rem; 
+    margin-bottom: .35rem; 
+    display: block;
+    text-decoration: none;
+    color: white;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-left: 3px solid rgba(255,255,255,.3);
+    transition: all .15s ease;
+  }
+  .meeting-badge:hover { 
+    transform: translateX(2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,.15);
+    color: white;
+  }
+  .meeting-badge.has-chair { background: #10b981; }
+  .meeting-badge.no-chair { background: #6b7280; }
+  .meeting-badge.special { background: #f59e0b; }
+  .meeting-badge.holiday { background: #ef4444; }
+  
+  /* Weather icons */
+  .weather-icon { font-size: 1.2rem; opacity: .6; }
+  
   .meeting-title { display:inline-block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 <div class="calendar-layout">
   <!-- Dark sidebar -->
   <aside class="calendar-sidebar">
     <div class="sidebar-header">
-      <span class="fw-bold">Back Porch</span>
-      <span class="ms-auto small">{{ today.strftime('%b %d, %Y') }}</span>
+      <span class="fw-bold fs-5">January<span class="year">{{ year }}</span></span>
     </div>
     <div class="mini-calendar">
-      {{ month_name }} {{ year }}
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <button class="btn btn-sm btn-link text-white p-0" onclick="navigateMonth(-1)">◀</button>
+        <span>{{ month_name }} {{ year }}</span>
+        <button class="btn btn-sm btn-link text-white p-0" onclick="navigateMonth(1)">▶</button>
+      </div>
+      <div class="weather">{{ today.strftime('%A, %B %d') }}</div>
     </div>
     <div class="list-section" id="sidebarToday">
-      <div class="list-title">Today</div>
+      <div class="list-title">Today {{ today.strftime('%m/%d/%y') }}</div>
       <div class="empty small">Loading…</div>
     </div>
     <div class="list-section" id="sidebarTomorrow">
       <div class="list-title">Tomorrow</div>
       <div class="empty small">Loading…</div>
     </div>
+    <div class="list-section" id="sidebarUpcoming">
+      <div class="list-title">This Week</div>
+      <div class="empty small">Loading…</div>
+    </div>
   </aside>
 
-  <div>
-  <div class="d-flex justify-content-between align-items-center mb-3 calendar-header shadow-sm w-100">
-  <h1 class="mb-0">{{ month_name }} {{ year }}</h1>
+  <div class="calendar-main">
+  <div class="d-flex justify-content-between align-items-center mb-3 p-3">
+    <h2 class="mb-0 fw-bold">{{ month_name }} {{ year }}</h2>
     <div class="d-flex align-items-center gap-2">
-      {% if allow_nav %}
-      <a class="btn btn-light btn-sm rounded-pill" href="{{ url_for('calendar_view', year=prev_year, month=prev_month) }}">◀ Prev</a>
-      <a class="btn btn-light btn-sm rounded-pill" href="{{ url_for('calendar_view', year=next_year, month=next_month) }}">Next ▶</a>
-      <a class="btn btn-light btn-sm rounded-pill" href="{{ url_for('calendar_view', year=today.year, month=today.month) }}">Today</a>
-      {% else %}
-      <a class="btn btn-light btn-sm rounded-pill" href="{{ url_for('calendar_display') }}">Current Month</a>
-      {% endif %}
-      <a class="btn btn-light btn-sm rounded-pill" href="{{ url_for('calendar_month_ics', year=year, month=month) }}">Download .ics</a>
-      <button class="btn btn-light btn-sm rounded-pill" onclick="window.print()">Print</button>
-      <a class="btn btn-outline-secondary btn-sm rounded-pill" href="https://therealbackporch.com/meetings.html" target="_blank" rel="noopener">Website Meetings Page</a>
-      <div class="btn-group ms-2" role="group" aria-label="View options">
+      <div class="btn-group" role="group" aria-label="View options">
         {% set view = request.args.get('view', 'month') %}
-        <a class="btn btn-sm {{ 'btn-primary' if view=='day' else 'btn-light' }}" href="{{ url_for('calendar_view', year=year, month=month, view='day') }}">Day</a>
-        <a class="btn btn-sm {{ 'btn-primary' if view=='week' else 'btn-light' }}" href="{{ url_for('calendar_view', year=year, month=month, view='week') }}">Week</a>
-        <a class="btn btn-sm {{ 'btn-primary' if view=='month' else 'btn-light' }}" href="{{ url_for('calendar_view', year=year, month=month, view='month') }}">Month</a>
+        <a class="btn btn-sm {{ 'btn-primary' if view=='day' else 'btn-outline-secondary' }}" href="{{ url_for('calendar_view', year=year, month=month, view='day') }}">Day</a>
+        <a class="btn btn-sm {{ 'btn-primary' if view=='week' else 'btn-outline-secondary' }}" href="{{ url_for('calendar_view', year=year, month=month, view='week') }}">Week</a>
+        <a class="btn btn-sm {{ 'btn-primary' if view=='month' else 'btn-outline-secondary' }}" href="{{ url_for('calendar_view', year=year, month=month, view='month') }}">Month</a>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('calendar_view', year=year, month=month, view='year') }}">Year</a>
+      </div>
+      {% if allow_nav %}
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('calendar_view', year=today.year, month=today.month) }}">Today</a>
+      {% endif %}
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="fas fa-ellipsis-h"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="{{ url_for('calendar_month_ics', year=year, month=month) }}"><i class="fas fa-download me-2"></i>Download .ics</a></li>
+          <li><a class="dropdown-item" href="#" onclick="window.print(); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="https://therealbackporch.com/meetings.html" target="_blank"><i class="fas fa-external-link-alt me-2"></i>Website Meetings</a></li>
+        </ul>
       </div>
     </div>
   </div>
@@ -192,33 +279,23 @@
     {% for week in weeks %}
       <tr>
         {% for cell in week %}
-          <td class="p-2 calendar-cell {% if not cell.in_month %}calendar-out-month{% endif %}" style="vertical-align: top;" {% if cell.in_month and cell.date %}data-date="{{ cell.date.strftime('%Y-%m-%d') }}" onclick="openDayModal('{{ cell.date.strftime('%Y-%m-%d') }}')" style="cursor:pointer;"{% endif %}>
+          <td class="calendar-cell {% if not cell.in_month %}calendar-out-month{% endif %} {% if cell.date == today %}today{% endif %}" {% if cell.in_month and cell.date %}data-date="{{ cell.date.strftime('%Y-%m-%d') }}" onclick="openDayModal('{{ cell.date.strftime('%Y-%m-%d') }}')" style="cursor:pointer;"{% endif %}>
             {% if cell.in_month %}
-              <div class="d-flex justify-content-between">
-                <strong>{{ cell.date.day }}</strong>
-                {% if cell.date == today %}<span class="badge bg-info text-dark">Today</span>{% endif %}
-              </div>
+              <div class="day-number">{{ cell.date.day }}</div>
               {% if cell.meetings %}
-                <ul class="list-unstyled mt-2 mb-0">
+                <div class="meetings-list">
                   {% for m in cell.meetings %}
-                    <li class="mb-2 meeting {% if m.chair_signup %}chaired{% endif %}">
-                      <div class="fw-semibold">
-                        <a href="{{ url_for('meeting_detail', meeting_id=m.id) }}" class="text-decoration-none meeting-title">{{ m.title }}</a>
-                      </div>
-                      <div class="text-muted small meeting-time">
-                        {{ m.start_time.strftime('%I:%M %p') }}{% if m.end_time %} – {{ m.end_time.strftime('%I:%M %p') }}{% endif %}
-                      </div>
-                      <div class="small meeting-chair">
-                        {% if m.chair_signup %}
-                          <span>Chair: {{ m.chair_signup.display_name_snapshot }}</span>
-                        {% else %}
-                          <span class="text-muted">No chair yet</span>
-                        {% endif %}
-                      </div>
-                    </li>
+                    {% set badge_class = 'has-chair' if m.chair_signup else 'no-chair' %}
+                    {% if m.meeting_type == 'Special' %}{% set badge_class = 'special' %}{% endif %}
+                    {% if m.meeting_type == 'Holiday' %}{% set badge_class = 'holiday' %}{% endif %}
+                    <a href="{{ url_for('meeting_detail', meeting_id=m.id) }}" class="meeting-badge {{ badge_class }}" title="{{ m.start_time.strftime('%I:%M %p') }}{% if m.end_time %} – {{ m.end_time.strftime('%I:%M %p') }}{% endif %} • {% if m.chair_signup %}Chair: {{ m.chair_signup.display_name_snapshot }}{% else %}No chair yet{% endif %}">
+                      {{ m.start_time.strftime('%I:%M %p') }} {{ m.title[:20] }}{% if m.title|length > 20 %}...{% endif %}
+                    </a>
                   {% endfor %}
-                </ul>
+                </div>
               {% endif %}
+            {% else %}
+              <div class="day-number">{{ cell.date.day if cell.date else '' }}</div>
             {% endif %}
           </td>
         {% endfor %}

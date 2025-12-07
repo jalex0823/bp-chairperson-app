@@ -88,15 +88,17 @@ DreamHost Panel: https://panel.dreamhost.com
 Server Location: US-East (Ashburn, VA)
 Server: odonoghue.iad1-mysql-e2-18b.dreamhost.com
 
-Heroku:
+Back Porch Hosting Application
+Heroku: https://dashboard.heroku.com/apps/backporch-chair-app
 Username: backporchmeetings@outlook.com
 Password: 12!Gratitudeee2025
-
-
-Donations Payment Processor: Stripe
-https://dashboard.stripe.com/acct_1SDZHS2O0vrtaFyW/dashboard
-ID: backporchmeetings@outlook.com
-PW: 12!Gratitudeee
+App: https://backporch-chair-app-35851db28c9c.herokuapp.com/
+Login Details:
+Display Name: jalex0823
+Password: Disneychannel911!
+Email: jalex0823@admin.local
+Admin Status: Yes
+Registration Form Unlock Key: BP2025!ChairPersonAccess#Unlock$Key
 
 Donation Form Hosting: https://donorbox.org/
 ID: backporchmeetings@outlook.com

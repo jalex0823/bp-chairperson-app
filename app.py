@@ -17,12 +17,13 @@ from flask_wtf import FlaskForm
 from flask_mail import Mail, Message
 from wtforms import (
     StringField, TextAreaField, BooleanField,
-    DateField, TimeField, PasswordField, SubmitField, IntegerField, RadioField, SelectField
+    DateField, TimeField, PasswordField, SubmitField, IntegerField, RadioField, SelectField, FileField
 )
 from wtforms.validators import (
     DataRequired, Optional, Email, Length, NumberRange
 )
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from icalendar import Calendar, Event, Alarm
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -117,6 +118,14 @@ else:
 DEFAULT_PDFS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'pdfs')
 EXTERNAL_PDFS_DIR = os.environ.get("EXTERNAL_PDFS_DIR", DEFAULT_PDFS_DIR)
 SOURCE_MEETINGS_ICS_URL = os.environ.get("SOURCE_MEETINGS_ICS_URL")
+
+# Profile image upload configuration
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+
+def allowed_file(filename):
+    """Check if file extension is allowed for profile images."""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 SOURCE_MEETINGS_WEB_URL = os.environ.get("SOURCE_MEETINGS_WEB_URL")
 
 # Optional: built-in static schedule (when no website calendar exists)
@@ -160,6 +169,7 @@ class User(db.Model):
     last_login = db.Column(db.DateTime, nullable=True, index=True)  # Index for activity tracking
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True, index=True)  # Index for locked account queries
+    profile_image = db.Column(db.String(255), nullable=True)  # Filename of uploaded profile image
 
     chair_signups = db.relationship("ChairSignup", back_populates="user")
     availability_signups = db.relationship("ChairpersonAvailability", back_populates="user")
@@ -1954,6 +1964,7 @@ class ProfileForm(FlaskForm):
         choices=[('male','Male'),('female','Female')],
         validators=[Optional()]
     )
+    profile_image = FileField("Profile Image", validators=[Optional()])
     submit = SubmitField("Save Changes")
 
 
@@ -2047,6 +2058,32 @@ def profile():
     if form.validate_on_submit():
         user.display_name = form.display_name.data.strip()
         user.gender = form.gender.data or None
+        
+        # Handle profile image upload
+        if form.profile_image.data:
+            file = form.profile_image.data
+            if file and allowed_file(file.filename):
+                # Create uploads directory if it doesn't exist
+                upload_folder = os.path.join(app.root_path, 'static', 'uploads', 'profiles')
+                os.makedirs(upload_folder, exist_ok=True)
+                
+                # Delete old profile image if exists
+                if user.profile_image:
+                    old_image_path = os.path.join(upload_folder, user.profile_image)
+                    if os.path.exists(old_image_path):
+                        try:
+                            os.remove(old_image_path)
+                        except:
+                            pass
+                
+                # Save new image with secure filename
+                filename = secure_filename(file.filename)
+                # Add user ID to filename to prevent conflicts
+                name, ext = os.path.splitext(filename)
+                filename = f"user_{user.id}_{secrets.token_hex(8)}{ext}"
+                file.save(os.path.join(upload_folder, filename))
+                user.profile_image = filename
+        
         db.session.commit()
         flash("Profile updated.", "success")
         return redirect(url_for("profile"))
