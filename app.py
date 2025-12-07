@@ -1090,6 +1090,29 @@ def logout():
     flash("Logged out.", "info")
     return redirect(url_for("index"))
 
+# API: validate registration unlock key
+@app.route("/api/registration/validate-key", methods=["POST"])
+def api_validate_registration_key():
+    try:
+        data = request.get_json(force=True) or {}
+        provided = (data.get('key') or '').strip()
+        required_code = app.config.get('REGISTRATION_ACCESS_CODE')
+        codes_list_raw = app.config.get('REGISTRATION_ACCESS_CODES')
+        valid_codes = set()
+        if required_code:
+            valid_codes.add(str(required_code).strip())
+        if codes_list_raw:
+            for c in str(codes_list_raw).split(','):
+                c = c.strip()
+                if c:
+                    valid_codes.add(c)
+        ok = True
+        if valid_codes:
+            ok = provided in valid_codes
+        return jsonify({"ok": ok})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
 
 # ==========================
 # USER PAGES (secured)

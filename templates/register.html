@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
   <div class="container py-4">
-    <h2 class="mb-3">Create Back Porch Chairperson Account</h2>
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-10 col-lg-8 col-xl-6">
+        <h2 class="mb-4 text-center">Create Back Porch Chairperson Account</h2>
+        <div class="card shadow-sm">
+          <div class="card-body p-4">
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -14,33 +18,37 @@
       {% endif %}
     {% endwith %}
 
-    <form id="registerForm" method="POST" action="{{ url_for('register') }}">
+    <form id="registerForm" method="POST" action="{{ url_for('register') }}" class="needs-validation" novalidate>
       {{ form.hidden_tag() }}
 
       {% if access_codes_configured %}
       <div class="mb-3">
-        <label for="access_code" class="form-label">Registration Key</label>
-        <input type="text" class="form-control" id="access_code" name="access_code" placeholder="Enter your registration key" required>
-        <div class="form-text">Registration is restricted. Enter the registration key to unlock the form fields.</div>
+        <label for="access_code" class="form-label">Registration Unlock Key:</label>
+        <div class="input-group input-group-sm">
+          <input type="text" class="form-control form-control-sm" id="access_code" name="access_code" placeholder="Enter unlock key" autocomplete="off">
+          <button type="button" id="unlockSubmit" class="btn btn-success btn-sm">Submit</button>
+          <button type="button" id="unlockClear" class="btn btn-outline-secondary btn-sm">Delete</button>
+        </div>
+        <div class="form-text">Enter the unlock key to enable the registration form fields.</div>
       </div>
       {% endif %}
 
       <fieldset id="regFields">
         <div class="mb-3">
           {{ form.display_name.label(class_='form-label') }}
-          {{ form.display_name(class_='form-control') }}
+          {{ form.display_name(class_='form-control form-control-sm') }}
         </div>
         <div class="mb-3">
           {{ form.email.label(class_='form-label') }}
-          {{ form.email(class_='form-control') }}
+          {{ form.email(class_='form-control form-control-sm') }}
         </div>
         <div class="mb-3">
           {{ form.password.label(class_='form-label') }}
-          {{ form.password(class_='form-control') }}
+          {{ form.password(class_='form-control form-control-sm') }}
         </div>
         <div class="mb-3">
           {{ form.sobriety_date.label(class_='form-label') }}
-          {{ form.sobriety_date(class_='form-control', id='sobriety_date') }}
+          {{ form.sobriety_date(class_='form-control form-control-sm', id='sobriety_date') }}
           <div class="form-text" id="daysSoberText" style="margin-top: 0.25rem;">
             Years: <span id="yearsSoberVal">0</span> • Days: <span id="daysSoberVal">0</span>
           </div>
@@ -63,7 +71,23 @@
         </div>
       </fieldset>
 
-      {{ form.submit(class_='btn btn-primary', id='submitBtn') }}
+      {{ form.submit(class_='btn btn-primary btn-sm w-100', id='submitBtn') }}
+
+    <!-- Modal for incorrect key / lockout -->
+    <div class="modal fade" id="keyModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Registration Locked</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="keyModalBody">Incorrect key. You are locked out.</div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
     </form>
 
     <script>
@@ -86,13 +110,63 @@
 
         if (accessConfigured) {
           setLockedState(true);
-          if (accessInput) {
-            const toggle = () => {
-              const hasCode = accessInput.value && accessInput.value.trim().length > 0;
-              setLockedState(!hasCode);
-            };
-            accessInput.addEventListener('input', toggle);
-            toggle();
+          const unlockBtn = document.getElementById('unlockSubmit');
+          const clearBtn = document.getElementById('unlockClear');
+          const modalEl = document.getElementById('keyModal');
+          const modalBody = document.getElementById('keyModalBody');
+          const bsModal = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+          async function tryUnlock() {
+            const key = (accessInput && accessInput.value ? accessInput.value.trim() : '');
+            if (!key) { return; }
+            try {
+              const resp = await fetch('/api/registration/validate-key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key })
+              });
+              const data = await resp.json();
+              if (data && data.ok) {
+                localStorage.setItem('bp_access_code', key);
+                setLockedState(false);
+              } else {
+                if (bsModal && modalBody) {
+                  modalBody.textContent = 'Incorrect key. You are locked out.';
+                  bsModal.show();
+                  // After the modal is hidden, redirect away
+                  modalEl.addEventListener('hidden.bs.modal', () => {
+                    window.location.href = 'https://www.google.com/';
+                  }, { once: true });
+                } else {
+                  window.location.href = 'https://www.google.com/';
+                }
+              }
+            } catch (e) {
+              // Fail closed
+              if (bsModal && modalBody) {
+                modalBody.textContent = 'Unable to validate key. You are locked out.';
+                bsModal.show();
+                modalEl.addEventListener('hidden.bs.modal', () => {
+                  window.location.href = 'https://www.google.com/';
+                }, { once: true });
+              } else {
+                window.location.href = 'https://www.google.com/';
+              }
+            }
+          }
+
+          if (unlockBtn) unlockBtn.addEventListener('click', tryUnlock);
+          if (clearBtn) clearBtn.addEventListener('click', function() {
+            localStorage.removeItem('bp_access_code');
+            if (accessInput) accessInput.value = '';
+            setLockedState(true);
+          });
+
+          // If a saved key exists, attempt auto-unlock
+          const saved = localStorage.getItem('bp_access_code');
+          if (saved && accessInput) {
+            accessInput.value = saved;
+            tryUnlock();
           }
         } else {
           setLockedState(false);
@@ -135,6 +209,10 @@
       {% else %}
         <p class="text-muted mb-0">No PDFs found. Add files to the configured folder and they will appear here.</p>
       {% endif %}
+    </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 {% endblock %}
