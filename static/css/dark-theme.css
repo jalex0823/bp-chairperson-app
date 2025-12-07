@@ -255,3 +255,36 @@ body.dark-theme {
 .dark-theme .calendar-sidebar .time {
     color: #ffffff !important;
 }
+
+/* Calendar table headers (days of the week) */
+.dark-theme .calendar-table thead th {
+    background: #2a2a2a !important;
+    color: #ffffff !important;
+}
+
+/* Calendar main grid */
+.dark-theme .calendar-main {
+    background: #1a1a1a !important;
+}
+
+/* Calendar cells */
+.dark-theme .calendar-cell {
+    background: #1a1a1a;
+    border-color: #333333 !important;
+}
+
+.dark-theme .calendar-cell:hover {
+    background: #2a2a2a !important;
+}
+
+.dark-theme .calendar-cell.today {
+    background: #2a3a2a !important;
+}
+
+.dark-theme .calendar-out-month {
+    background-color: #0a0a0a !important;
+}
+
+.dark-theme .calendar-out-month:hover {
+    background-color: #1a1a1a !important;
+}
