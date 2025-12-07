@@ -128,7 +128,7 @@
     </form>
 
     <script>
-      (function() {
+      document.addEventListener('DOMContentLoaded', function() {
         const accessConfigured = {{ 'true' if access_codes_configured else 'false' }};
         const accessInput = document.getElementById('access_code');
         const regFields = document.getElementById('regFields');
@@ -138,6 +138,8 @@
         const yearsVal = document.getElementById('yearsSoberVal');
         const unlockStatus = document.getElementById('unlockStatus');
         let failedAttempts = 0;
+        
+        console.log('Registration page loaded. Access configured:', accessConfigured);
 
         function setLockedState(locked) {
           if (!regFields) return;
@@ -176,8 +178,13 @@
           }
 
           async function tryUnlock() {
+            console.log('tryUnlock called');
             const key = (accessInput && accessInput.value ? accessInput.value.trim() : '');
-            if (!key) { return; }
+            console.log('Key entered:', key ? '(hidden)' : '(empty)');
+            if (!key) { 
+              console.log('No key entered, returning');
+              return; 
+            }
             try {
               const resp = await fetch('/api/registration/validate-key', {
                 method: 'POST',
@@ -258,8 +265,16 @@
             }
           }
 
-          if (unlockBtn) unlockBtn.addEventListener('click', tryUnlock);
-          if (clearBtn) clearBtn.addEventListener('click', function() {
+          if (unlockBtn) {
+            console.log('Attaching click handler to Submit button');
+            unlockBtn.addEventListener('click', tryUnlock);
+          } else {
+            console.error('Submit button not found!');
+          }
+          
+          if (clearBtn) {
+            console.log('Attaching click handler to Delete button');
+            clearBtn.addEventListener('click', function() {
             localStorage.removeItem('bp_access_code');
             if (accessInput) accessInput.value = '';
             setLockedState(true);
@@ -269,7 +284,11 @@
             if (unlockStatus) {
               unlockStatus.style.display = 'none';
             }
+            console.log('Cleared unlock key');
           });
+          } else {
+            console.error('Delete button not found!');
+          }
 
           // If a saved key exists, attempt auto-unlock
           const saved = localStorage.getItem('bp_access_code');
@@ -313,7 +332,7 @@
           sobDate.addEventListener('input', calcDays);
           calcDays();
         }
-      })();
+      });
     </script>
 
     <div class="mt-4">
