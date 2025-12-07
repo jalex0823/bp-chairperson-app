@@ -4,6 +4,7 @@ import json
 import os
 import hashlib
 import secrets
+import base64
 from datetime import timezone
 import time
 
@@ -170,7 +171,7 @@ class User(db.Model):
     last_login = db.Column(db.DateTime, nullable=True, index=True)  # Index for activity tracking
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True, index=True)  # Index for locked account queries
-    profile_image = db.Column(db.LargeBinary, nullable=True)  # Store image as binary data in database
+    profile_image = db.Column(db.Text, nullable=True)  # Store base64 encoded image data
     profile_image_type = db.Column(db.String(50), nullable=True)  # MIME type (image/jpeg, image/png, etc.)
 
     chair_signups = db.relationship("ChairSignup", back_populates="user")
@@ -2259,7 +2260,7 @@ def profile():
             user.display_name = form.display_name.data.strip()
             user.gender = form.gender.data or None
             
-            # Handle profile image upload - store in database
+            # Handle profile image upload - store as base64 in database
             if form.profile_image.data:
                 file = form.profile_image.data
                 if file and allowed_file(file.filename):
@@ -2269,8 +2270,8 @@ def profile():
                     if len(image_data) > 5 * 1024 * 1024:
                         flash("Image file is too large. Maximum size is 5MB.", "danger")
                         return redirect(url_for("profile"))
-                    # Store binary data and MIME type in database
-                    user.profile_image = image_data
+                    # Encode to base64 and store as text
+                    user.profile_image = base64.b64encode(image_data).decode('utf-8')
                     user.profile_image_type = file.content_type or 'image/jpeg'
             
             db.session.commit()
@@ -2313,7 +2314,13 @@ def profile_image(user_id):
     """Serve profile image from database."""
     user = User.query.get_or_404(user_id)
     if user.profile_image:
-        return Response(user.profile_image, mimetype=user.profile_image_type or 'image/jpeg')
+        try:
+            # Decode base64 image data
+            image_data = base64.b64decode(user.profile_image)
+            return Response(image_data, mimetype=user.profile_image_type or 'image/jpeg')
+        except Exception as e:
+            app.logger.error(f"Error decoding profile image for user {user_id}: {e}")
+            return "", 404
     else:
         # Return a default placeholder image or 404
         return "", 404
