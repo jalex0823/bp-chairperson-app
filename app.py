@@ -2255,21 +2255,32 @@ def profile():
     user_meeting_types = [mt[0] for mt in user_meeting_types if mt[0]]
     
     if form.validate_on_submit():
-        user.display_name = form.display_name.data.strip()
-        user.gender = form.gender.data or None
-        
-        # Handle profile image upload - store in database
-        if form.profile_image.data:
-            file = form.profile_image.data
-            if file and allowed_file(file.filename):
-                # Read image data
-                image_data = file.read()
-                # Store binary data and MIME type in database
-                user.profile_image = image_data
-                user.profile_image_type = file.content_type or 'image/jpeg'
-        
-        db.session.commit()
-        flash("Profile updated.", "success")
+        try:
+            user.display_name = form.display_name.data.strip()
+            user.gender = form.gender.data or None
+            
+            # Handle profile image upload - store in database
+            if form.profile_image.data:
+                file = form.profile_image.data
+                if file and allowed_file(file.filename):
+                    # Read image data
+                    image_data = file.read()
+                    # Validate image size (max 5MB)
+                    if len(image_data) > 5 * 1024 * 1024:
+                        flash("Image file is too large. Maximum size is 5MB.", "danger")
+                        return redirect(url_for("profile"))
+                    # Store binary data and MIME type in database
+                    user.profile_image = image_data
+                    user.profile_image_type = file.content_type or 'image/jpeg'
+            
+            db.session.commit()
+            flash("Profile updated.", "success")
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error updating profile: {e}")
+            import traceback
+            app.logger.error(traceback.format_exc())
+            flash(f"Error updating profile: {str(e)}", "danger")
         return redirect(url_for("profile"))
         
     return render_template("profile.html", 
