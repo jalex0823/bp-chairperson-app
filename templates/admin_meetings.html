@@ -25,6 +25,44 @@
     </div>
   </div>
 
+  <div class="mb-3">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <strong>Website Source:</strong>
+          <code>{{ web_source or 'Not configured' }}</code>
+        </div>
+        <div>
+          {% if web_source %}
+            <a href="{{ url_for('admin_import_web', weeks=12) }}" class="btn btn-primary btn-sm">Import/Sync from Website</a>
+          {% else %}
+            <span class="text-muted">Set SOURCE_MEETINGS_WEB_URL in environment to enable website scraping imports.</span>
+          {% endif %}
+        </div>
+      </div>
+      <small class="text-muted">Parses https meeting page content (times and weekend meetings) and seeds the next 12 weeks.</small>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <strong>Static Schedule:</strong>
+          <span class="badge {{ 'bg-bp-green' if static_schedule_enabled else 'bg-secondary' }}">{{ 'Enabled' if static_schedule_enabled else 'Disabled' }}</span>
+        </div>
+        <div>
+          {% if static_schedule_enabled %}
+            <a href="{{ url_for('admin_seed_static', weeks=12) }}" class="btn btn-outline-success btn-sm">Seed Next 12 Weeks</a>
+          {% else %}
+            <span class="text-muted">Enable STATIC_SCHEDULE_ENABLED in environment to use built-in schedule.</span>
+          {% endif %}
+        </div>
+      </div>
+      <small class="text-muted">Use when no website calendar exists. Seeds Daily 5:30 PM plus Women/Co-ed/Men meetings on weekends.</small>
+    </div>
+  </div>
+
   {% if not meetings %}
     <p>No meetings created yet.</p>
   {% else %}

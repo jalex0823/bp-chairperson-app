@@ -43,3 +43,9 @@ class Config:
 
     # Scheduler configuration
     SCHEDULER_API_ENABLED = True
+
+    # Registration gating
+    REGISTRATION_ENABLED = os.environ.get("REGISTRATION_ENABLED", "True").lower() == "true"
+    REGISTRATION_ACCESS_CODE = os.environ.get("REGISTRATION_ACCESS_CODE")
+    # Optional: comma-separated list of codes
+    REGISTRATION_ACCESS_CODES = os.environ.get("REGISTRATION_ACCESS_CODES")

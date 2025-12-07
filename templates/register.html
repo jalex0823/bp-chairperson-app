@@ -41,7 +41,9 @@
         <div class="mb-3">
           {{ form.sobriety_date.label(class_='form-label') }}
           {{ form.sobriety_date(class_='form-control', id='sobriety_date') }}
-          <div class="form-text" id="daysSoberText" style="margin-top: 0.25rem;">Days Sober: <span id="daysSoberVal">0</span></div>
+          <div class="form-text" id="daysSoberText" style="margin-top: 0.25rem;">
+            Years: <span id="yearsSoberVal">0</span> • Days: <span id="daysSoberVal">0</span>
+          </div>
         </div>
         <div class="mb-3">
           {{ form.gender.label(class_='form-label') }}
@@ -72,6 +74,7 @@
         const submitBtn = document.getElementById('submitBtn');
         const sobDate = document.getElementById('sobriety_date');
         const daysVal = document.getElementById('daysSoberVal');
+        const yearsVal = document.getElementById('yearsSoberVal');
 
         function setLockedState(locked) {
           if (!regFields) return;
@@ -99,7 +102,7 @@
         function calcDays() {
           if (!sobDate || !daysVal) return;
           const val = sobDate.value;
-          if (!val) { daysVal.textContent = '0'; return; }
+          if (!val) { daysVal.textContent = '0'; if (yearsVal) yearsVal.textContent = '0'; return; }
           const d0 = new Date(val + 'T00:00:00');
           const today = new Date();
           // strip time portion from today
@@ -107,6 +110,10 @@
           const t1 = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
           const diffDays = Math.max(0, Math.floor((t1 - t0) / (1000*60*60*24)));
           daysVal.textContent = diffDays.toString();
+          if (yearsVal) {
+            const diffYears = Math.floor(diffDays / 365.2425);
+            yearsVal.textContent = diffYears.toString();
+          }
         }
         if (sobDate) {
           sobDate.addEventListener('change', calcDays);
@@ -118,11 +125,16 @@
 
     <div class="mt-4">
       <hr />
-      <p class="mb-2">Please review these chairperson resources:</p>
-      <ul class="mb-0">
-        <li><a href="{{ url_for('serve_pdf', filename=responsibilities_pdf) }}" target="_blank" rel="noopener">Chairperson Responsibilities (PDF)</a></li>
-        <li><a href="{{ url_for('serve_pdf', filename=protocol_pdf) }}" target="_blank" rel="noopener">Meeting Protocol (PDF)</a></li>
-      </ul>
+      <p class="mb-2">Chairperson resources (PDFs):</p>
+      {% if pdfs and pdfs|length > 0 %}
+        <ul class="mb-0">
+          {% for p in pdfs %}
+            <li><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.name }}</a></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted mb-0">No PDFs found. Add files to the configured folder and they will appear here.</p>
+      {% endif %}
     </div>
   </div>
 {% endblock %}

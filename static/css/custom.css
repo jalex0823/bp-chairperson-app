@@ -39,19 +39,24 @@ body {
 
 .navbar.bg-bp-green {
     background: linear-gradient(90deg, var(--color-primary) 0%, var(--bp-porch-wood) 100%) !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    border-bottom: 1px solid rgba(255,255,255,0.15);
 }
 .navbar .nav-link, .navbar-brand { color: #fff !important; }
 .navbar .nav-link:hover { color: var(--color-accent) !important; }
+/* Compact navbar spacing for a cleaner header */
+.navbar .container { padding-top: 0.35rem; padding-bottom: 0.35rem; }
+.navbar-brand img { box-shadow: 0 0 0 2px rgba(255,255,255,0.15); }
 
 /* Footer themed like header */
 .footer-bp {
-    background: linear-gradient(90deg, var(--color-primary) 0%, var(--bp-porch-wood) 100%);
-    color: #ffffff;
-    border-top: none;
+    background: #ffffff; /* professional clean footer */
+    color: #111111;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: none;
 }
-.footer-bp a { color: #ffffff; }
-.footer-bp a:hover { color: var(--color-accent); }
+.footer-bp a { color: #111111; }
+.footer-bp a:hover { color: var(--color-primary); }
 
 .btn-gold {
     color: var(--bp-dark-text);
@@ -98,7 +103,8 @@ body {
 
 .calendar-table {
     border-collapse: separate;
-    border-spacing: 0;
+    border-spacing: 0.5rem; /* add space between day columns */
+    background: #ffffff; /* clean table background */
 }
 
 .calendar-table thead th {
@@ -110,8 +116,12 @@ body {
 }
 
 .calendar-cell {
+    background: #ffffff;
     border: 1px solid #e5e7eb;
-    min-height: 7rem;
+    border-radius: 0.5rem;
+    min-height: 8rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    padding: 0.5rem;
 }
 
 .calendar-cell .day-badge {
@@ -125,8 +135,10 @@ body {
 
 .calendar-cell .meeting {
     border-left: 3px solid var(--bp-green);
-    padding-left: 0.5rem;
-    margin-bottom: 0.35rem;
+    padding: 0.35rem 0.5rem;
+    margin: 0.25rem 0;
+    background: #fafafa;
+    border-radius: 0.25rem;
 }
 
 .calendar-cell .meeting.chaired { border-left-color: var(--bp-gold); }
@@ -136,6 +148,7 @@ body {
 .list-group-item.taken {
     background-color: #f8f9fa; /* light grey */
     color: var(--color-text-muted); /* secondary text */
+}
 
 .calendar-cell .meeting-title {
     font-weight: 600;
@@ -151,8 +164,8 @@ body {
 }
 
 .calendar-out-month {
-        background: #f9fafb;
-        color: #b0b6bb;
+    background: #f5f7f8;
+    color: #b0b6bb;
 }
 
 /* Buttons */
@@ -160,6 +173,15 @@ body {
 .btn-primary:hover { background-color: var(--color-primary-dark); border-color: var(--color-primary-dark); }
 .btn-secondary { background-color: var(--color-secondary); border-color: var(--color-secondary); color: #1b1b1b; }
 .btn-secondary:hover { background-color: #e0641e; border-color: #e0641e; color: #1b1b1b; }
+
+/* Hero section polish */
+.hero-gradient {
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--bp-porch-wood) 100%);
+    border-radius: 0.75rem;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+}
+.hero-gradient .btn { box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
 
 /* Links */
 a { color: var(--color-primary); }

@@ -55,11 +55,25 @@ if os.getenv('FLASK_ENV') != 'production':
 else:
     scheduler = None
 # External resources directory for chairing PDFs (configurable)
-EXTERNAL_PDFS_DIR = os.environ.get(
-    "EXTERNAL_PDFS_DIR",
-    r"C:\\Users\\JefferyAlexander\\Dropbox\\chatbot\\FullSiteNewPages\\assets\\pdfs"
-)
+# Prefer project-local resources/pdfs so it works both locally and on Heroku.
+DEFAULT_PDFS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'pdfs')
+EXTERNAL_PDFS_DIR = os.environ.get("EXTERNAL_PDFS_DIR", DEFAULT_PDFS_DIR)
 SOURCE_MEETINGS_ICS_URL = os.environ.get("SOURCE_MEETINGS_ICS_URL")
+SOURCE_MEETINGS_WEB_URL = os.environ.get("SOURCE_MEETINGS_WEB_URL")
+
+# Optional: built-in static schedule (when no website calendar exists)
+# Times are in local server time; title/description can be customized
+STATIC_SCHEDULE_ENABLED = (os.environ.get("STATIC_SCHEDULE_ENABLED", "True").lower() == "true")
+STATIC_SCHEDULE = {
+    # Daily Literature-based Meeting at 17:30 (5:30 PM)
+    "daily": {"enabled": True, "hour": 17, "minute": 30, "title": "Daily Literature-based Meeting", "description": "AA-approved literature only", "zoom_link": "Online"},
+    # Women's: Saturday 08:30
+    "women_sat": {"enabled": True, "weekday": 5, "hour": 8, "minute": 30, "title": "Women's Meeting", "description": "Women only", "zoom_link": "Online", "gender": "female"},
+    # Co-ed: Sunday 08:30
+    "coed_sun": {"enabled": True, "weekday": 6, "hour": 8, "minute": 30, "title": "Co-ed Meeting", "description": "Co-ed", "zoom_link": "Online"},
+    # Men's: Sunday 15:30
+    "men_sun": {"enabled": True, "weekday": 6, "hour": 15, "minute": 30, "title": "Men's Meeting", "description": "Men only", "zoom_link": "Online", "gender": "male"},
+}
 
 # Flask 3 removed before_first_request; database initialization is handled
 # via Heroku release phase (see Procfile) and CLI command `flask --app app.py init-db`.
@@ -241,6 +255,255 @@ def import_meetings_from_ics(ics_url: str, replace_future: bool = True) -> int:
 
     db.session.commit()
     return imported
+
+
+def seed_meetings_from_static_schedule(weeks: int = 12, replace_future: bool = True) -> int:
+    """Generate meetings for the next N weeks based on STATIC_SCHEDULE.
+    If replace_future is True, clear future meetings first.
+    Returns number of meetings created.
+    """
+    if not STATIC_SCHEDULE_ENABLED:
+        return 0
+    if replace_future:
+        db.session.query(Meeting).filter(Meeting.event_date >= date.today()).delete()
+        db.session.commit()
+
+    created = 0
+    today = date.today()
+
+    # Daily
+    daily = STATIC_SCHEDULE.get("daily", {})
+    if daily.get("enabled"):
+        for i in range(weeks * 7):
+            d = today + timedelta(days=i)
+            start_t = datetime.min.replace(hour=daily["hour"], minute=daily["minute"]).time()
+            m = Meeting(
+                title=daily["title"],
+                description=daily.get("description"),
+                zoom_link=daily.get("zoom_link"),
+                event_date=d,
+                start_time=start_t,
+                end_time=(datetime.min.replace(hour=daily["hour"], minute=daily["minute"]) + timedelta(hours=1)).time(),
+                is_open=True,
+                gender_restriction=None,
+            )
+            db.session.add(m)
+            created += 1
+
+    def iter_weekdays(start: date, weekday: int, count: int):
+        days_ahead = (weekday - start.weekday()) % 7
+        d = start + timedelta(days=days_ahead)
+        for _ in range(count):
+            yield d
+            d += timedelta(days=7)
+
+    # Saturday women's
+    w = STATIC_SCHEDULE.get("women_sat", {})
+    if w.get("enabled"):
+        for d in iter_weekdays(today, w["weekday"], weeks):
+            start_t = datetime.min.replace(hour=w["hour"], minute=w["minute"]).time()
+            m = Meeting(
+                title=w["title"],
+                description=w.get("description"),
+                zoom_link=w.get("zoom_link"),
+                event_date=d,
+                start_time=start_t,
+                end_time=(datetime.min.replace(hour=w["hour"], minute=w["minute"]) + timedelta(hours=1)).time(),
+                is_open=True,
+                gender_restriction=w.get("gender"),
+            )
+            db.session.add(m)
+            created += 1
+
+    # Sunday co-ed
+    c = STATIC_SCHEDULE.get("coed_sun", {})
+    if c.get("enabled"):
+        for d in iter_weekdays(today, c["weekday"], weeks):
+            start_t = datetime.min.replace(hour=c["hour"], minute=c["minute"]).time()
+            m = Meeting(
+                title=c["title"],
+                description=c.get("description"),
+                zoom_link=c.get("zoom_link"),
+                event_date=d,
+                start_time=start_t,
+                end_time=(datetime.min.replace(hour=c["hour"], minute=c["minute"]) + timedelta(hours=1)).time(),
+                is_open=True,
+                gender_restriction=None,
+            )
+            db.session.add(m)
+            created += 1
+
+    # Sunday men's
+    mconf = STATIC_SCHEDULE.get("men_sun", {})
+    if mconf.get("enabled"):
+        for d in iter_weekdays(today, mconf["weekday"], weeks):
+            start_t = datetime.min.replace(hour=mconf["hour"], minute=mconf["minute"]).time()
+            m = Meeting(
+                title=mconf["title"],
+                description=mconf.get("description"),
+                zoom_link=mconf.get("zoom_link"),
+                event_date=d,
+                start_time=start_t,
+                end_time=(datetime.min.replace(hour=mconf["hour"], minute=mconf["minute"]) + timedelta(hours=1)).time(),
+                is_open=True,
+                gender_restriction=mconf.get("gender"),
+            )
+            db.session.add(m)
+            created += 1
+
+    db.session.commit()
+    return created
+
+
+def import_meetings_from_webpage(page_url: str, weeks: int = 12, replace_future: bool = True) -> int:
+    """Scrape meeting schedule from an external HTML page and generate meetings for the next N weeks.
+    This is resilient to minor content changes by looking for known phrases and time patterns.
+    The current site schedule includes:
+      - Daily Literature-based Meeting at 5:30 PM MT (co-ed)
+      - Saturday Women's at 8:30 AM MT
+      - Sunday Co-ed at 8:30 AM MT
+      - Sunday Men's at 3:30 PM MT
+    If parsing fails, no meetings are created.
+    """
+    if not page_url:
+        raise ValueError("Web page URL not provided")
+
+    # Fetch page
+    try:
+        with urlopen(page_url) as resp:
+            html = resp.read().decode('utf-8', errors='ignore')
+    except (URLError, HTTPError) as e:
+        raise RuntimeError(f"Failed to fetch web page: {e}")
+
+    import re
+    text = re.sub(r"<[^>]+>", " ", html)  # strip tags to plain text
+    text = re.sub(r"\s+", " ", text).lower()
+
+    # Helper to detect presence of phrases
+    def has(*phrases):
+        return all(p.lower() in text for p in phrases)
+
+    # Try to extract times with regex; default to known if phrases exist
+    def find_time(patterns, default_hm):
+        for pat in patterns:
+            m = re.search(pat, text)
+            if m:
+                # Normalize hour/minute and am/pm
+                hh = int(m.group('hour'))
+                mm = int(m.group('min')) if m.group('min') else 0
+                ampm = (m.group('ampm') or '').lower()
+                if ampm == 'pm' and hh != 12:
+                    hh += 12
+                if ampm == 'am' and hh == 12:
+                    hh = 0
+                return hh, mm
+        return default_hm
+
+    # Patterns like "5:30 PM" or "5 PM"
+    time_patterns = [r"(?P<hour>\d{1,2})(:(?P<min>\d{2}))?\s*(?P<ampm>am|pm)\s*mt"]
+
+    # Determine configured schedule from page content (fallbacks to defaults)
+    daily_enabled = has('daily') and has('literature')
+    daily_hm = find_time(time_patterns, (17, 30))
+
+    women_enabled = has("women") and has("saturday")
+    women_hm = find_time(time_patterns, (8, 30))
+
+    coed_enabled = has("co-ed") and has("sunday")
+    coed_hm = find_time(time_patterns, (8, 30))
+
+    men_enabled = has("men") and has("sunday")
+    men_hm = find_time(time_patterns, (15, 30))
+
+    if replace_future:
+        db.session.query(Meeting).filter(Meeting.event_date >= date.today()).delete()
+        db.session.commit()
+
+    created = 0
+    today = date.today()
+
+    # Daily
+    if daily_enabled:
+        hh, mm = daily_hm
+        for i in range(weeks * 7):
+            d = today + timedelta(days=i)
+            start_t = datetime.min.replace(hour=hh, minute=mm).time()
+            m = Meeting(
+                title="Daily Literature-based Meeting",
+                description="AA-approved literature only",
+                zoom_link="Online",
+                event_date=d,
+                start_time=start_t,
+                end_time=(datetime.min.replace(hour=hh, minute=mm) + timedelta(hours=1)).time(),
+                is_open=True,
+                gender_restriction=None,
+            )
+            db.session.add(m)
+            created += 1
+
+    def iter_weekdays(start: date, weekday: int, count: int):
+        days_ahead = (weekday - start.weekday()) % 7
+        d = start + timedelta(days=days_ahead)
+        for _ in range(count):
+            yield d
+            d += timedelta(days=7)
+
+    # Saturday women's (weekday=5)
+    if women_enabled:
+        hh, mm = women_hm
+        for d in iter_weekdays(today, 5, weeks):
+            start_t = datetime.min.replace(hour=hh, minute=mm).time()
+            m = Meeting(
+                title="Women's Meeting",
+                description="Women only",
+                zoom_link="Online",
+                event_date=d,
+                start_time=start_t,
+                end_time=(datetime.min.replace(hour=hh, minute=mm) + timedelta(hours=1)).time(),
+                is_open=True,
+                gender_restriction='female',
+            )
+            db.session.add(m)
+            created += 1
+
+    # Sunday co-ed (weekday=6)
+    if coed_enabled:
+        hh, mm = coed_hm
+        for d in iter_weekdays(today, 6, weeks):
+            start_t = datetime.min.replace(hour=hh, minute=mm).time()
+            m = Meeting(
+                title="Co-ed Meeting",
+                description="Co-ed",
+                zoom_link="Online",
+                event_date=d,
+                start_time=start_t,
+                end_time=(datetime.min.replace(hour=hh, minute=mm) + timedelta(hours=1)).time(),
+                is_open=True,
+                gender_restriction=None,
+            )
+            db.session.add(m)
+            created += 1
+
+    # Sunday men's (weekday=6)
+    if men_enabled:
+        hh, mm = men_hm
+        for d in iter_weekdays(today, 6, weeks):
+            start_t = datetime.min.replace(hour=hh, minute=mm).time()
+            m = Meeting(
+                title="Men's Meeting",
+                description="Men only",
+                zoom_link="Online",
+                event_date=d,
+                start_time=start_t,
+                end_time=(datetime.min.replace(hour=hh, minute=mm) + timedelta(hours=1)).time(),
+                is_open=True,
+                gender_restriction='male',
+            )
+            db.session.add(m)
+            created += 1
+
+    db.session.commit()
+    return created
 
 
 # ==========================
@@ -749,12 +1012,26 @@ def register():
     responsibilities_pdf = os.environ.get('CHAIR_RESPONSIBILITIES_PDF', 'Chairperson Responsibilities.pdf')
     protocol_pdf = os.environ.get('MEETING_PROTOCOL_PDF', 'Meeting Protocol.pdf')
     try:
+        # Build dynamic list of available PDFs from configured folder
+        pdfs = []
+        try:
+            if os.path.isdir(EXTERNAL_PDFS_DIR):
+                for name in sorted(os.listdir(EXTERNAL_PDFS_DIR)):
+                    if name.lower().endswith('.pdf') and not name.startswith('.'):
+                        pdfs.append({
+                            'name': name,
+                            'url': url_for('serve_pdf', filename=name)
+                        })
+        except Exception:
+            pdfs = []
+
         return render_template(
             "register.html",
             form=form,
             access_codes_configured=access_codes_configured,
             responsibilities_pdf=responsibilities_pdf,
             protocol_pdf=protocol_pdf,
+            pdfs=pdfs,
         )
     except Exception as e:
         import traceback
@@ -951,7 +1228,7 @@ def admin_meetings():
         .order_by(Meeting.event_date.desc(), Meeting.start_time.desc())
         .all()
     )
-    return render_template("admin_meetings.html", meetings=meetings, ics_source=SOURCE_MEETINGS_ICS_URL)
+    return render_template("admin_meetings.html", meetings=meetings, ics_source=SOURCE_MEETINGS_ICS_URL, web_source=SOURCE_MEETINGS_WEB_URL, static_schedule_enabled=STATIC_SCHEDULE_ENABLED)
 
 
 @app.route("/admin/import-ics")
@@ -967,6 +1244,37 @@ def admin_import_ics():
         flash(f"Imported {count} meetings from ICS.", "success")
     except Exception as e:
         flash(f"ICS import failed: {e}", "danger")
+    return redirect(url_for('admin_meetings'))
+
+
+@app.route("/admin/import-web")
+@admin_required
+def admin_import_web():
+    """Admin endpoint to import meetings by scraping the configured web page."""
+    url = SOURCE_MEETINGS_WEB_URL
+    if not url:
+        flash("Web source URL is not configured.", "warning")
+        return redirect(url_for('admin_meetings'))
+    try:
+        count = import_meetings_from_webpage(url, weeks=int(request.args.get("weeks", 12)), replace_future=True)
+        flash(f"Imported {count} meetings from website.", "success")
+    except Exception as e:
+        flash(f"Website import failed: {e}", "danger")
+    return redirect(url_for('admin_meetings'))
+
+
+@app.route("/admin/seed-static")
+@admin_required
+def admin_seed_static():
+    """Admin endpoint to seed meetings from built-in static schedule."""
+    if not STATIC_SCHEDULE_ENABLED:
+        flash("Static schedule seeding is disabled.", "warning")
+        return redirect(url_for('admin_meetings'))
+    try:
+        count = seed_meetings_from_static_schedule(weeks=int(request.args.get("weeks", 12)), replace_future=True)
+        flash(f"Created {count} meetings from static schedule.", "success")
+    except Exception as e:
+        flash(f"Static schedule seed failed: {e}", "danger")
     return redirect(url_for('admin_meetings'))
 
 
@@ -1001,6 +1309,7 @@ def admin_diagnostics():
         counts=counts,
         mail_settings=mail_settings,
         ics_source=SOURCE_MEETINGS_ICS_URL,
+        web_source=SOURCE_MEETINGS_WEB_URL,
     )
 
 
@@ -1402,6 +1711,35 @@ def import_ics_command():
         print(f"Imported {count} meetings from ICS.")
     except Exception as e:
         print(f"Import failed: {e}")
+
+
+@app.cli.command("seed-schedule")
+def seed_schedule_command():
+    """Seed meetings from the built-in static schedule for the next N weeks.
+    Usage: flask --app app.py seed-schedule
+    Optionally set WEEKS env variable to control horizon (default 12).
+    """
+    weeks = int(os.environ.get("WEEKS", "12"))
+    count = seed_meetings_from_static_schedule(weeks=weeks, replace_future=True)
+    print(f"Seeded {count} meetings from static schedule.")
+
+
+@app.cli.command("import-web")
+def import_web_command():
+    """Import meetings by scraping the website URL defined in env var SOURCE_MEETINGS_WEB_URL.
+    Usage: flask --app app.py import-web
+    Optionally set WEEKS env variable to control horizon (default 12).
+    """
+    url = SOURCE_MEETINGS_WEB_URL
+    if not url:
+        print("SOURCE_MEETINGS_WEB_URL is not set.")
+        return
+    weeks = int(os.environ.get("WEEKS", "12"))
+    try:
+        count = import_meetings_from_webpage(url, weeks=weeks, replace_future=True)
+        print(f"Imported {count} meetings from website.")
+    except Exception as e:
+        print(f"Website import failed: {e}")
 
 
 if __name__ == "__main__":
