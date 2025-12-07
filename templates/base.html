@@ -124,6 +124,13 @@
   {% block content %}{% endblock %}
 </div>
 
+<!-- Full-width container for calendar page -->
+{% if request.endpoint == 'calendar_view' %}
+<style>
+  .container { max-width: 100% !important; padding-left: 1rem; padding-right: 1rem; }
+</style>
+{% endif %}
+
 <!-- Self-hosted Bootstrap JS Bundle (includes Popper) -->
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v={{ asset_version }}"></script>
 <script>
