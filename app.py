@@ -1347,6 +1347,52 @@ def calendar_month_ics():
     return response
 
 
+@app.route("/calendar/day-ics")
+def calendar_day_ics():
+    """Export meetings for a specific day as iCal (.ics) file."""
+    today = date.today()
+    date_str = request.args.get("date")
+    
+    if date_str:
+        try:
+            event_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            event_date = today
+    else:
+        event_date = today
+
+    meetings = (
+        Meeting.query
+        .filter(Meeting.event_date == event_date)
+        .order_by(Meeting.start_time.asc())
+        .options(db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user))
+        .all()
+    )
+
+    cal = Calendar()
+    cal.add('prodid', '-//Back Porch Meetings//backporchmeetings.org//')
+    cal.add('version', '2.0')
+    cal.add('x-wr-calname', f'Back Porch Meetings - {event_date.strftime("%B %d, %Y")}')
+
+    for m in meetings:
+        event = Event()
+        start_dt = datetime.combine(m.event_date, m.start_time)
+        end_dt = datetime.combine(m.event_date, m.end_time) if m.end_time else start_dt + timedelta(hours=1)
+        event.add('summary', m.title)
+        event.add('dtstart', start_dt)
+        event.add('dtend', end_dt)
+        event.add('location', m.zoom_link or 'Online')
+        event.add('description', f"{m.description or ''}\n\nChair: {m.chair_signup.display_name_snapshot + ' (' + m.chair_signup.user.bp_id + ')' if m.chair_signup else 'No chair yet'}")
+        event.add('url', url_for('meeting_detail', meeting_id=m.id, _external=True))
+        event.add('uid', f"meeting-{m.id}@backporchmeetings.org")
+        cal.add_component(event)
+
+    response = make_response(cal.to_ical())
+    response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename=backporch-{event_date.strftime("%Y-%m-%d")}.ics'
+    return response
+
+
 @app.route("/meeting/<int:meeting_id>", methods=["GET", "POST"])
 def meeting_detail(meeting_id):
     """Show a single meeting and allow chair sign-up if open & unclaimed."""
