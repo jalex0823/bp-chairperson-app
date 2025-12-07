@@ -23,6 +23,9 @@
           <p class="text-muted mb-0">{{ "Saturday" if today.weekday() == 5 else "Sunday" if today.weekday() == 6 else "Monday" if today.weekday() == 0 else "Tuesday" if today.weekday() == 1 else "Wednesday" if today.weekday() == 2 else "Thursday" if today.weekday() == 3 else "Friday" }}, {{ today.strftime('%B %d, %Y') }}</p>
         </div>
         <div class="d-flex gap-2">
+          <a class="btn btn-success" href="{{ url_for('dashboard_refresh') }}" title="Refresh dashboard data">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </a>
           <a class="btn btn-outline-primary" href="{{ url_for('calendar_view') }}">
             <i class="fas fa-calendar"></i> Calendar
           </a>

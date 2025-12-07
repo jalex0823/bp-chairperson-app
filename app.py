@@ -1986,6 +1986,21 @@ def dashboard():
         return redirect(url_for("index"))
 
 
+@app.route("/dashboard/refresh")
+@login_required
+def dashboard_refresh():
+    """Refresh dashboard by clearing cache and reloading data."""
+    try:
+        # Clear all cached data
+        cache.clear()
+        flash("Dashboard data refreshed!", "success")
+    except Exception as e:
+        app.logger.error(f"Error refreshing dashboard: {e}")
+        flash("Error refreshing data. Please try again.", "warning")
+    
+    return redirect(url_for("dashboard"))
+
+
 @cache.memoize(timeout=180)  # Cache for 3 minutes
 def get_open_meetings_cached():
     """Get open meetings that need chairs - cached for performance."""
@@ -2193,14 +2208,22 @@ def profile():
                          past_meetings=past_meetings,
                          upcoming_availability=upcoming_availability,
                          past_availability=past_availability,
-                         user_meeting_types=user_meeting_types,
-                         show_section=show_section,
-                         current_filters={
-                             'search': search_query,
-                             'meeting_type': meeting_type_filter,
-                             'date_from': date_from,
-                             'date_to': date_to
-                         })
+                         user_meeting_types=user_meeting_types)
+
+
+@app.route("/profile/refresh")
+@login_required
+def profile_refresh():
+    """Refresh profile by clearing cache and reloading data."""
+    try:
+        # Clear all cached data
+        cache.clear()
+        flash("Profile data refreshed!", "success")
+    except Exception as e:
+        app.logger.error(f"Error refreshing profile: {e}")
+        flash("Error refreshing data. Please try again.", "warning")
+    
+    return redirect(url_for("profile"))
 
 
 # ==========================
