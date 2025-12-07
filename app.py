@@ -1406,17 +1406,25 @@ def calendar_day_ics():
 @app.route("/meeting/<int:meeting_id>", methods=["GET", "POST"])
 def meeting_detail(meeting_id):
     """Show a single meeting and allow chair sign-up if open & unclaimed."""
+    user = None
+    meeting = None
+    form = None
+    
     try:
         meeting = Meeting.query.options(db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user)).filter_by(id=meeting_id).first()
         if not meeting:
             flash("Meeting not found.", "danger")
             return redirect(url_for("calendar_view"))
+        
         user = get_current_user()
         form = ChairSignupForm()
+        
+        app.logger.info(f"Loading meeting {meeting_id}: {meeting.title}, has_chair={meeting.has_chair}, user={'logged_in' if user else 'anonymous'}")
+        
     except Exception as e:
         app.logger.error(f"Error loading meeting {meeting_id}: {e}")
         import traceback
-        traceback.print_exc()
+        app.logger.error(traceback.format_exc())
         flash("Error loading meeting details. Please try again.", "danger")
         return redirect(url_for("calendar_view"))
 
@@ -1463,9 +1471,12 @@ def meeting_detail(meeting_id):
             return redirect(url_for("meeting_detail", meeting_id=meeting.id))
 
     try:
+        app.logger.info(f"Rendering meeting_detail template for meeting {meeting_id}")
         return render_template("meeting_detail.html", meeting=meeting, form=form, user=user)
     except Exception as e:
         app.logger.error(f"Error rendering meeting_detail template for meeting {meeting_id}: {e}")
+        import traceback
+        app.logger.error(traceback.format_exc())
         flash("Error displaying meeting details. Please try again.", "danger")
         return redirect(url_for("calendar_view"))
 
@@ -1476,12 +1487,13 @@ def cancel_chair_signup(meeting_id):
     """Allow user to cancel their chair signup for a meeting."""
     from app import ChairSignup, cache
     
+    user = get_current_user()
     meeting = Meeting.query.get_or_404(meeting_id)
     
     # Find the user's chair signup for this meeting
     signup = ChairSignup.query.filter_by(
         meeting_id=meeting_id,
-        user_id=current_user.id
+        user_id=user.id
     ).first()
     
     if not signup:
