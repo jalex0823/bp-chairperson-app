@@ -2248,10 +2248,13 @@ Please join 10-15 minutes early to set up.""")
     
     # Set start and end times
     start_datetime = datetime.combine(meeting.event_date, meeting.start_time or datetime.min.time())
-    duration = timedelta(hours=1)  # Default 1 hour duration
-    if meeting.duration_minutes:
-        duration = timedelta(minutes=meeting.duration_minutes)
-    end_datetime = start_datetime + duration
+    
+    # Calculate end time
+    if meeting.end_time:
+        end_datetime = datetime.combine(meeting.event_date, meeting.end_time)
+    else:
+        # Default to 1 hour duration if no end time specified
+        end_datetime = start_datetime + timedelta(hours=1)
     
     event.add('dtstart', start_datetime)
     event.add('dtend', end_datetime)
