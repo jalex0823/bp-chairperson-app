@@ -2012,6 +2012,53 @@ def dashboard_refresh():
     return redirect(url_for("dashboard"))
 
 
+@app.route("/debug/my-signups")
+@login_required
+def debug_my_signups():
+    """Debug route to check user's chair signups."""
+    user = get_current_user()
+    
+    # Get all ChairSignup records for this user
+    signups = ChairSignup.query.filter_by(user_id=user.id).all()
+    
+    # Get all meetings through the join
+    meetings = (
+        Meeting.query
+        .join(ChairSignup, ChairSignup.meeting_id == Meeting.id)
+        .filter(ChairSignup.user_id == user.id)
+        .all()
+    )
+    
+    debug_info = {
+        "user_id": user.id,
+        "user_email": user.email,
+        "user_display_name": user.display_name,
+        "total_signups": len(signups),
+        "total_meetings": len(meetings),
+        "signups": [
+            {
+                "id": s.id,
+                "meeting_id": s.meeting_id,
+                "display_name": s.display_name_snapshot,
+                "created_at": s.created_at.isoformat() if s.created_at else None
+            }
+            for s in signups
+        ],
+        "meetings": [
+            {
+                "id": m.id,
+                "title": m.title,
+                "event_date": m.event_date.isoformat(),
+                "start_time": m.start_time.strftime('%H:%M:%S') if m.start_time else None,
+                "has_chair": m.has_chair
+            }
+            for m in meetings
+        ]
+    }
+    
+    return jsonify(debug_info)
+
+
 @cache.memoize(timeout=180)  # Cache for 3 minutes
 def get_open_meetings_cached():
     """Get open meetings that need chairs - cached for performance."""
