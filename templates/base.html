@@ -31,6 +31,9 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    
+    <!-- Dark Theme CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-theme.css') }}">
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-bp-green mb-4">
@@ -73,6 +76,11 @@
         {% endif %}
       </ul>
       <div class="d-flex align-items-center">
+        <!-- Theme Toggle -->
+        <button id="themeToggle" class="btn btn-outline-light btn-sm me-3" title="Toggle Dark/Light Theme">
+          <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+        
         {% if current_user %}
           {% if current_user.profile_image %}
             <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_image) }}" 
@@ -151,5 +159,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 </script>
+
+<!-- Theme Toggle Script -->
+<script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+
 </body>
 </html>

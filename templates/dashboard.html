@@ -103,11 +103,9 @@
               <small class="text-muted">Duration: {% if meeting.end_time %}{{ ((meeting.end_time.hour * 60 + meeting.end_time.minute) - (meeting.start_time.hour * 60 + meeting.start_time.minute)) // 60 }}h {{ ((meeting.end_time.hour * 60 + meeting.end_time.minute) - (meeting.start_time.hour * 60 + meeting.start_time.minute)) % 60 }}m{% else %}Not specified{% endif %}</small>
             </div>
             <div class="text-nowrap">
-              {% if meeting.zoom_link %}
-                <a href="{{ meeting.zoom_link }}" target="_blank" class="btn btn-success btn-sm me-2">
-                  <i class="fas fa-video"></i> Join Now
-                </a>
-              {% endif %}
+              <a href="https://therealbackporch.com/meetings.html" target="_blank" class="btn btn-success btn-sm me-2">
+                <i class="fas fa-video"></i> Join Now
+              </a>
               <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" class="btn btn-outline-primary btn-sm">
                 Details
               </a>
@@ -194,11 +192,9 @@
                     </td>
                     <td>
                       <div class="btn-group btn-group-sm">
-                        {% if meeting.zoom_link %}
-                          <a href="{{ meeting.zoom_link }}" target="_blank" class="btn btn-outline-success" title="Join Zoom">
-                            <i class="fas fa-video"></i>
-                          </a>
-                        {% endif %}
+                        <a href="https://therealbackporch.com/meetings.html" target="_blank" class="btn btn-outline-success" title="Join Meeting">
+                          <i class="fas fa-video"></i>
+                        </a>
                         <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" class="btn btn-outline-primary" title="View Details">
                           <i class="fas fa-eye"></i>
                         </a>
