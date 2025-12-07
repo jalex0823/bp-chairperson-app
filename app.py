@@ -1925,8 +1925,11 @@ def dashboard():
         upcoming_meetings = [m for m in all_meetings if m.event_date > today]
         past_meetings = [m for m in all_meetings if m.event_date < today]
         
-        # Get next upcoming meeting
-        next_meeting = upcoming_meetings[0] if upcoming_meetings else None
+        # Combine today's and future meetings for "upcoming commitments" stat
+        all_future_meetings = todays_meetings + upcoming_meetings
+        
+        # Get next upcoming meeting (could be today or future)
+        next_meeting = all_future_meetings[0] if all_future_meetings else None
         
         # Get user's availability signups
         try:
@@ -1944,7 +1947,7 @@ def dashboard():
         
         # Calculate service stats
         total_meetings_chaired = len(past_meetings)
-        upcoming_commitments = len(upcoming_meetings)
+        upcoming_commitments = len(all_future_meetings)  # Include today's meetings
         volunteer_signups = len(upcoming_availability)
         
         # Calculate recent meetings (last 30 days)
