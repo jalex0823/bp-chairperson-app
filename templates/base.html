@@ -77,20 +77,35 @@
       </ul>
       <div class="d-flex align-items-center">
         {% if current_user %}
-          {% if current_user.profile_image %}
-            <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_image) }}" 
-                 alt="{{ current_user.display_name }}" 
-                 class="rounded-circle me-2" 
-                 style="width: 32px; height: 32px; object-fit: cover; border: 2px solid white;">
-          {% else %}
-            <div class="rounded-circle me-2 d-flex align-items-center justify-content-center" 
-                 style="width: 32px; height: 32px; background-color: rgba(255,255,255,0.2); border: 2px solid white;">
-              <i class="fas fa-user text-light"></i>
+          <!-- Profile Picture with Camera Icon -->
+          <a href="{{ url_for('profile') }}" class="text-decoration-none me-2" style="position: relative; display: inline-block;">
+            {% if current_user.profile_image %}
+              <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_image) }}" 
+                   alt="{{ current_user.display_name }}" 
+                   class="rounded-circle" 
+                   style="width: 32px; height: 32px; object-fit: cover; border: 2px solid white;">
+            {% else %}
+              <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                   style="width: 32px; height: 32px; background-color: rgba(255,255,255,0.2); border: 2px solid white;">
+                <i class="fas fa-user text-light"></i>
+              </div>
+            {% endif %}
+            <!-- Camera Icon Overlay -->
+            <div style="position: absolute; bottom: -2px; right: -2px; background-color: #007bff; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; border: 1px solid white;">
+              <i class="fas fa-camera" style="font-size: 7px; color: white;"></i>
             </div>
-          {% endif %}
-          <span class="navbar-text text-light me-3">
-            {{ current_user.display_name }}
-          </span>
+          </a>
+          
+          <!-- Display Name and BP ID -->
+          <div class="d-flex flex-column me-3">
+            <span class="navbar-text text-light mb-0" style="line-height: 1.2; font-size: 0.9rem;">
+              {{ current_user.display_name }}
+            </span>
+            <small class="text-light" style="opacity: 0.8; font-size: 0.7rem;">
+              {{ current_user.bp_id }}
+            </small>
+          </div>
+          
           <!-- Theme Toggle (Lantern) -->
           <button id="themeToggle" class="btn btn-link text-light p-0 me-3" title="Toggle Dark/Light Theme" style="font-size: 1.3rem; border: none; background: none;">
             <i class="fas fa-lightbulb" id="themeIcon"></i>
