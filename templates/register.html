@@ -155,9 +155,16 @@
           const clearBtn = document.getElementById('unlockClear');
           const modalEl = document.getElementById('keyModal');
           const modalBody = document.getElementById('keyModalBody');
-          const bsModal = modalEl ? new bootstrap.Modal(modalEl) : null;
           const successModalEl = document.getElementById('keySuccessModal');
-          const bsSuccessModal = successModalEl ? new bootstrap.Modal(successModalEl) : null;
+          
+          // Initialize Bootstrap modals only if Bootstrap is loaded
+          let bsModal = null;
+          let bsSuccessModal = null;
+          
+          if (typeof bootstrap !== 'undefined') {
+            if (modalEl) bsModal = new bootstrap.Modal(modalEl);
+            if (successModalEl) bsSuccessModal = new bootstrap.Modal(successModalEl);
+          }
 
           // Add manual close handler for success modal fallback
           if (successModalEl) {

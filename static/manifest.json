@@ -10,44 +10,15 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/static/img/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/static/img/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
     },
     {
-      "src": "/static/img/icon-512x512.png",
-      "sizes": "512x512",
+      "src": "/static/img/apple-touch-icon.png",
+      "sizes": "180x180",
       "type": "image/png",
       "purpose": "any maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Calendar",
-      "short_name": "Calendar",
-      "description": "View meeting calendar",
-      "url": "/calendar",
-      "icons": [
-        {
-          "src": "/static/img/calendar-icon.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Profile",
-      "short_name": "Profile",
-      "description": "View your profile and commitments",
-      "url": "/profile",
-      "icons": [
-        {
-          "src": "/static/img/profile-icon.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
     }
   ],
   "categories": ["productivity", "utilities"],
