@@ -295,19 +295,60 @@
                     <form method="POST" action="{{ url_for('admin_assign_chair', meeting_id=m.id) }}">
                       <div class="modal-body">
                         <div class="mb-3">
-                          <label class="form-label">Select Chairperson</label>
-                          <select name="user_id" class="form-select" required>
-                            <option value="">-- Choose a chairperson --</option>
-                            {% for user in all_users %}
-                            <option value="{{ user.id }}">{{ user.display_name }} ({{ user.email }})</option>
-                            {% endfor %}
-                          </select>
+                          <label class="form-label">Assignment Method</label>
+                          <div class="btn-group d-flex" role="group">
+                            <input type="radio" class="btn-check" name="assignment_type" id="existingUser{{ m.id }}" value="existing" checked onclick="toggleAssignmentFields{{ m.id }}()">
+                            <label class="btn btn-outline-primary" for="existingUser{{ m.id }}">Existing User</label>
+                            
+                            <input type="radio" class="btn-check" name="assignment_type" id="newChair{{ m.id }}" value="new" onclick="toggleAssignmentFields{{ m.id }}()">
+                            <label class="btn btn-outline-primary" for="newChair{{ m.id }}">New Chair (Email)</label>
+                          </div>
                         </div>
+                        
+                        <div id="existingUserFields{{ m.id }}">
+                          <div class="mb-3">
+                            <label class="form-label">Select Chairperson</label>
+                            <select name="user_id" class="form-select" id="userSelect{{ m.id }}">
+                              <option value="">-- Choose a chairperson --</option>
+                              {% for user in all_users %}
+                              <option value="{{ user.id }}">{{ user.display_name }} ({{ user.email }})</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div id="newChairFields{{ m.id }}" style="display:none;">
+                          <div class="mb-3">
+                            <label class="form-label">Chair Name</label>
+                            <input type="text" name="chair_name" class="form-control" id="chairName{{ m.id }}" 
+                                   placeholder="Enter full name">
+                          </div>
+                          <div class="mb-3">
+                            <label class="form-label">Chair Email</label>
+                            <input type="email" name="chair_email" class="form-control" id="chairEmail{{ m.id }}" 
+                                   placeholder="Enter email address">
+                            <small class="form-text text-muted">This email will receive automated reminder notifications.</small>
+                          </div>
+                        </div>
+                        
                         <div class="mb-3">
                           <label class="form-label">Notes (optional)</label>
                           <textarea name="notes" class="form-control" rows="2" 
                                     placeholder="Any special instructions or notes"></textarea>
                         </div>
+                        
+                        <script>
+                        function toggleAssignmentFields{{ m.id }}() {
+                          const isExisting = document.getElementById('existingUser{{ m.id }}').checked;
+                          document.getElementById('existingUserFields{{ m.id }}').style.display = isExisting ? 'block' : 'none';
+                          document.getElementById('newChairFields{{ m.id }}').style.display = isExisting ? 'none' : 'block';
+                          
+                          // Update required fields
+                          document.getElementById('userSelect{{ m.id }}').required = isExisting;
+                          document.getElementById('chairName{{ m.id }}').required = !isExisting;
+                          document.getElementById('chairEmail{{ m.id }}').required = !isExisting;
+                        }
+                        </script>
                       </div>
                       <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

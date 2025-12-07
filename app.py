@@ -1405,9 +1405,14 @@ def calendar_day_ics():
 @app.route("/meeting/<int:meeting_id>", methods=["GET", "POST"])
 def meeting_detail(meeting_id):
     """Show a single meeting and allow chair sign-up if open & unclaimed."""
-    meeting = Meeting.query.options(db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user)).get_or_404(meeting_id)
-    user = get_current_user()
-    form = ChairSignupForm()
+    try:
+        meeting = Meeting.query.options(db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user)).get_or_404(meeting_id)
+        user = get_current_user()
+        form = ChairSignupForm()
+    except Exception as e:
+        app.logger.error(f"Error loading meeting {meeting_id}: {e}")
+        flash("Error loading meeting details. Please try again.", "danger")
+        return redirect(url_for("calendar_view"))
 
     if request.method == "POST" and form.validate_on_submit():
         if not user:
@@ -1451,7 +1456,12 @@ def meeting_detail(meeting_id):
             flash("Thank you for chairing this Back Porch meeting!", "success")
             return redirect(url_for("meeting_detail", meeting_id=meeting.id))
 
-    return render_template("meeting_detail.html", meeting=meeting, form=form, user=user)
+    try:
+        return render_template("meeting_detail.html", meeting=meeting, form=form, user=user)
+    except Exception as e:
+        app.logger.error(f"Error rendering meeting_detail template for meeting {meeting_id}: {e}")
+        flash("Error displaying meeting details. Please try again.", "danger")
+        return redirect(url_for("calendar_view"))
 
 
 @app.route("/meeting/<int:meeting_id>/cancel", methods=["POST"])
@@ -1743,7 +1753,7 @@ def register():
                 session["user_id"] = user.id
                 app.logger.info(f"New user registered: {user.email} (ID: {user.id})")
                 flash("Chairperson account created. Thank you for your service!", "success")
-                next_url = request.args.get("next") or url_for("index")
+                next_url = request.args.get("next") or url_for("dashboard")
                 return redirect(next_url)
             except Exception as e:
                 db.session.rollback()
@@ -3676,14 +3686,39 @@ def admin_email_chairs():
 def admin_assign_chair(meeting_id):
     """Manually assign a chair to a meeting."""
     meeting = Meeting.query.get_or_404(meeting_id)
-    user_id = request.form.get("user_id", type=int)
+    assignment_type = request.form.get("assignment_type", "existing")
     notes = request.form.get("notes", "").strip()
     
-    if not user_id:
-        flash("Please select a chairperson.", "danger")
-        return redirect(url_for("admin_meetings"))
+    user = None
+    chair_name = None
+    chair_email = None
     
-    user = User.query.get_or_404(user_id)
+    if assignment_type == "existing":
+        # Existing user assignment
+        user_id = request.form.get("user_id", type=int)
+        if not user_id:
+            flash("Please select a chairperson.", "danger")
+            return redirect(url_for("admin_meetings"))
+        
+        user = User.query.get_or_404(user_id)
+        chair_name = user.display_name
+        chair_email = user.email
+        
+    else:
+        # New chair by email
+        chair_name = request.form.get("chair_name", "").strip()
+        chair_email = request.form.get("chair_email", "").strip()
+        
+        if not chair_name or not chair_email:
+            flash("Please provide both name and email for the new chair.", "danger")
+            return redirect(url_for("admin_meetings"))
+        
+        # Check if user already exists with this email
+        user = User.query.filter_by(email=chair_email).first()
+        if user:
+            # User exists, use their account
+            chair_name = user.display_name
+        # If user doesn't exist, we'll create a signup with just the email
     
     # Remove existing chair if any
     if meeting.chair_signup:
@@ -3692,23 +3727,24 @@ def admin_assign_chair(meeting_id):
     # Create new signup
     signup = ChairSignup(
         meeting_id=meeting.id,
-        user_id=user.id,
-        display_name_snapshot=user.display_name,
+        user_id=user.id if user else None,
+        display_name_snapshot=chair_name,
         notes=notes or "Manually assigned by admin"
     )
     db.session.add(signup)
     db.session.commit()
     
-    flash(f"Assigned {user.display_name} to chair this meeting.", "success")
+    flash(f"Assigned {chair_name} to chair this meeting.", "success")
     log_audit_event('assign_chair', get_current_user().id, details={
         'meeting_id': meeting_id,
-        'user_id': user_id
+        'chair_name': chair_name,
+        'chair_email': chair_email
     })
     
     # Send confirmation email
     try:
         subject = f"Chairperson Assignment: {meeting.title}"
-        body = f"""Hello {user.display_name},
+        body = f"""Hello {chair_name},
 
 You have been assigned to chair the following meeting:
 
@@ -3724,7 +3760,7 @@ If you have any questions, please contact the administrator.
 
 Thank you for your service!
 """
-        send_email(user.email, subject, body)
+        send_email(chair_email, subject, body)
     except Exception as e:
         app.logger.error(f"Failed to send assignment email: {e}")
     
