@@ -2157,7 +2157,6 @@ def invalidate_meeting_caches():
 
 class ProfileForm(FlaskForm):
     display_name = StringField("Display Name", validators=[DataRequired(), Length(max=80)])
-    from wtforms import RadioField
     gender = RadioField(
         "Gender",
         choices=[('male','Male'),('female','Female')],
