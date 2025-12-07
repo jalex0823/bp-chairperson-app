@@ -2170,126 +2170,137 @@ class ProfileForm(FlaskForm):
 @app.route("/profile", methods=["GET", "POST"])
 @login_required
 def profile():
-    user = get_current_user()
-    form = ProfileForm(obj=user)
-    
-    # Get search and filter parameters for meeting history
-    search_query = request.args.get('search', '').strip()
-    meeting_type_filter = request.args.get('meeting_type', '')
-    date_from = request.args.get('date_from', '')
-    date_to = request.args.get('date_to', '')
-    show_section = request.args.get('show', 'upcoming')  # upcoming, past, availability
-    
-    # Base query for user's chair signups
-    base_query = (
-        ChairSignup.query
-        .filter_by(user_id=user.id)
-        .join(Meeting)
-        .options(db.joinedload(ChairSignup.meeting))
-    )
-    
-    # Apply search filter to meetings
-    if search_query:
-        base_query = base_query.filter(
-            db.or_(
-                Meeting.title.ilike(f'%{search_query}%'),
-                Meeting.description.ilike(f'%{search_query}%')
-            )
-        )
-    
-    # Apply meeting type filter
-    if meeting_type_filter:
-        base_query = base_query.filter(Meeting.meeting_type == meeting_type_filter)
-    
-    # Apply date range filters
-    if date_from:
-        try:
-            from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
-            base_query = base_query.filter(Meeting.event_date >= from_date)
-        except ValueError:
-            pass
-    
-    if date_to:
-        try:
-            to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
-            base_query = base_query.filter(Meeting.event_date <= to_date)
-        except ValueError:
-            pass
-    
-    # Get all filtered chair signups
-    chair_signups = base_query.order_by(Meeting.event_date.asc(), Meeting.start_time.asc()).all()
-    
-    # Get user's availability signups (volunteer dates)
-    availability_query = ChairpersonAvailability.query.filter_by(user_id=user.id, is_active=True)
-    
-    # Apply date range filters to availability if provided
-    if date_from:
-        try:
-            from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
-            availability_query = availability_query.filter(ChairpersonAvailability.volunteer_date >= from_date)
-        except ValueError:
-            pass
-    
-    if date_to:
-        try:
-            to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
-            availability_query = availability_query.filter(ChairpersonAvailability.volunteer_date <= to_date)
-        except ValueError:
-            pass
-    
-    availability_signups = availability_query.order_by(ChairpersonAvailability.volunteer_date.asc()).all()
-    
-    # Separate past and future meetings
-    from datetime import date
-    today = date.today()
-    
-    past_meetings = [signup for signup in chair_signups if signup.meeting.event_date < today]
-    upcoming_meetings = [signup for signup in chair_signups if signup.meeting.event_date >= today]
-    
-    # Separate past and future availability
-    past_availability = [avail for avail in availability_signups if avail.volunteer_date < today]
-    upcoming_availability = [avail for avail in availability_signups if avail.volunteer_date >= today]
-    
-    # Get unique meeting types for filter dropdown
-    user_meeting_types = db.session.query(Meeting.meeting_type).join(ChairSignup).filter(ChairSignup.user_id == user.id).distinct().all()
-    user_meeting_types = [mt[0] for mt in user_meeting_types if mt[0]]
-    
-    if form.validate_on_submit():
-        try:
-            user.display_name = form.display_name.data.strip()
-            user.gender = form.gender.data or None
-            
-            # Handle profile image upload - store as base64 in database
-            if form.profile_image.data:
-                file = form.profile_image.data
-                if file and allowed_file(file.filename):
-                    # Read image data
-                    image_data = file.read()
-                    # Validate image size (max 5MB)
-                    if len(image_data) > 5 * 1024 * 1024:
-                        flash("Image file is too large. Maximum size is 5MB.", "danger")
-                        return redirect(url_for("profile"))
-                    # Encode to base64 and store as text
-                    user.profile_image = base64.b64encode(image_data).decode('utf-8')
-            
-            db.session.commit()
-            flash("Profile updated.", "success")
-        except Exception as e:
-            db.session.rollback()
-            app.logger.error(f"Error updating profile: {e}")
-            import traceback
-            app.logger.error(traceback.format_exc())
-            flash(f"Error updating profile: {str(e)}", "danger")
-        return redirect(url_for("profile"))
+    try:
+        user = get_current_user()
+        if not user:
+            flash("Please log in to view your profile.", "warning")
+            return redirect(url_for("login"))
         
-    return render_template("profile.html", 
-                         form=form, 
-                         user=user,
-                         upcoming_meetings=upcoming_meetings,
-                         past_meetings=past_meetings,
-                         upcoming_availability=upcoming_availability,
-                         past_availability=past_availability,
-                         user_meeting_types=user_meeting_types)
+        form = ProfileForm(obj=user)
+        
+        # Get search and filter parameters for meeting history
+        search_query = request.args.get('search', '').strip()
+        meeting_type_filter = request.args.get('meeting_type', '')
+        date_from = request.args.get('date_from', '')
+        date_to = request.args.get('date_to', '')
+        show_section = request.args.get('show', 'upcoming')  # upcoming, past, availability
+    
+        # Base query for user's chair signups
+        base_query = (
+            ChairSignup.query
+            .filter_by(user_id=user.id)
+            .join(Meeting)
+            .options(db.joinedload(ChairSignup.meeting))
+            )
+    
+        # Apply search filter to meetings
+        if search_query:
+            base_query = base_query.filter(
+                db.or_(
+                    Meeting.title.ilike(f'%{search_query}%'),
+                    Meeting.description.ilike(f'%{search_query}%')
+                )
+            )
+        
+        # Apply meeting type filter
+        if meeting_type_filter:
+            base_query = base_query.filter(Meeting.meeting_type == meeting_type_filter)
+        
+        # Apply date range filters
+        if date_from:
+            try:
+                from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
+                base_query = base_query.filter(Meeting.event_date >= from_date)
+            except ValueError:
+                pass
+        
+        if date_to:
+            try:
+                to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
+                base_query = base_query.filter(Meeting.event_date <= to_date)
+            except ValueError:
+                pass
+        
+        # Get all filtered chair signups
+        chair_signups = base_query.order_by(Meeting.event_date.asc(), Meeting.start_time.asc()).all()
+        
+        # Get user's availability signups (volunteer dates)
+        availability_query = ChairpersonAvailability.query.filter_by(user_id=user.id, is_active=True)
+        
+        # Apply date range filters to availability if provided
+        if date_from:
+            try:
+                from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
+                availability_query = availability_query.filter(ChairpersonAvailability.volunteer_date >= from_date)
+            except ValueError:
+                pass
+        
+        if date_to:
+            try:
+                to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
+                availability_query = availability_query.filter(ChairpersonAvailability.volunteer_date <= to_date)
+            except ValueError:
+                pass
+        
+        availability_signups = availability_query.order_by(ChairpersonAvailability.volunteer_date.asc()).all()
+        
+        # Separate past and future meetings
+        from datetime import date
+        today = date.today()
+        
+        past_meetings = [signup for signup in chair_signups if signup.meeting.event_date < today]
+        upcoming_meetings = [signup for signup in chair_signups if signup.meeting.event_date >= today]
+        
+        # Separate past and future availability
+        past_availability = [avail for avail in availability_signups if avail.volunteer_date < today]
+        upcoming_availability = [avail for avail in availability_signups if avail.volunteer_date >= today]
+        
+        # Get unique meeting types for filter dropdown
+        user_meeting_types = db.session.query(Meeting.meeting_type).join(ChairSignup).filter(ChairSignup.user_id == user.id).distinct().all()
+        user_meeting_types = [mt[0] for mt in user_meeting_types if mt[0]]
+        
+        if form.validate_on_submit():
+            try:
+                user.display_name = form.display_name.data.strip()
+                user.gender = form.gender.data or None
+                
+                # Handle profile image upload - store as base64 in database
+                if form.profile_image.data:
+                    file = form.profile_image.data
+                    if file and allowed_file(file.filename):
+                        # Read image data
+                        image_data = file.read()
+                        # Validate image size (max 5MB)
+                        if len(image_data) > 5 * 1024 * 1024:
+                            flash("Image file is too large. Maximum size is 5MB.", "danger")
+                            return redirect(url_for("profile"))
+                        # Encode to base64 and store as text
+                        user.profile_image = base64.b64encode(image_data).decode('utf-8')
+                
+                db.session.commit()
+                flash("Profile updated.", "success")
+            except Exception as e:
+                db.session.rollback()
+                app.logger.error(f"Error updating profile: {e}")
+                import traceback
+                app.logger.error(traceback.format_exc())
+                flash(f"Error updating profile: {str(e)}", "danger")
+            return redirect(url_for("profile"))
+    
+        return render_template("profile.html", 
+                             form=form, 
+                             user=user,
+                             upcoming_meetings=upcoming_meetings,
+                             past_meetings=past_meetings,
+                             upcoming_availability=upcoming_availability,
+                             past_availability=past_availability,
+                             user_meeting_types=user_meeting_types)
+    except Exception as e:
+        app.logger.error(f"Error loading profile page: {e}")
+        import traceback
+        app.logger.error(traceback.format_exc())
+        flash(f"Error loading profile: {str(e)}", "danger")
+        return redirect(url_for("dashboard"))
 
 
 @app.route("/profile/refresh")
