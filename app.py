@@ -1903,12 +1903,14 @@ def dashboard():
         user = get_current_user()
         today = date.today()
         
-        # Get user's meetings (past and future) with optimized query
+        # Get user's meetings - use explicit SELECT with proper joins
+        # Only get meetings where ChairSignup.user_id matches current user
         all_meetings = (
-            Meeting.query
-            .join(ChairSignup, ChairSignup.meeting_id == Meeting.id)
+            db.session.query(Meeting)
+            .select_from(Meeting)
+            .join(ChairSignup, Meeting.id == ChairSignup.meeting_id)
             .filter(ChairSignup.user_id == user.id)
-            .options(db.joinedload(Meeting.chair_signup))
+            .options(db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user))
             .order_by(Meeting.event_date.asc(), Meeting.start_time.asc())
             .all()
         )
@@ -2021,13 +2023,20 @@ def debug_my_signups():
     # Get all ChairSignup records for this user
     signups = ChairSignup.query.filter_by(user_id=user.id).all()
     
-    # Get all meetings through the join
-    meetings = (
-        Meeting.query
-        .join(ChairSignup, ChairSignup.meeting_id == Meeting.id)
+    # Get all meetings through the join - using same query as dashboard
+    meetings_query = (
+        db.session.query(Meeting)
+        .select_from(Meeting)
+        .join(ChairSignup, Meeting.id == ChairSignup.meeting_id)
         .filter(ChairSignup.user_id == user.id)
-        .all()
+        .order_by(Meeting.event_date.asc(), Meeting.start_time.asc())
     )
+    
+    # Get the compiled SQL for debugging
+    from sqlalchemy.dialects import mysql
+    sql_text = str(meetings_query.statement.compile(dialect=mysql.dialect(), compile_kwargs={"literal_binds": True}))
+    
+    meetings = meetings_query.all()
     
     debug_info = {
         "user_id": user.id,
@@ -2035,12 +2044,14 @@ def debug_my_signups():
         "user_display_name": user.display_name,
         "total_signups": len(signups),
         "total_meetings": len(meetings),
+        "sql_query": sql_text,
         "signups": [
             {
                 "id": s.id,
                 "meeting_id": s.meeting_id,
                 "display_name": s.display_name_snapshot,
-                "created_at": s.created_at.isoformat() if s.created_at else None
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+                "meeting_exists": Meeting.query.get(s.meeting_id) is not None
             }
             for s in signups
         ],
@@ -2050,7 +2061,9 @@ def debug_my_signups():
                 "title": m.title,
                 "event_date": m.event_date.isoformat(),
                 "start_time": m.start_time.strftime('%H:%M:%S') if m.start_time else None,
-                "has_chair": m.has_chair
+                "has_chair": m.has_chair,
+                "chair_signup_id": m.chair_signup.id if m.chair_signup else None,
+                "chair_user_id": m.chair_signup.user_id if m.chair_signup else None
             }
             for m in meetings
         ]
