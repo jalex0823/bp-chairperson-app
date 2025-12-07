@@ -2287,6 +2287,14 @@ def profile():
                 flash(f"Error updating profile: {str(e)}", "danger")
             return redirect(url_for("profile"))
     
+        # Build current filters for template
+        current_filters = {
+            'search': search_query,
+            'meeting_type': meeting_type_filter,
+            'date_from': date_from,
+            'date_to': date_to
+        }
+        
         return render_template("profile.html", 
                              form=form, 
                              user=user,
@@ -2294,7 +2302,8 @@ def profile():
                              past_meetings=past_meetings,
                              upcoming_availability=upcoming_availability,
                              past_availability=past_availability,
-                             user_meeting_types=user_meeting_types)
+                             user_meeting_types=user_meeting_types,
+                             current_filters=current_filters)
     except Exception as e:
         app.logger.error(f"Error loading profile page: {e}")
         import traceback
