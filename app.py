@@ -1918,69 +1918,69 @@ def dashboard():
             
             # Get next upcoming meeting
             next_meeting = upcoming_meetings[0] if upcoming_meetings else None
+            
+            # Get user's availability signups
+            upcoming_availability = (
+                ChairpersonAvailability.query
+                .filter_by(user_id=user.id, is_active=True)
+                .filter(ChairpersonAvailability.volunteer_date >= today)
+                .order_by(ChairpersonAvailability.volunteer_date.asc())
+                .all()
+            )
+            
+            # Calculate service stats
+            total_meetings_chaired = len(past_meetings)
+            upcoming_commitments = len(upcoming_meetings)
+            volunteer_signups = len(upcoming_availability)
+            
+            # Calculate recent meetings (last 30 days)
+            recent_cutoff = today - timedelta(days=30)
+            recent_meetings = [m for m in past_meetings if m.event_date >= recent_cutoff]
+            recent_meetings_count = len(recent_meetings)
+            
+            cached_data = {
+                'todays_meetings': todays_meetings,
+                'upcoming_meetings': upcoming_meetings[:5],  # Limit for performance
+                'past_meetings': past_meetings[-10:],  # Last 10 for performance
+                'next_meeting': next_meeting,
+                'upcoming_availability': upcoming_availability[:5],
+                'total_meetings_chaired': total_meetings_chaired,
+                'upcoming_commitments': upcoming_commitments,
+                'volunteer_signups': volunteer_signups,
+                'recent_meetings_count': recent_meetings_count
+            }
+            
+            # Cache for 5 minutes
+            cache.set(cache_key, cached_data, timeout=300)
         
-        # Get user's availability signups
-        upcoming_availability = (
-            ChairpersonAvailability.query
-            .filter_by(user_id=user.id, is_active=True)
-            .filter(ChairpersonAvailability.volunteer_date >= today)
-            .order_by(ChairpersonAvailability.volunteer_date.asc())
-            .all()
+        # Get recent open meetings that need chairs (cached separately)
+        try:
+            open_meetings = get_open_meetings_cached()
+        except Exception as e:
+            app.logger.error(f"Error getting open meetings: {e}")
+            open_meetings = []
+        
+        # Calculate days until next meeting
+        days_until_next = None
+        if cached_data['next_meeting']:
+            days_until_next = (cached_data['next_meeting'].event_date - today).days
+        
+        return render_template(
+            "dashboard.html",
+            user=user,
+            today=today,
+            todays_meetings=cached_data['todays_meetings'],
+            upcoming_meetings=cached_data['upcoming_meetings'],
+            past_meetings=cached_data['past_meetings'],
+            next_meeting=cached_data['next_meeting'],
+            days_until_next=days_until_next,
+            upcoming_availability=cached_data['upcoming_availability'],
+            total_meetings_chaired=cached_data['total_meetings_chaired'],
+            upcoming_commitments=cached_data['upcoming_commitments'],
+            volunteer_signups=cached_data['volunteer_signups'],
+            recent_meetings_count=cached_data['recent_meetings_count'],
+            open_meetings=open_meetings[:5] if open_meetings else []  # Show top 5 open meetings
         )
-        
-        # Calculate service stats
-        total_meetings_chaired = len(past_meetings)
-        upcoming_commitments = len(upcoming_meetings)
-        volunteer_signups = len(upcoming_availability)
-        
-        # Calculate recent meetings (last 30 days)
-        recent_cutoff = today - timedelta(days=30)
-        recent_meetings = [m for m in past_meetings if m.event_date >= recent_cutoff]
-        recent_meetings_count = len(recent_meetings)
-        
-        cached_data = {
-            'todays_meetings': todays_meetings,
-            'upcoming_meetings': upcoming_meetings[:5],  # Limit for performance
-            'past_meetings': past_meetings[-10:],  # Last 10 for performance
-            'next_meeting': next_meeting,
-            'upcoming_availability': upcoming_availability[:5],
-            'total_meetings_chaired': total_meetings_chaired,
-            'upcoming_commitments': upcoming_commitments,
-            'volunteer_signups': volunteer_signups,
-            'recent_meetings_count': recent_meetings_count
-        }
-        
-        # Cache for 5 minutes
-        cache.set(cache_key, cached_data, timeout=300)
-    
-    # Get recent open meetings that need chairs (cached separately)
-    try:
-        open_meetings = get_open_meetings_cached()
-    except Exception as e:
-        app.logger.error(f"Error getting open meetings: {e}")
-        open_meetings = []
-    
-    # Calculate days until next meeting
-    days_until_next = None
-    if cached_data['next_meeting']:
-        days_until_next = (cached_data['next_meeting'].event_date - today).days
-    
-    return render_template(
-        "dashboard.html",
-        user=user,
-        today=today,
-        todays_meetings=cached_data['todays_meetings'],
-        upcoming_meetings=cached_data['upcoming_meetings'],
-        past_meetings=cached_data['past_meetings'],
-        next_meeting=cached_data['next_meeting'],
-        days_until_next=days_until_next,
-        upcoming_availability=cached_data['upcoming_availability'],
-        total_meetings_chaired=cached_data['total_meetings_chaired'],
-        upcoming_commitments=cached_data['upcoming_commitments'],
-        volunteer_signups=cached_data['volunteer_signups'],
-        recent_meetings_count=cached_data['recent_meetings_count'],
-        open_meetings=open_meetings[:5] if open_meetings else []  # Show top 5 open meetings
-    )
     except Exception as e:
         app.logger.error(f"Dashboard error for user {user.id if user else 'unknown'}: {e}")
         import traceback
