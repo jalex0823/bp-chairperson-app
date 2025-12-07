@@ -172,7 +172,8 @@ class User(db.Model):
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True, index=True)  # Index for locked account queries
     profile_image = db.Column(db.Text, nullable=True)  # Store base64 encoded image data
-    profile_image_type = db.Column(db.String(50), nullable=True)  # MIME type (image/jpeg, image/png, etc.)
+    # profile_image_type column is added via migration, may not exist on first load
+    profile_image_type = db.Column(db.String(50), nullable=True, default='image/jpeg')  # MIME type
 
     chair_signups = db.relationship("ChairSignup", back_populates="user")
     availability_signups = db.relationship("ChairpersonAvailability", back_populates="user")
@@ -2272,7 +2273,11 @@ def profile():
                         return redirect(url_for("profile"))
                     # Encode to base64 and store as text
                     user.profile_image = base64.b64encode(image_data).decode('utf-8')
-                    user.profile_image_type = file.content_type or 'image/jpeg'
+                    # Only set profile_image_type if column exists
+                    try:
+                        user.profile_image_type = file.content_type or 'image/jpeg'
+                    except:
+                        pass  # Column doesn't exist yet
             
             db.session.commit()
             flash("Profile updated.", "success")
@@ -2317,7 +2322,12 @@ def profile_image(user_id):
         try:
             # Decode base64 image data
             image_data = base64.b64decode(user.profile_image)
-            return Response(image_data, mimetype=user.profile_image_type or 'image/jpeg')
+            # Get MIME type, default to jpeg if column doesn't exist
+            try:
+                mime_type = user.profile_image_type or 'image/jpeg'
+            except:
+                mime_type = 'image/jpeg'
+            return Response(image_data, mimetype=mime_type)
         except Exception as e:
             app.logger.error(f"Error decoding profile image for user {user_id}: {e}")
             return "", 404
