@@ -21,6 +21,10 @@ def add_user_security_columns():
         import psycopg2
         from urllib.parse import urlparse
         
+        # Heroku uses postgres:// but psycopg2 expects postgresql://
+        if db_url.startswith('postgres://'):
+            db_url = db_url.replace('postgres://', 'postgresql://', 1)
+        
         # Parse the URL
         result = urlparse(db_url)
         conn = psycopg2.connect(
@@ -107,7 +111,9 @@ def add_user_security_columns():
 if __name__ == "__main__":
     try:
         add_user_security_columns()
+        print("\n✅ Migration completed successfully!")
     except Exception as e:
         print(f"❌ Error updating schema: {e}")
         import traceback
         traceback.print_exc()
+        exit(1)
