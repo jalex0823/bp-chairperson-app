@@ -13,10 +13,12 @@
     if (currentTheme === 'dark') {
         body.classList.add('dark-theme');
         themeIcon.classList.remove('fa-lightbulb');
-        themeIcon.classList.add('fa-lightbulb');
-        themeIcon.style.opacity = '0.5'; // Dim for dark mode (off state)
+        themeIcon.classList.add('fa-moon');
+        themeIcon.style.color = '#6c757d'; // Dim gray for OFF (dark mode)
     } else {
-        themeIcon.style.opacity = '1'; // Bright for light mode (on state)
+        themeIcon.classList.remove('fa-moon');
+        themeIcon.classList.add('fa-lightbulb');
+        themeIcon.style.color = '#ffc107'; // Bright yellow for ON (light mode)
     }
 
     // Toggle theme when button is clicked
@@ -24,12 +26,16 @@
         if (body.classList.contains('dark-theme')) {
             // Switch to light theme (lantern ON)
             body.classList.remove('dark-theme');
-            themeIcon.style.opacity = '1';
+            themeIcon.classList.remove('fa-moon');
+            themeIcon.classList.add('fa-lightbulb');
+            themeIcon.style.color = '#ffc107'; // Bright yellow ON
             localStorage.setItem('theme', 'light');
         } else {
             // Switch to dark theme (lantern OFF)
             body.classList.add('dark-theme');
-            themeIcon.style.opacity = '0.5';
+            themeIcon.classList.remove('fa-lightbulb');
+            themeIcon.classList.add('fa-moon');
+            themeIcon.style.color = '#6c757d'; // Dim gray OFF
             localStorage.setItem('theme', 'dark');
         }
     });
