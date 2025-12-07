@@ -33,7 +33,7 @@
       <a href="{{ url_for('calendar_month_ics', year=meeting.event_date.year, month=meeting.event_date.month) }}" class="btn btn-outline-primary" title="Download full month for Outlook/iCal">
         <i class="fas fa-calendar-alt"></i> Download Month (.ics)
       </a>
-      {% if user and meeting.chair_signup and meeting.chair_signup.user_id == user.id %}
+      {% if user and meeting.chair_signup and meeting.chair_signup.user and meeting.chair_signup.user_id == user.id %}
       <a href="{{ url_for('google_calendar_add', meeting_id=meeting.id) }}" class="btn btn-outline-success" target="_blank" title="Add to Google Calendar">
         <i class="fab fa-google"></i> Google Calendar
       </a>
@@ -52,7 +52,7 @@
       {% if meeting.chair_signup %}
         <p>
           This meeting is currently chaired by:
-          <strong>{{ meeting.chair_signup.display_name_snapshot }} ({{ meeting.chair_signup.user.bp_id }})</strong><br>
+          <strong>{{ meeting.chair_signup.display_name_snapshot }}{% if meeting.chair_signup.user %} ({{ meeting.chair_signup.user.bp_id }}){% endif %}</strong><br>
           <small class="text-muted">Thank you for your service!</small>
         </p>
         
