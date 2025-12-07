@@ -221,3 +221,37 @@ body.dark-theme {
     border-color: #222222;
     color: #666666;
 }
+
+/* Footer in dark mode */
+.dark-theme .footer-bp {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+    border-top-color: #333333 !important;
+}
+
+.dark-theme .footer-bp strong {
+    color: #ffffff;
+}
+
+.dark-theme .footer-bp div {
+    color: #ffffff;
+}
+
+/* Calendar pills/badges - change blue to white text */
+.dark-theme .calendar-cell .day-number {
+    color: #ffffff;
+}
+
+.dark-theme .calendar-cell.today .day-number {
+    background: #ffffff;
+    color: #000000;
+}
+
+.dark-theme .meeting-badge {
+    color: #ffffff !important;
+}
+
+/* Calendar sidebar */
+.dark-theme .calendar-sidebar .time {
+    color: #ffffff !important;
+}
