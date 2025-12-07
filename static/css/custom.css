@@ -353,16 +353,226 @@ footer.bg-bp-green .container {
 
 /* Responsive design */
 @media (max-width: 768px) {
+    /* Typography adjustments */
     .navbar-brand {
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
     
+    h1, .h1 { font-size: 1.75rem; }
+    h2, .h2 { font-size: 1.5rem; }
+    h3, .h3 { font-size: 1.25rem; }
+    h4, .h4 { font-size: 1.1rem; }
+    h5, .h5 { font-size: 1rem; }
+    
+    /* Button adjustments */
     .btn {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .btn-sm {
+        font-size: 0.8rem;
+        padding: 0.35rem 0.6rem;
+    }
+    
+    .btn-group {
+        flex-wrap: wrap;
+    }
+    
+    /* Card adjustments */
+    .card-header {
+        font-size: 0.95rem;
+        padding: 0.75rem 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    /* Table adjustments */
+    .table {
+        font-size: 0.875rem;
+    }
+    
+    .table th, .table td {
+        padding: 0.5rem 0.35rem;
+    }
+    
+    /* Form adjustments */
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0.35rem;
+    }
+    
+    .form-control, .form-select {
         font-size: 0.9rem;
         padding: 0.5rem 0.75rem;
     }
     
-    .card-header {
-        font-size: 0.95rem;
+    /* Badge adjustments */
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.5rem;
+    }
+    
+    /* Hero section */
+    .hero-gradient {
+        padding: 2rem 1rem !important;
+    }
+    
+    .hero-gradient h1 {
+        font-size: 1.75rem;
+    }
+    
+    .hero-gradient .lead {
+        font-size: 1rem;
+    }
+    
+    /* Navigation adjustments */
+    .navbar-nav {
+        margin-top: 0.5rem;
+    }
+    
+    .nav-link {
+        padding: 0.5rem 0;
+    }
+    
+    /* Container padding */
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    /* Flex direction changes */
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start !important;
+    }
+    
+    /* Button groups stack vertically */
+    .d-flex.gap-2 {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .d-flex.gap-2 .btn {
+        width: 100%;
+    }
+    
+    /* Dropdown menus */
+    .dropdown-menu {
+        font-size: 0.9rem;
+    }
+    
+    /* Modal adjustments */
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    .modal-header, .modal-footer {
+        padding: 0.75rem;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+    
+    /* Alert adjustments */
+    .alert {
+        font-size: 0.9rem;
+        padding: 0.75rem;
+    }
+    
+    /* Profile image upload */
+    .profile-image-preview {
+        max-width: 150px;
+    }
+    
+    /* Admin page header adjustments */
+    .admin-header .btn-group {
+        margin-bottom: 0.5rem;
     }
 }
+
+/* Tablet-specific adjustments (768px - 992px) */
+@media (min-width: 768px) and (max-width: 992px) {
+    .container {
+        max-width: 100%;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+    
+    .card-body {
+        padding: 1.25rem;
+    }
+    
+    .btn {
+        font-size: 0.9rem;
+    }
+}
+
+/* Small phones (max 576px) */
+@media (max-width: 576px) {
+    /* Even more compact */
+    .navbar-brand img {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .table {
+        font-size: 0.8rem;
+    }
+    
+    .table th, .table td {
+        padding: 0.4rem 0.25rem;
+        white-space: nowrap;
+    }
+    
+    /* Hide less important table columns on very small screens */
+    .table .d-none-mobile {
+        display: none;
+    }
+    
+    /* Stack form inputs */
+    .row.g-3 {
+        row-gap: 0.75rem !important;
+    }
+    
+    /* Footer adjustments */
+    footer {
+        font-size: 0.85rem;
+        padding: 1rem 0;
+    }
+}
+
+/* Touch-friendly tap targets */
+@media (hover: none) and (pointer: coarse) {
+    /* Increase tap target sizes for touch devices */
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .nav-link {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .form-check-input {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+    
+    input[type="checkbox"],
+    input[type="radio"] {
+        width: 20px;
+        height: 20px;
+    }
+}
+

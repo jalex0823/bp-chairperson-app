@@ -164,6 +164,98 @@
     /* Ensure colors print */
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   }
+  
+  /* Mobile responsive styles */
+  @media (max-width: 768px) {
+    /* Stack layout on mobile */
+    .calendar-layout { 
+      grid-template-columns: 1fr !important; 
+      gap: 1rem;
+    }
+    
+    /* Hide sidebar on mobile, show as collapsible */
+    .calendar-sidebar {
+      order: -1;
+      margin-bottom: 1rem;
+    }
+    
+    /* Compact calendar header */
+    .calendar-main .d-flex {
+      flex-direction: column;
+      align-items: flex-start !important;
+      gap: 0.75rem;
+    }
+    
+    .calendar-main h2 {
+      font-size: 1.5rem;
+    }
+    
+    /* Smaller cells for mobile */
+    .calendar-cell {
+      min-height: 70px;
+      padding: 0.3rem;
+    }
+    
+    .calendar-cell .day-number {
+      font-size: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    /* Smaller badges */
+    .meeting-badge {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.35rem;
+      margin-bottom: 0.2rem;
+    }
+    
+    /* Compact table headers */
+    .calendar-table thead th {
+      font-size: 0.6rem;
+      padding: 0.5rem 0.25rem;
+    }
+    
+    /* View buttons stack better */
+    .btn-group {
+      flex-wrap: wrap;
+    }
+    
+    /* Search form */
+    .input-group {
+      flex-wrap: wrap;
+    }
+    
+    .input-group .form-control {
+      min-width: 100%;
+      margin-bottom: 0.5rem;
+    }
+  }
+  
+  /* Very small phones */
+  @media (max-width: 576px) {
+    .calendar-cell {
+      min-height: 60px;
+      padding: 0.25rem;
+    }
+    
+    .calendar-cell .day-number {
+      font-size: 0.7rem;
+    }
+    
+    .meeting-badge {
+      font-size: 0.6rem;
+      padding: 0.15rem 0.3rem;
+    }
+    
+    .calendar-table thead th {
+      font-size: 0.55rem;
+      padding: 0.4rem 0.2rem;
+    }
+    
+    /* Hide sidebar sections on very small screens */
+    .calendar-sidebar .list-section {
+      padding: 0.75rem 1rem;
+    }
+  }
 </style>
 <div class="calendar-layout">
   <!-- Dark sidebar -->
