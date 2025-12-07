@@ -48,6 +48,11 @@
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
+      <!-- Theme Toggle (Lantern) -->
+      <button id="themeToggle" class="btn btn-outline-light btn-sm me-3 ms-2" title="Toggle Dark/Light Theme">
+        <i class="fas fa-lightbulb" id="themeIcon"></i>
+      </button>
+      
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('chair_resources') }}">How to Chair / Resources</a>
@@ -76,17 +81,17 @@
         {% endif %}
       </ul>
       <div class="d-flex align-items-center">
-        <!-- Theme Toggle -->
-        <button id="themeToggle" class="btn btn-outline-light btn-sm me-3" title="Toggle Dark/Light Theme">
-          <i class="fas fa-moon" id="themeIcon"></i>
-        </button>
-        
         {% if current_user %}
           {% if current_user.profile_image %}
             <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_image) }}" 
                  alt="{{ current_user.display_name }}" 
                  class="rounded-circle me-2" 
                  style="width: 32px; height: 32px; object-fit: cover; border: 2px solid white;">
+          {% else %}
+            <div class="rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                 style="width: 32px; height: 32px; background-color: rgba(255,255,255,0.2); border: 2px solid white;">
+              <i class="fas fa-user text-light"></i>
+            </div>
           {% endif %}
           <span class="navbar-text text-light me-2">
             {{ current_user.display_name }}
