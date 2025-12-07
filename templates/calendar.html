@@ -486,7 +486,62 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await fillSection('sidebarToday', todayStr);
   await fillSection('sidebarTomorrow', tomorrowStr);
+  
+  // Populate This Week section
+  await fillThisWeek(todayStr);
 });
+
+async function fillThisWeek(todayStr) {
+  const el = document.getElementById('sidebarUpcoming');
+  if (!el) return;
+  try {
+    // Calculate 7 days from today
+    const parts = todayStr.split('-').map(x=>parseInt(x,10));
+    const startDate = new Date(parts[0], parts[1]-1, parts[2]);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 7);
+    
+    const pad = n => String(n).padStart(2,'0');
+    const startStr = `${startDate.getFullYear()}-${pad(startDate.getMonth()+1)}-${pad(startDate.getDate())}`;
+    const endStr = `${endDate.getFullYear()}-${pad(endDate.getMonth()+1)}-${pad(endDate.getDate())}`;
+    
+    const resp = await fetch(`/api/week-meetings?start=${startStr}&end=${endStr}`);
+    const data = await resp.json();
+    
+    if (!data.meetings || data.meetings.length === 0) {
+      el.innerHTML = '<div class="small text-muted">No meetings this week</div>';
+      return;
+    }
+    
+    let html = '';
+    for (const m of data.meetings.slice(0, 5)) { // Show max 5
+      html += `<div class="meeting-item">
+        <div><span class="time">${m.date} ${m.time}</span><span class="title">${m.title}</span></div>
+        <div class="chair">` + (m.chair_name ? `Chair: ${m.chair_name}` : 'No chair yet') + `</div>
+      </div>`;
+    }
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = '<div class="small text-danger">Failed to load.</div>';
+  }
+}
+
+function navigateMonth(direction) {
+  const currentMonth = {{ month }};
+  const currentYear = {{ year }};
+  let newMonth = currentMonth + direction;
+  let newYear = currentYear;
+  
+  if (newMonth > 12) {
+    newMonth = 1;
+    newYear++;
+  } else if (newMonth < 1) {
+    newMonth = 12;
+    newYear--;
+  }
+  
+  window.location.href = `/calendar?year=${newYear}&month=${newMonth}`;
+}
 
 async function claimMeeting(meetingId) {
   try {

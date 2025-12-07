@@ -2565,6 +2565,9 @@ def admin_meetings():
         meeting_types = [mt[0] for mt in meeting_types if mt[0]]
         cache.set('meeting_types_list', meeting_types, timeout=3600)  # Cache for 1 hour
     
+    # Get all users for chair assignment dropdown
+    all_users = User.query.order_by(User.display_name.asc()).all()
+    
     return render_template(
         "admin_meetings.html", 
         meetings=meetings,
@@ -2573,6 +2576,7 @@ def admin_meetings():
         web_source=SOURCE_MEETINGS_WEB_URL, 
         static_schedule_enabled=STATIC_SCHEDULE_ENABLED,
         meeting_types=meeting_types,
+        all_users=all_users,
         current_filters={
             'search': search_query,
             'meeting_type': meeting_type_filter,
@@ -2994,6 +2998,37 @@ def api_day_meetings():
             "detail_url": url_for('meeting_detail', meeting_id=m.id),
         })
     return jsonify({"date": date_str, "meetings": data})
+
+
+@app.route("/api/week-meetings")
+def api_week_meetings():
+    """Return JSON list of meetings for a date range."""
+    start_str = request.args.get("start")
+    end_str = request.args.get("end")
+    try:
+        start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_str, "%Y-%m-%d").date()
+    except Exception:
+        return jsonify({"error": "Invalid date"}), 400
+
+    meetings = (
+        Meeting.query
+        .filter(Meeting.event_date >= start_date, Meeting.event_date <= end_date)
+        .order_by(Meeting.event_date.asc(), Meeting.start_time.asc())
+        .options(db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user))
+        .all()
+    )
+    
+    data = []
+    for m in meetings:
+        data.append({
+            "id": m.id,
+            "title": m.title,
+            "date": m.event_date.strftime('%m/%d'),
+            "time": m.start_time.strftime('%I:%M %p') if m.start_time else '',
+            "chair_name": m.chair_signup.user.display_name if (m.chair_signup and m.chair_signup.user) else None,
+        })
+    return jsonify({"meetings": data})
 
 
 @app.route("/api/meetings/<int:meeting_id>/claim", methods=["POST"])
@@ -3557,6 +3592,197 @@ def export_meetings_ics(meetings):
         'format': 'ics',
         'meeting_count': len(meetings)
     })
+    
+    return response
+
+
+# Admin: Bulk Email to Chairs
+@app.route("/admin/chairs/email", methods=["GET", "POST"])
+@admin_required
+def admin_email_chairs():
+    """Send bulk email to all active chairpersons."""
+    if request.method == "POST":
+        subject = request.form.get("subject", "").strip()
+        message = request.form.get("message", "").strip()
+        recipient_filter = request.form.get("recipient_filter", "all")
+        
+        if not subject or not message:
+            flash("Subject and message are required.", "danger")
+            return redirect(url_for("admin_email_chairs"))
+        
+        # Get recipients based on filter
+        if recipient_filter == "all":
+            # All users who have ever chaired
+            users = User.query.join(ChairSignup).distinct().all()
+        elif recipient_filter == "active":
+            # Users with upcoming meetings
+            users = (
+                User.query
+                .join(ChairSignup)
+                .join(Meeting)
+                .filter(Meeting.event_date >= date.today())
+                .distinct()
+                .all()
+            )
+        elif recipient_filter == "past30":
+            # Users who chaired in last 30 days
+            cutoff = date.today() - timedelta(days=30)
+            users = (
+                User.query
+                .join(ChairSignup)
+                .join(Meeting)
+                .filter(Meeting.event_date >= cutoff, Meeting.event_date < date.today())
+                .distinct()
+                .all()
+            )
+        else:
+            flash("Invalid recipient filter.", "danger")
+            return redirect(url_for("admin_email_chairs"))
+        
+        # Send emails
+        sent_count = 0
+        failed_count = 0
+        for user in users:
+            try:
+                send_email(user.email, subject, message)
+                sent_count += 1
+            except Exception as e:
+                failed_count += 1
+                app.logger.error(f"Failed to send email to {user.email}: {e}")
+        
+        flash(f"Sent {sent_count} emails. {failed_count} failed.", "success" if failed_count == 0 else "warning")
+        log_audit_event('bulk_email_chairs', get_current_user().id, details={
+            'recipient_filter': recipient_filter,
+            'sent_count': sent_count,
+            'failed_count': failed_count
+        })
+        return redirect(url_for("admin_meetings"))
+    
+    # GET request - show form
+    all_count = User.query.join(ChairSignup).distinct().count()
+    active_count = User.query.join(ChairSignup).join(Meeting).filter(Meeting.event_date >= date.today()).distinct().count()
+    cutoff = date.today() - timedelta(days=30)
+    past30_count = User.query.join(ChairSignup).join(Meeting).filter(Meeting.event_date >= cutoff, Meeting.event_date < date.today()).distinct().count()
+    
+    return render_template("admin_email_chairs.html", 
+                         all_count=all_count,
+                         active_count=active_count,
+                         past30_count=past30_count)
+
+
+# Admin: Manual Chair Assignment
+@app.route("/admin/meetings/<int:meeting_id>/assign-chair", methods=["POST"])
+@admin_required
+def admin_assign_chair(meeting_id):
+    """Manually assign a chair to a meeting."""
+    meeting = Meeting.query.get_or_404(meeting_id)
+    user_id = request.form.get("user_id", type=int)
+    notes = request.form.get("notes", "").strip()
+    
+    if not user_id:
+        flash("Please select a chairperson.", "danger")
+        return redirect(url_for("admin_meetings"))
+    
+    user = User.query.get_or_404(user_id)
+    
+    # Remove existing chair if any
+    if meeting.chair_signup:
+        db.session.delete(meeting.chair_signup)
+    
+    # Create new signup
+    signup = ChairSignup(
+        meeting_id=meeting.id,
+        user_id=user.id,
+        display_name_snapshot=user.display_name,
+        notes=notes or "Manually assigned by admin"
+    )
+    db.session.add(signup)
+    db.session.commit()
+    
+    flash(f"Assigned {user.display_name} to chair this meeting.", "success")
+    log_audit_event('assign_chair', get_current_user().id, details={
+        'meeting_id': meeting_id,
+        'user_id': user_id
+    })
+    
+    # Send confirmation email
+    try:
+        subject = f"Chairperson Assignment: {meeting.title}"
+        body = f"""Hello {user.display_name},
+
+You have been assigned to chair the following meeting:
+
+Meeting: {meeting.title}
+Date: {meeting.event_date.strftime('%A, %B %d, %Y')}
+Time: {meeting.start_time.strftime('%I:%M %p') if meeting.start_time else 'TBD'}
+
+{f'Zoom Link: {meeting.zoom_link}' if meeting.zoom_link else ''}
+
+Notes: {notes or 'None'}
+
+If you have any questions, please contact the administrator.
+
+Thank you for your service!
+"""
+        send_email(user.email, subject, body)
+    except Exception as e:
+        app.logger.error(f"Failed to send assignment email: {e}")
+    
+    return redirect(url_for("admin_meetings"))
+
+
+# Admin: Export Chair Activity Report (CSV)
+@app.route("/admin/reports/chair-activity")
+@admin_required
+def admin_chair_activity_report():
+    """Export detailed chair activity report as CSV."""
+    days = request.args.get('days', 90, type=int)
+    cutoff = date.today() - timedelta(days=days)
+    
+    # Get all users who have chaired
+    chair_data = db.session.query(
+        User.id,
+        User.display_name,
+        User.email,
+        User.bp_id,
+        User.phone,
+        db.func.count(ChairSignup.id).label('total_meetings'),
+        db.func.count(db.case(
+            (Meeting.event_date >= cutoff, 1)
+        )).label('recent_meetings'),
+        db.func.min(Meeting.event_date).label('first_meeting'),
+        db.func.max(Meeting.event_date).label('last_meeting')
+    ).join(ChairSignup).join(Meeting).group_by(User.id).order_by(db.func.count(ChairSignup.id).desc()).all()
+    
+    # Create CSV
+    import csv
+    from io import StringIO
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    writer.writerow([
+        'Chairperson Name', 'Email', 'BP ID', 'Phone', 
+        'Total Meetings', f'Last {days} Days', 'First Meeting', 'Last Meeting'
+    ])
+    
+    for row in chair_data:
+        writer.writerow([
+            row.display_name,
+            row.email,
+            row.bp_id or '',
+            row.phone or '',
+            row.total_meetings,
+            row.recent_meetings,
+            row.first_meeting.strftime('%Y-%m-%d') if row.first_meeting else '',
+            row.last_meeting.strftime('%Y-%m-%d') if row.last_meeting else ''
+        ])
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = f'attachment; filename=chair_activity_{days}days_{date.today().isoformat()}.csv'
+    
+    log_audit_event('export_chair_activity', get_current_user().id, details={'days': days})
     
     return response
 
