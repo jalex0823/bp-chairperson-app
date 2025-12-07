@@ -3434,7 +3434,8 @@ def init_db_command():
         print("Admin already exists.")
 
     # Schedule weekly open slots reminder (only in development)
-    if scheduler:
+    # Skip scheduler in Heroku release phase
+    if scheduler and not os.environ.get('DYNO'):
         scheduler.add_job(
             send_open_slot_reminder,
             CronTrigger(day_of_week='sun', hour=10),
