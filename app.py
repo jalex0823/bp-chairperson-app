@@ -888,6 +888,18 @@ def require_role(role_name):
     return decorator
 
 
+def require_login(f):
+    """Decorator to require user to be logged in."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = get_current_user()
+        if not user:
+            flash("Please log in to access this page.", "warning")
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def backup_database(backup_type='manual', initiated_by_user_id=None):
     """Create a database backup and log the operation."""
     backup_log = BackupLog(
