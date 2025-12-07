@@ -13,6 +13,7 @@ from flask import (
 )
 from flask import send_from_directory
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func
 from flask_wtf import FlaskForm
 from flask_mail import Mail, Message
 from wtforms import (
@@ -2206,15 +2207,76 @@ def profile():
 # EMAIL FUNCTIONS
 # ==========================
 
-def send_email(to, subject, body):
-    """Send an email using Flask-Mail."""
+def send_email(to, subject, body, ical_attachment=None, ical_filename=None):
+    """Send an email using Flask-Mail with optional iCal attachment."""
     msg = Message(subject, recipients=[to], body=body)
+    
+    # Attach iCal file if provided
+    if ical_attachment and ical_filename:
+        msg.attach(
+            ical_filename,
+            "text/calendar",
+            ical_attachment,
+            headers=[('Content-Class', 'urn:content-classes:calendarmessage')]
+        )
+    
     try:
         mail.send(msg)
         return True
     except Exception as e:
         print(f"Email send failed: {e}")
         return False
+
+
+def generate_meeting_ical(meeting, chair_name=None):
+    """Generate iCal data for a meeting."""
+    cal = Calendar()
+    cal.add('prodid', '-//Back Porch Meetings//Chairperson Scheduler//EN')
+    cal.add('version', '2.0')
+    cal.add('method', 'REQUEST')
+    
+    event = Event()
+    event.add('summary', f"CHAIR: {meeting.title}")
+    event.add('description', f"""You are scheduled to chair this meeting.
+
+Meeting: {meeting.title}
+Type: {getattr(meeting, 'meeting_type', 'Regular')}
+Description: {meeting.description or 'Standard meeting format'}
+Zoom Link: {meeting.zoom_link or 'Contact admin'}
+
+Please join 10-15 minutes early to set up.""")
+    
+    # Set start and end times
+    start_datetime = datetime.combine(meeting.event_date, meeting.start_time or datetime.min.time())
+    duration = timedelta(hours=1)  # Default 1 hour duration
+    if meeting.duration_minutes:
+        duration = timedelta(minutes=meeting.duration_minutes)
+    end_datetime = start_datetime + duration
+    
+    event.add('dtstart', start_datetime)
+    event.add('dtend', end_datetime)
+    event.add('location', meeting.zoom_link or 'Online')
+    
+    if chair_name:
+        event.add('organizer', chair_name)
+    
+    # Add reminder alarms
+    # 24 hours before
+    alarm_24h = Alarm()
+    alarm_24h.add('action', 'DISPLAY')
+    alarm_24h.add('description', f'Reminder: You are chairing {meeting.title} tomorrow')
+    alarm_24h.add('trigger', timedelta(hours=-24))
+    event.add_component(alarm_24h)
+    
+    # 1 hour before
+    alarm_1h = Alarm()
+    alarm_1h.add('action', 'DISPLAY')
+    alarm_1h.add('description', f'Starting soon: {meeting.title} in 1 hour')
+    alarm_1h.add('trigger', timedelta(hours=-1))
+    event.add_component(alarm_1h)
+    
+    cal.add_component(event)
+    return cal.to_ical()
 
 def send_chair_reminder(meeting_id, hours_before=24):
     """Send reminder email to chair before meeting."""
@@ -2269,7 +2331,11 @@ Thank you for serving the Back Porch community!
 — Back Porch Meetings System
 """
     
-    return send_email(chair.email, subject, body)
+    # Generate iCal attachment
+    ical_data = generate_meeting_ical(meeting, chair.display_name)
+    ical_filename = f"meeting_{meeting.id}_reminder.ics"
+    
+    return send_email(chair.email, subject, body, ical_data, ical_filename)
 
 
 def send_meeting_confirmations():
@@ -2321,6 +2387,8 @@ What happens next:
 • Another reminder 1 hour before the meeting
 • Meeting details and Zoom link: {meeting.zoom_link or 'Will be provided'}
 
+📎 An iCal event is attached to this email - add it to your calendar!
+
 Need help? Check out the chairperson resources in your profile or contact the admin team.
 
 Thank you for stepping up to serve!
@@ -2328,7 +2396,11 @@ Thank you for stepping up to serve!
 — Back Porch Meetings System
 """
     
-    return send_email(chair.email, subject, body)
+    # Generate iCal attachment
+    ical_data = generate_meeting_ical(meeting, chair.display_name)
+    ical_filename = f"chairperson_meeting_{meeting.event_date.strftime('%Y%m%d')}_{meeting.id}.ics"
+    
+    return send_email(chair.email, subject, body, ical_data, ical_filename)
 
 
 def check_and_send_reminders():
