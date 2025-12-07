@@ -616,17 +616,25 @@ def inject_globals():
     return {"current_user": get_current_user()}
 
 # Ensure there are always meetings to show: if database is empty and
-# static schedule is enabled, auto-seed a minimal horizon on first request.
-@app.before_first_request
+# static schedule is enabled, auto-seed a minimal horizon on the first request.
+# Flask 3.x removed before_first_request; emulate a one-time hook using a sentinel.
+_auto_seed_done = False
+
+@app.before_request
 def ensure_meetings_exist():
+    global _auto_seed_done
+    if _auto_seed_done:
+        return
     try:
         total = Meeting.query.count()
         if total == 0 and app.config.get('STATIC_SCHEDULE_ENABLED', True):
             # Seed next 12 weeks so the homepage and calendar never look empty
             seed_meetings_from_static_schedule(weeks=12, replace_future=True)
             app.logger.info("Auto-seeded 12 weeks from static schedule (DB was empty).")
+        _auto_seed_done = True
     except Exception as e:
         app.logger.warning(f"Auto-seed skipped due to error: {e}")
+        _auto_seed_done = True
 
 @app.route("/")
 def index():

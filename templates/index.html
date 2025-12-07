@@ -11,6 +11,7 @@
             <a href="{{ url_for('calendar_view') }}" class="btn btn-light">View Calendar</a>
             <a href="{{ url_for('meetings_today') }}" class="btn btn-secondary">Today’s Meetings</a>
             <a href="{{ url_for('chair_resources') }}" class="btn btn-outline-light">Chair Resources</a>
+            <a href="https://therealbackporch.com/meetings.html" target="_blank" rel="noopener" class="btn btn-outline-secondary">Website Meetings Page</a>
             <a href="https://backporch-chair-app-35851db28c9c.herokuapp.com/" target="_blank" rel="noopener" class="btn btn-outline-light">New Chair Sign-Up App</a>
           </div>
           </div>
@@ -50,6 +51,46 @@
       </div>
     </div>
   </div>
+
+    <!-- Static Meeting Schedule (Mountain Time) -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header d-flex align-items-center">
+        <span class="me-2">🕰️</span>
+        <strong>Meeting Schedule (Mountain Time)</strong>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-3">
+            <div class="p-3 bg-light rounded h-100">
+              <div class="fw-semibold">Daily</div>
+              <div class="text-muted">5:30 PM MT</div>
+              <div class="small">Literature-based Meeting</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="p-3 bg-light rounded h-100">
+              <div class="fw-semibold">Saturday</div>
+              <div class="text-muted">8:30 AM MT</div>
+              <div class="small">Women’s Meeting</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="p-3 bg-light rounded h-100">
+              <div class="fw-semibold">Sunday</div>
+              <div class="text-muted">8:30 AM MT</div>
+              <div class="small">Co-ed Meeting</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="p-3 bg-light rounded h-100">
+              <div class="fw-semibold">Sunday</div>
+              <div class="text-muted">3:30 PM MT</div>
+              <div class="small">Men’s Meeting</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
   {% if meetings_by_date|length == 0 %}
     <div class="alert alert-primary mt-3">No upcoming meetings scheduled yet.</div>
