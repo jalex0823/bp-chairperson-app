@@ -51,11 +51,11 @@ body {
 /* Footer themed like header */
 .footer-bp {
     background: #ffffff; /* professional clean footer */
-    color: #111111;
+    color: #000000;
     border-top: 1px solid #e5e7eb;
     box-shadow: none;
 }
-.footer-bp a { color: #111111; }
+.footer-bp a { color: #000000; }
 .footer-bp a:hover { color: var(--color-primary); }
 
 .btn-gold {

@@ -10,6 +10,41 @@
   </p>
 
   <div class="card mb-4">
+    <div class="card-header">
+      <span class="fw-semibold" style="color:#0d6efd;font-style:italic;">MEETING CHAIRING INSTRUCTIONS</span>
+    </div>
+    <div class="card-body">
+      <ul class="mb-0">
+        <li>Read the format as it is. Do not add or skip things.</li>
+        <li>Do not comment on people’s shares except to say thank you.</li>
+        <li>Do not give advice.</li>
+        <li>When we chair, it is about recovery through AA and the solution found in AA.</li>
+        <li>Do not use “WE” unless explicitly stated in the format; speak from the “I” perspective and encourage others to do the same.</li>
+        <li>Plan to stay on the meeting for an extra 15 minutes to support anyone who needs it.</li>
+        <li>Be 5–10 minutes early to log into the meeting and get organized.</li>
+        <li>Bring in AA conference-approved literature only; this is where our solution is found. Do not use non-AA approved literature. This is an AA meeting. The way to know if it’s AA approved literature: it says “This is AA General Service Conference-approved literature”. Newcomers need the foundation and solution found in Alcoholics Anonymous.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <span class="fw-semibold">Zoom Chairing Best Practices</span>
+    </div>
+    <div class="card-body">
+      <ul class="mb-0">
+        <li>Join 5–10 minutes early to set up audio/video and admit early attendees.</li>
+        <li>Keep background noise low; ask participants to mute when not sharing.</li>
+        <li>Use waiting room or host controls to manage disruptions politely.</li>
+        <li>Do not comment on shares beyond a simple “thank you”.</li>
+        <li>Share readings by screen-share only if needed; otherwise read aloud for accessibility.</li>
+        <li>Post meeting format or links in chat sparingly; avoid side conversations.</li>
+        <li>End on time; stay ~15 minutes after to support anyone who needs it.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card mb-4">
     <div class="card-header">Reference PDFs</div>
     <div class="card-body">
       {% if pdfs and pdfs|length > 0 %}
@@ -36,17 +71,5 @@
       {% endif %}
     </div>
   </div>
-
-  <div class="small text-muted mb-4">
-    Current PDF folder: <code>{{ (config.EXTERNAL_PDFS_DIR if config and config.EXTERNAL_PDFS_DIR else 'Not configured') }}</code>
-  </div>
-
-  <h3 class="mt-3">Key Points</h3>
-  <ul>
-    <li>Arrive 10 minutes early and open the room.</li>
-    <li>Read the opening and keep the meeting on track.</li>
-    <li>Encourage participation and manage time gently.</li>
-    <li>Close the meeting warmly and share service opportunities.</li>
-  </ul>
 
 {% endblock %}

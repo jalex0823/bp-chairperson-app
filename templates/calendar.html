@@ -55,34 +55,33 @@
     {% for week in weeks %}
       <tr>
         {% for cell in week %}
-          <td class="p-2 calendar-cell {% if not cell.in_month %}calendar-out-month{% endif %}" style="vertical-align: top;" {% if cell.date %}data-date="{{ cell.date.strftime('%Y-%m-%d') }}" onclick="openDayModal('{{ cell.date.strftime('%Y-%m-%d') }}')" style="cursor:pointer;"{% endif %}>
-            <div class="d-flex justify-content-between">
-              <strong>{% if cell.date %}{{ cell.date.day }}{% endif %}</strong>
-              {% if cell.date == today %}<span class="badge bg-info text-dark">Today</span>{% endif %}
-            </div>
-            {% if cell.meetings %}
-              <ul class="list-unstyled mt-2 mb-0">
-                {% for m in cell.meetings %}
-                  <li class="mb-2 meeting {% if m.chair_signup %}chaired{% endif %}">
-                    <div class="fw-semibold">
-                      <a href="{{ url_for('meeting_detail', meeting_id=m.id) }}" class="text-decoration-none meeting-title">{{ m.title }}</a>
-                    </div>
-                    <div class="text-muted small meeting-time">
-                      {{ m.start_time.strftime('%I:%M %p') }}{% if m.end_time %} – {{ m.end_time.strftime('%I:%M %p') }}{% endif %}
-                    </div>
-                    <div class="small meeting-chair">
-                      {% if m.chair_signup %}
-                        <span title="Chair: {{ m.chair_signup.display_name_snapshot }}" data-bs-toggle="tooltip">🔒 Taken</span>
-                      {% else %}
-                        <span class="text-muted">No chair yet</span>
-                        {# Claim action removed from grid to keep it clean; use day modal #}
-                      {% endif %}
-                    </div>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <div class="text-muted small mt-2">No chair yet</div>
+          <td class="p-2 calendar-cell {% if not cell.in_month %}calendar-out-month{% endif %}" style="vertical-align: top;" {% if cell.in_month and cell.date %}data-date="{{ cell.date.strftime('%Y-%m-%d') }}" onclick="openDayModal('{{ cell.date.strftime('%Y-%m-%d') }}')" style="cursor:pointer;"{% endif %}>
+            {% if cell.in_month %}
+              <div class="d-flex justify-content-between">
+                <strong>{{ cell.date.day }}</strong>
+                {% if cell.date == today %}<span class="badge bg-info text-dark">Today</span>{% endif %}
+              </div>
+              {% if cell.meetings %}
+                <ul class="list-unstyled mt-2 mb-0">
+                  {% for m in cell.meetings %}
+                    <li class="mb-2 meeting {% if m.chair_signup %}chaired{% endif %}">
+                      <div class="fw-semibold">
+                        <a href="{{ url_for('meeting_detail', meeting_id=m.id) }}" class="text-decoration-none meeting-title">{{ m.title }}</a>
+                      </div>
+                      <div class="text-muted small meeting-time">
+                        {{ m.start_time.strftime('%I:%M %p') }}{% if m.end_time %} – {{ m.end_time.strftime('%I:%M %p') }}{% endif %}
+                      </div>
+                      <div class="small meeting-chair">
+                        {% if m.chair_signup %}
+                          <span title="Chair: {{ m.chair_signup.display_name_snapshot }}" data-bs-toggle="tooltip">🔒 Taken</span>
+                        {% else %}
+                          <span class="text-muted">No chair yet</span>
+                        {% endif %}
+                      </div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
             {% endif %}
           </td>
         {% endfor %}
