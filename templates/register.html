@@ -6,16 +6,16 @@
         <h2 class="mb-4 text-center">Create Back Porch Chairperson Account</h2>
         
         <!-- Registration Instructions Alert -->
-        <div class="alert alert-info mb-4" role="alert">
+        <div class="alert alert-light border mb-4" role="alert" style="background-color: white; color: black;">
           <h6><i class="fas fa-info-circle"></i> New to Chairing Back Porch Meetings?</h6>
           <p class="mb-2">Learn about the registration process, requirements, and what to expect as a chairperson.</p>
-          <a href="{{ url_for('registration_instructions') }}" class="btn btn-sm btn-outline-primary">
+          <a href="{{ url_for('registration_instructions') }}" class="btn btn-sm btn-outline-dark">
             <i class="fas fa-book-open"></i> View Registration Instructions
           </a>
         </div>
         
-        <div class="card shadow-sm">
-          <div class="card-body p-4">
+        <div class="card shadow-sm" style="background-color: white;">
+          <div class="card-body p-4" style="color: black;">
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -86,17 +86,20 @@
 
       {{ form.submit(class_='btn btn-primary btn-sm w-100', id='submitBtn') }}
 
-    <!-- Modal for incorrect key / lockout -->
+    <!-- Modal for incorrect key warning -->
     <div class="modal fade" id="keyModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Registration Locked</h5>
+          <div class="modal-header bg-warning">
+            <h5 class="modal-title text-dark"><i class="fas fa-exclamation-triangle"></i> Incorrect Unlock Key</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body" id="keyModalBody">Incorrect key. You are locked out.</div>
+          <div class="modal-body" id="keyModalBody" style="color: black;">
+            <p class="mb-2"><strong>The unlock key you entered is incorrect.</strong></p>
+            <p class="mb-0">Remaining attempts: <span id="remainingAttempts" class="fw-bold text-danger">2</span></p>
+          </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Try Again</button>
           </div>
         </div>
       </div>
@@ -134,6 +137,7 @@
         const daysVal = document.getElementById('daysSoberVal');
         const yearsVal = document.getElementById('yearsSoberVal');
         const unlockStatus = document.getElementById('unlockStatus');
+        let failedAttempts = 0;
 
         function setLockedState(locked) {
           if (!regFields) return;
@@ -215,32 +219,42 @@
                   alert('Registration form unlocked! You may now complete the form.');
                 }
               } else {
-                if (bsModal && modalBody) {
-                  modalBody.textContent = 'Incorrect key. You are locked out.';
-                  bsModal.show();
-                  // After the modal is hidden, redirect away
-                  modalEl.addEventListener('hidden.bs.modal', () => {
-                    window.location.href = 'https://www.google.com/';
-                  }, { once: true });
-                } else {
-                  window.location.href = 'https://www.google.com/';
-                }
+                // Incorrect key - increment attempts
+                failedAttempts++;
                 accessInput.classList.remove('is-valid');
                 accessInput.classList.add('is-invalid');
+                
+                if (failedAttempts >= 3) {
+                  // 3rd wrong attempt - redirect to google
+                  window.location.href = 'https://www.google.com/';
+                } else {
+                  // Show warning modal with remaining attempts
+                  const remainingSpan = document.getElementById('remainingAttempts');
+                  if (remainingSpan) {
+                    remainingSpan.textContent = (3 - failedAttempts).toString();
+                  }
+                  if (bsModal) {
+                    bsModal.show();
+                  }
+                }
               }
             } catch (e) {
-              // Fail closed
-              if (bsModal && modalBody) {
-                modalBody.textContent = 'Unable to validate key. You are locked out.';
-                bsModal.show();
-                modalEl.addEventListener('hidden.bs.modal', () => {
-                  window.location.href = 'https://www.google.com/';
-                }, { once: true });
-              } else {
-                window.location.href = 'https://www.google.com/';
-              }
+              // Fail closed - count as failed attempt
+              failedAttempts++;
               accessInput.classList.remove('is-valid');
               accessInput.classList.add('is-invalid');
+              
+              if (failedAttempts >= 3) {
+                window.location.href = 'https://www.google.com/';
+              } else {
+                const remainingSpan = document.getElementById('remainingAttempts');
+                if (remainingSpan) {
+                  remainingSpan.textContent = (3 - failedAttempts).toString();
+                }
+                if (bsModal) {
+                  bsModal.show();
+                }
+              }
             }
           }
 
