@@ -93,6 +93,77 @@
   .weather-icon { font-size: 1.2rem; opacity: .6; }
   
   .meeting-title { display:inline-block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  
+  /* Print styles - ensure calendar fits on one page */
+  @media print {
+    /* Hide navigation, sidebar, and UI elements */
+    nav, .navbar, .calendar-sidebar, .btn, .dropdown, .btn-group, form, .alert { display: none !important; }
+    
+    /* Remove backgrounds and shadows for print */
+    body { background: white !important; }
+    .calendar-main { box-shadow: none !important; border: 1px solid #ddd; }
+    .calendar-layout { grid-template-columns: 1fr !important; }
+    
+    /* Ensure calendar fits on one page */
+    @page { size: landscape; margin: 0.5cm; }
+    .calendar-main { 
+      page-break-after: avoid; 
+      page-break-inside: avoid; 
+      max-width: 100%; 
+      margin: 0;
+    }
+    .calendar-table { 
+      width: 100%; 
+      font-size: 9px !important;
+      page-break-inside: avoid;
+    }
+    .calendar-table thead th { 
+      padding: 0.3rem 0.25rem !important; 
+      font-size: 8px !important;
+      background: #f0f0f0 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .calendar-cell { 
+      min-height: 80px !important; 
+      max-height: 85px !important;
+      padding: 0.25rem !important;
+      font-size: 8px !important;
+      border: 1px solid #ccc !important;
+      overflow: hidden;
+    }
+    .calendar-cell .day-number { 
+      font-size: 10px !important; 
+      margin-bottom: 0.2rem !important;
+    }
+    .meeting-badge { 
+      font-size: 7px !important; 
+      padding: 0.15rem 0.3rem !important;
+      margin-bottom: 0.15rem !important;
+      border: 1px solid #999;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .meeting-badge.has-chair { background: #10b981 !important; border-color: #059669 !important; }
+    .meeting-badge.no-chair { background: #6b7280 !important; border-color: #4b5563 !important; }
+    .meeting-badge.special { background: #f59e0b !important; border-color: #d97706 !important; }
+    .meeting-badge.holiday { background: #ef4444 !important; border-color: #dc2626 !important; }
+    
+    /* Print header */
+    .calendar-main::before {
+      content: "{{ month_name }} {{ year }}";
+      display: block;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 0.5rem;
+      text-align: center;
+      border-bottom: 2px solid #333;
+      margin-bottom: 0.5rem;
+    }
+    
+    /* Ensure colors print */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  }
 </style>
 <div class="calendar-layout">
   <!-- Dark sidebar -->
