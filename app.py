@@ -300,6 +300,8 @@ class ChairpersonAvailability(db.Model):
 
     user = db.relationship("User", back_populates="availability_signups")
 
+    __table_args__ = (db.UniqueConstraint('user_id', 'volunteer_date', name='uq_user_date_availability'),)
+
 
 class AuditLog(db.Model):
     """
@@ -405,10 +407,6 @@ class BackupLog(db.Model):
     completed_at = db.Column(db.DateTime, nullable=True)
 
     initiated_by_user = db.relationship("User", backref="initiated_backups")
-
-    user = db.relationship("User", backref="availability_signups")
-
-    __table_args__ = (db.UniqueConstraint('user_id', 'volunteer_date', name='uq_user_date_availability'),)
 
 
 # ==========================
