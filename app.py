@@ -1445,6 +1445,39 @@ def meeting_detail(meeting_id):
     return render_template("meeting_detail.html", meeting=meeting, form=form, user=user)
 
 
+@app.route("/meeting/<int:meeting_id>/cancel", methods=["POST"])
+@login_required
+def cancel_chair_signup(meeting_id):
+    """Allow user to cancel their chair signup for a meeting."""
+    from app import ChairSignup, cache
+    
+    meeting = Meeting.query.get_or_404(meeting_id)
+    
+    # Find the user's chair signup for this meeting
+    signup = ChairSignup.query.filter_by(
+        meeting_id=meeting_id,
+        user_id=current_user.id
+    ).first()
+    
+    if not signup:
+        flash("You don't have a chair signup for this meeting.", "warning")
+        return redirect(url_for("meeting_detail", meeting_id=meeting_id))
+    
+    try:
+        db.session.delete(signup)
+        db.session.commit()
+        
+        # Clear cache to ensure dashboard and calendar reflect the change
+        cache.delete_memoized(dashboard)
+        
+        flash("Your chair signup has been canceled successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error canceling signup: {str(e)}", "danger")
+    
+    return redirect(url_for("meeting_detail", meeting_id=meeting_id))
+
+
 @app.route("/calendar.ics")
 def calendar_ics():
     """Export meetings as iCal calendar feed."""
@@ -1880,6 +1913,11 @@ def dashboard():
         upcoming_commitments = len(upcoming_meetings)
         volunteer_signups = len(upcoming_availability)
         
+        # Calculate recent meetings (last 30 days)
+        recent_cutoff = today - timedelta(days=30)
+        recent_meetings = [m for m in past_meetings if m.event_date >= recent_cutoff]
+        recent_meetings_count = len(recent_meetings)
+        
         cached_data = {
             'todays_meetings': todays_meetings,
             'upcoming_meetings': upcoming_meetings[:5],  # Limit for performance
@@ -1888,7 +1926,8 @@ def dashboard():
             'upcoming_availability': upcoming_availability[:5],
             'total_meetings_chaired': total_meetings_chaired,
             'upcoming_commitments': upcoming_commitments,
-            'volunteer_signups': volunteer_signups
+            'volunteer_signups': volunteer_signups,
+            'recent_meetings_count': recent_meetings_count
         }
         
         # Cache for 5 minutes
@@ -1897,17 +1936,25 @@ def dashboard():
     # Get recent open meetings that need chairs (cached separately)
     open_meetings = get_open_meetings_cached()
     
+    # Calculate days until next meeting
+    days_until_next = None
+    if cached_data['next_meeting']:
+        days_until_next = (cached_data['next_meeting'].event_date - today).days
+    
     return render_template(
         "dashboard.html",
         user=user,
+        today=today,
         todays_meetings=cached_data['todays_meetings'],
         upcoming_meetings=cached_data['upcoming_meetings'],
         past_meetings=cached_data['past_meetings'],
         next_meeting=cached_data['next_meeting'],
+        days_until_next=days_until_next,
         upcoming_availability=cached_data['upcoming_availability'],
         total_meetings_chaired=cached_data['total_meetings_chaired'],
         upcoming_commitments=cached_data['upcoming_commitments'],
         volunteer_signups=cached_data['volunteer_signups'],
+        recent_meetings_count=cached_data['recent_meetings_count'],
         open_meetings=open_meetings[:5]  # Show top 5 open meetings
     )
 

@@ -94,6 +94,21 @@
             {{ form.submit(class="btn btn-success") }}
           </form>
         {% endif %}
+      {% elif meeting.chair_signup and user and meeting.chair_signup.user_id == user.id %}
+        <hr>
+        <div class="alert alert-success">
+          <h5 class="alert-heading"><i class="fas fa-check-circle"></i> You're Signed Up!</h5>
+          <p>You are scheduled to chair this meeting.</p>
+          {% if meeting.chair_signup.notes %}
+            <p class="mb-0"><strong>Your notes:</strong> {{ meeting.chair_signup.notes }}</p>
+          {% endif %}
+        </div>
+        <form method="post" action="{{ url_for('cancel_chair_signup', meeting_id=meeting.id) }}" onsubmit="return confirm('Are you sure you want to cancel your chair signup for this meeting?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-warning">
+            <i class="fas fa-times-circle"></i> Cancel My Signup
+          </button>
+        </form>
       {% else %}
         <hr>
         {% if not meeting.is_open %}
