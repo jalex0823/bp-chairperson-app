@@ -179,13 +179,23 @@
           if (!val) { daysVal.textContent = '0'; if (yearsVal) yearsVal.textContent = '0'; return; }
           const d0 = new Date(val + 'T00:00:00');
           const today = new Date();
-          // strip time portion from today
-          const t0 = Date.UTC(d0.getFullYear(), d0.getMonth(), d0.getDate());
-          const t1 = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-          const diffDays = Math.max(0, Math.floor((t1 - t0) / (1000*60*60*24)));
-          // Show years and remainder days (not total days)
-          const years = Math.floor(diffDays / 365);
-          const remainderDays = diffDays - (years * 365);
+          // Normalize to midnight (UTC) to avoid timezone day drift
+          const start = new Date(Date.UTC(d0.getFullYear(), d0.getMonth(), d0.getDate()));
+          const current = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+
+          // Compute whole years using calendar anniversaries
+          let years = current.getUTCFullYear() - start.getUTCFullYear();
+          const anniversaryThisYear = new Date(Date.UTC(current.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+          if (current < anniversaryThisYear) {
+            years = Math.max(0, years - 1);
+          }
+
+          // Compute remainder days since last anniversary
+          const lastAnniversaryYear = start.getUTCFullYear() + years;
+          const lastAnniversary = new Date(Date.UTC(lastAnniversaryYear, start.getUTCMonth(), start.getUTCDate()));
+          const diffMs = Math.max(0, current - lastAnniversary);
+          const remainderDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
           yearsVal.textContent = years.toString();
           daysVal.textContent = remainderDays.toString();
         }
