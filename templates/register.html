@@ -88,6 +88,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal for successful unlock -->
+    <div class="modal fade" id="keySuccessModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Registration Unlocked</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">Your unlock key is valid. You may complete the registration form now.</div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
     </form>
 
     <script>
@@ -115,6 +131,8 @@
           const modalEl = document.getElementById('keyModal');
           const modalBody = document.getElementById('keyModalBody');
           const bsModal = modalEl ? new bootstrap.Modal(modalEl) : null;
+          const successModalEl = document.getElementById('keySuccessModal');
+          const bsSuccessModal = successModalEl ? new bootstrap.Modal(successModalEl) : null;
 
           async function tryUnlock() {
             const key = (accessInput && accessInput.value ? accessInput.value.trim() : '');
@@ -129,6 +147,10 @@
               if (data && data.ok) {
                 localStorage.setItem('bp_access_code', key);
                 setLockedState(false);
+                // Visual feedback
+                accessInput.classList.remove('is-invalid');
+                accessInput.classList.add('is-valid');
+                if (bsSuccessModal) { bsSuccessModal.show(); }
               } else {
                 if (bsModal && modalBody) {
                   modalBody.textContent = 'Incorrect key. You are locked out.';
@@ -140,6 +162,8 @@
                 } else {
                   window.location.href = 'https://www.google.com/';
                 }
+                accessInput.classList.remove('is-valid');
+                accessInput.classList.add('is-invalid');
               }
             } catch (e) {
               // Fail closed
@@ -152,6 +176,8 @@
               } else {
                 window.location.href = 'https://www.google.com/';
               }
+              accessInput.classList.remove('is-valid');
+              accessInput.classList.add('is-invalid');
             }
           }
 
@@ -160,6 +186,8 @@
             localStorage.removeItem('bp_access_code');
             if (accessInput) accessInput.value = '';
             setLockedState(true);
+            accessInput.classList.remove('is-valid');
+            accessInput.classList.remove('is-invalid');
           });
 
           // If a saved key exists, attempt auto-unlock
