@@ -1087,6 +1087,15 @@ def ensure_meetings_exist():
         app.logger.warning(f"Auto-seed skipped due to error: {e}")
         _auto_seed_done = True
 
+@app.route("/favicon.ico")
+def favicon():
+    """Serve favicon from static folder."""
+    return send_from_directory(
+        os.path.join(app.root_path, 'static', 'img'),
+        'favicon.ico',
+        mimetype='image/vnd.microsoft.icon'
+    )
+
 @app.route("/")
 def index():
     """List upcoming meetings grouped by date for calendar view."""
@@ -3153,6 +3162,15 @@ def volunteer_date_page(date_str):
 @require_login
 def admin_analytics():
     """Advanced analytics dashboard for administrators."""
+    # Get filter parameter (default to 30 days)
+    days_filter = request.args.get('days', '30')
+    try:
+        days = int(days_filter)
+        if days not in [30, 60, 90]:
+            days = 30
+    except ValueError:
+        days = 30
+    
     # Summary statistics
     total_meetings = Meeting.query.count()
     active_chairpersons = User.query.join(ChairSignup).distinct().count()
@@ -3243,24 +3261,27 @@ def admin_analytics():
         'data': weekly_data
     }
     
-    # Top chairpersons
+    # Top chairpersons with filtered period
+    filter_start_date = date.today() - timedelta(days=days)
     top_chairpersons = db.session.query(
         User.display_name,
         func.count(ChairSignup.id).label('total_meetings'),
         func.sum(
             func.case(
-                (Meeting.event_date >= date.today().replace(day=1), 1),
+                (Meeting.event_date >= filter_start_date, 1),
                 else_=0
             )
-        ).label('this_month')
-    ).join(ChairSignup).join(Meeting).group_by(User.id).order_by(func.count(ChairSignup.id).desc()).limit(10).all()
+        ).label('period_count')
+    ).join(ChairSignup).join(Meeting).filter(
+        Meeting.event_date >= filter_start_date
+    ).group_by(User.id).order_by(func.count(ChairSignup.id).desc()).limit(15).all()
     
     # Convert to list of dicts for easier template access
     top_chairpersons_list = [
         {
             'display_name': chair[0],
             'total_meetings': chair[1],
-            'this_month': chair[2] or 0
+            'period_count': chair[2] or 0
         }
         for chair in top_chairpersons
     ]
@@ -3283,7 +3304,8 @@ def admin_analytics():
         time_slots_data=json.dumps(time_slots_data),
         weekly_distribution_data=json.dumps(weekly_distribution_data),
         top_chairpersons=top_chairpersons_list,
-        uncovered_meetings=uncovered_meetings
+        uncovered_meetings=uncovered_meetings,
+        days_filter=days
     )
 
 

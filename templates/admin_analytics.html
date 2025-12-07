@@ -103,27 +103,37 @@
 
   <!-- Detailed Tables -->
   <div class="row">
-    <div class="col-lg-6">
+    <div class="col-lg-8">
       <div class="card">
-        <div class="card-header bg-secondary text-white">
-          <h5 class="mb-0"><i class="fas fa-trophy"></i> Top Chairpersons</h5>
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-trophy"></i> Top Chairpersons Activity</h5>
+          <div class="btn-group btn-group-sm" role="group">
+            <a href="{{ url_for('admin_analytics', days=30) }}" class="btn btn-{{ 'light' if days_filter == 30 else 'outline-light' }}">30 Days</a>
+            <a href="{{ url_for('admin_analytics', days=60) }}" class="btn btn-{{ 'light' if days_filter == 60 else 'outline-light' }}">60 Days</a>
+            <a href="{{ url_for('admin_analytics', days=90) }}" class="btn btn-{{ 'light' if days_filter == 90 else 'outline-light' }}">90 Days</a>
+          </div>
         </div>
         <div class="card-body">
+          <div class="mb-3">
+            <canvas id="chairActivityChart" height="80"></canvas>
+          </div>
           <div class="table-responsive">
-            <table class="table table-sm">
+            <table class="table table-sm table-hover">
               <thead class="table-light">
                 <tr>
+                  <th>Rank</th>
                   <th>Chairperson</th>
-                  <th>Meetings</th>
-                  <th>This Month</th>
+                  <th class="text-center">Total Meetings</th>
+                  <th class="text-center">Last {{ days_filter }} Days</th>
                 </tr>
               </thead>
               <tbody>
                 {% for chair in top_chairpersons %}
                 <tr>
+                  <td><strong>#{{ loop.index }}</strong></td>
                   <td>{{ chair.display_name }}</td>
-                  <td><span class="badge bg-primary">{{ chair.total_meetings }}</span></td>
-                  <td><span class="badge bg-success">{{ chair.this_month }}</span></td>
+                  <td class="text-center"><span class="badge bg-primary">{{ chair.total_meetings }}</span></td>
+                  <td class="text-center"><span class="badge bg-success">{{ chair.period_count }}</span></td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -132,7 +142,7 @@
         </div>
       </div>
     </div>
-    <div class="col-lg-6">
+    <div class="col-lg-4"
       <div class="card">
         <div class="card-header bg-secondary text-white">
           <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Meetings Needing Chairs</h5>
@@ -303,6 +313,47 @@ const weeklyDistributionChart = new Chart(weeklyDistributionCtx, {
     scales: {
       r: {
         beginAtZero: true
+      }
+    }
+  }
+});
+
+// Chair Activity Bar Chart
+const chairActivityCtx = document.getElementById('chairActivityChart').getContext('2d');
+const chairActivityChart = new Chart(chairActivityCtx, {
+  type: 'bar',
+  data: {
+    labels: [{% for chair in top_chairpersons %}'{{ chair.display_name }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+    datasets: [{
+      label: 'Meetings in Last {{ days_filter }} Days',
+      data: [{% for chair in top_chairpersons %}{{ chair.period_count }}{% if not loop.last %}, {% endif %}{% endfor %}],
+      backgroundColor: 'rgba(15, 111, 117, 0.8)',
+      borderColor: '#0f6f75',
+      borderWidth: 1
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            return context.parsed.x + ' meetings';
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1
+        }
       }
     }
   }
