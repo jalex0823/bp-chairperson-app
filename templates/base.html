@@ -86,7 +86,7 @@
           <!-- Profile Picture with Camera Icon -->
           <a href="{{ url_for('profile') }}" class="text-decoration-none me-2" style="position: relative; display: inline-block;">
             {% if current_user.profile_image %}
-              <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_image) }}" 
+              <img src="{{ url_for('profile_image', user_id=current_user.id) }}" 
                    alt="{{ current_user.display_name }}" 
                    class="rounded-circle" 
                    style="width: 32px; height: 32px; object-fit: cover; border: 2px solid white;">

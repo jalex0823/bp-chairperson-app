@@ -251,7 +251,7 @@
           <!-- Profile Photo Section -->
           <div class="text-center mb-3 pb-3 border-bottom">
             {% if current_user.profile_image %}
-              <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_image) }}" 
+              <img src="{{ url_for('profile_image', user_id=current_user.id) }}" 
                    alt="{{ current_user.display_name }}" 
                    class="rounded-circle mb-2" 
                    style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #007bff;">

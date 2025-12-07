@@ -9,7 +9,7 @@ import time
 
 from flask import (
     Flask, render_template, redirect, url_for,
-    request, flash, session, make_response, jsonify, abort, g
+    request, flash, session, make_response, jsonify, abort, g, Response
 )
 from flask import send_from_directory
 from flask_sqlalchemy import SQLAlchemy
@@ -170,7 +170,8 @@ class User(db.Model):
     last_login = db.Column(db.DateTime, nullable=True, index=True)  # Index for activity tracking
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True, index=True)  # Index for locked account queries
-    profile_image = db.Column(db.String(255), nullable=True)  # Filename of uploaded profile image
+    profile_image = db.Column(db.LargeBinary, nullable=True)  # Store image as binary data in database
+    profile_image_type = db.Column(db.String(50), nullable=True)  # MIME type (image/jpeg, image/png, etc.)
 
     chair_signups = db.relationship("ChairSignup", back_populates="user")
     availability_signups = db.relationship("ChairpersonAvailability", back_populates="user")
@@ -2257,30 +2258,15 @@ def profile():
         user.display_name = form.display_name.data.strip()
         user.gender = form.gender.data or None
         
-        # Handle profile image upload
+        # Handle profile image upload - store in database
         if form.profile_image.data:
             file = form.profile_image.data
             if file and allowed_file(file.filename):
-                # Create uploads directory if it doesn't exist
-                upload_folder = os.path.join(app.root_path, 'static', 'uploads', 'profiles')
-                os.makedirs(upload_folder, exist_ok=True)
-                
-                # Delete old profile image if exists
-                if user.profile_image:
-                    old_image_path = os.path.join(upload_folder, user.profile_image)
-                    if os.path.exists(old_image_path):
-                        try:
-                            os.remove(old_image_path)
-                        except:
-                            pass
-                
-                # Save new image with secure filename
-                filename = secure_filename(file.filename)
-                # Add user ID to filename to prevent conflicts
-                name, ext = os.path.splitext(filename)
-                filename = f"user_{user.id}_{secrets.token_hex(8)}{ext}"
-                file.save(os.path.join(upload_folder, filename))
-                user.profile_image = filename
+                # Read image data
+                image_data = file.read()
+                # Store binary data and MIME type in database
+                user.profile_image = image_data
+                user.profile_image_type = file.content_type or 'image/jpeg'
         
         db.session.commit()
         flash("Profile updated.", "success")
@@ -2309,6 +2295,17 @@ def profile_refresh():
         flash("Error refreshing data. Please try again.", "warning")
     
     return redirect(url_for("profile"))
+
+
+@app.route("/profile/image/<int:user_id>")
+def profile_image(user_id):
+    """Serve profile image from database."""
+    user = User.query.get_or_404(user_id)
+    if user.profile_image:
+        return Response(user.profile_image, mimetype=user.profile_image_type or 'image/jpeg')
+    else:
+        # Return a default placeholder image or 404
+        return "", 404
 
 
 # ==========================
