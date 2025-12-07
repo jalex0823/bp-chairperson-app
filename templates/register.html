@@ -183,11 +183,11 @@
           const t0 = Date.UTC(d0.getFullYear(), d0.getMonth(), d0.getDate());
           const t1 = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
           const diffDays = Math.max(0, Math.floor((t1 - t0) / (1000*60*60*24)));
-          daysVal.textContent = diffDays.toString();
-          if (yearsVal) {
-            const diffYears = Math.floor(diffDays / 365.2425);
-            yearsVal.textContent = diffYears.toString();
-          }
+          // Show years and remainder days (not total days)
+          const years = Math.floor(diffDays / 365);
+          const remainderDays = diffDays - (years * 365);
+          yearsVal.textContent = years.toString();
+          daysVal.textContent = remainderDays.toString();
         }
         if (sobDate) {
           sobDate.addEventListener('change', calcDays);
