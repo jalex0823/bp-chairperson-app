@@ -1478,8 +1478,8 @@ def meeting_detail(meeting_id):
         app.logger.error(f"Error rendering meeting_detail template for meeting {meeting_id}: {e}")
         import traceback
         app.logger.error(traceback.format_exc())
-        flash("Error displaying meeting details. Please try again.", "danger")
-        return redirect(url_for("calendar_view"))
+        # Don't show error to user since signup was successful - just redirect
+        return redirect(url_for("dashboard"))
 
 
 @app.route("/meeting/<int:meeting_id>/cancel", methods=["POST"])
