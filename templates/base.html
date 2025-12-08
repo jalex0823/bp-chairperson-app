@@ -34,8 +34,16 @@
     
     <!-- Dark Theme CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-theme.css') }}">
+    
+    <!-- ChairPoints Celebration CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chairpoints-celebration.css') }}">
 </head>
 <body>
+<!-- Hidden element to track current ChairPoints for celebration -->
+{% if current_user %}
+<div id="currentChairPoints" data-points="{{ current_user.chair_points or 0 }}" style="display: none;"></div>
+{% endif %}
+
 <nav class="navbar navbar-expand-lg navbar-dark bg-bp-green mb-4">
   <div class="container">
     <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
@@ -102,13 +110,16 @@
             </div>
           </a>
           
-          <!-- Display Name and BP ID -->
-          <div class="d-flex flex-column me-2 text-end">
+          <!-- Display Name, BP ID, and ChairPoints -->
+          <div class="d-flex flex-column me-2">
             <span class="navbar-text text-light mb-0" style="line-height: 1.1; font-size: 0.9rem; font-weight: 500;">
               {{ current_user.display_name }}
             </span>
-            <small class="text-light" style="opacity: 0.7; font-size: 0.75rem; line-height: 1;">
+            <small class="text-light" style="opacity: 0.7; font-size: 0.75rem; line-height: 1.1;">
               {{ current_user.bp_id }}
+            </small>
+            <small class="text-light" style="opacity: 0.9; font-size: 0.75rem; line-height: 1.1;">
+              <i class="fas fa-star" style="color: #FFD700; font-size: 0.7rem;"></i> {{ current_user.chair_points or 0 }} ChairPoints
             </small>
           </div>
           
@@ -190,6 +201,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Theme Toggle Script -->
 <script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+
+<!-- ChairPoints Celebration Script -->
+<script src="{{ url_for('static', filename='js/chairpoints-celebration.js') }}"></script>
 
 </body>
 </html>
