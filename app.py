@@ -3211,6 +3211,7 @@ def api_day_meetings():
             "time": m.start_time.strftime('%I:%M %p'),
             "has_chair": bool(m.chair_signup),
             "chair_name": m.chair_signup.user.display_name if (m.chair_signup and m.chair_signup.user) else None,
+            "chair_profile_url": url_for('profile_image', user_id=m.chair_signup.user_id) if (m.chair_signup and m.chair_signup.user and m.chair_signup.user.profile_image) else None,
             "is_open": m.is_open and not m.chair_signup,
             "eligible": eligible,
             "detail_url": url_for('meeting_detail', meeting_id=m.id),
@@ -3245,6 +3246,7 @@ def api_week_meetings():
             "date": m.event_date.strftime('%m/%d'),
             "time": m.start_time.strftime('%I:%M %p') if m.start_time else '',
             "chair_name": m.chair_signup.user.display_name if (m.chair_signup and m.chair_signup.user) else None,
+            "chair_profile_url": url_for('profile_image', user_id=m.chair_signup.user_id) if (m.chair_signup and m.chair_signup.user and m.chair_signup.user.profile_image) else None,
         })
     return jsonify({"meetings": data})
 

@@ -404,7 +404,16 @@
                         {% for m in cell.meetings %}
                           <li class="mb-2">
                             <div class="fw-semibold">{{ m.start_time.strftime('%I:%M %p') }} • {{ m.title }}</div>
-                            <div class="small text-muted">{% if m.chair_signup %}Chair: {{ m.chair_signup.display_name_snapshot }}{% else %}No chair yet{% endif %}</div>
+                            <div class="small text-muted d-flex align-items-center">
+                              {% if m.chair_signup %}
+                                {% if m.chair_signup.user and m.chair_signup.user.profile_image %}
+                                  <img src="{{ url_for('profile_image', user_id=m.chair_signup.user_id) }}" alt="{{ m.chair_signup.display_name_snapshot }}" class="rounded-circle me-1" style="width: 16px; height: 16px; object-fit: cover;">
+                                {% endif %}
+                                Chair: {{ m.chair_signup.display_name_snapshot }}
+                              {% else %}
+                                No chair yet
+                              {% endif %}
+                            </div>
                             <div class="mt-1">
                               {% if m.is_open %}
                                 <button class="btn btn-sm btn-outline-success" onclick="claimMeeting({{ m.id }})">Claim</button>
@@ -442,10 +451,15 @@
       if (!data.meetings || data.meetings.length === 0) { body.innerHTML = '<div class="text-muted">No meetings today.</div>'; return; }
       let html = '<ul class="list-group">';
       for (const m of data.meetings) {
+        const chairInfo = m.chair_name 
+          ? (m.chair_profile_url 
+              ? `<img src="${m.chair_profile_url}" class="rounded-circle me-1" style="width: 16px; height: 16px; object-fit: cover;"> Chair: ${m.chair_name}`
+              : `Chair: ${m.chair_name}`)
+          : 'No chair yet';
         html += `<li class="list-group-item d-flex justify-content-between align-items-start">
           <div>
             <div class="fw-bold">${m.time} • ${m.title}</div>
-            <div class="small text-muted">` + (m.chair_name ? `Chair: ${m.chair_name}` : 'No chair yet') + `</div>
+            <div class="small text-muted">${chairInfo}</div>
           </div>
           <div class="text-nowrap">` + (m.is_open ? `<button class="btn btn-sm btn-outline-success" onclick="claimMeeting(${m.id})">Claim</button>` : `<button class="btn btn-sm btn-outline-secondary" disabled title="Chair: ${m.chair_name || ''}">🔒 Taken</button>`) + `</div>
         </li>`;
@@ -603,9 +617,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       let html = '';
       for (const m of data.meetings) {
+        const chairInfo = m.chair_name 
+          ? (m.chair_profile_url 
+              ? `<img src="${m.chair_profile_url}" class="rounded-circle me-1" style="width: 16px; height: 16px; object-fit: cover;"> Chair: ${m.chair_name}`
+              : `Chair: ${m.chair_name}`)
+          : 'No chair yet';
         html += `<div class="meeting-item">
           <div><span class="time">${m.time}</span><span class="title">${m.title}</span></div>
-          <div class="chair">` + (m.chair_name ? `Chair: ${m.chair_name}` : 'No chair yet') + `</div>
+          <div class="chair">${chairInfo}</div>
         </div>`;
       }
       el.innerHTML = html;
@@ -645,9 +664,14 @@ async function fillThisWeek(todayStr) {
     
     let html = '';
     for (const m of data.meetings.slice(0, 5)) { // Show max 5
+      const chairInfo = m.chair_name 
+        ? (m.chair_profile_url 
+            ? `<img src="${m.chair_profile_url}" class="rounded-circle me-1" style="width: 16px; height: 16px; object-fit: cover;"> Chair: ${m.chair_name}`
+            : `Chair: ${m.chair_name}`)
+        : 'No chair yet';
       html += `<div class="meeting-item">
         <div><span class="time">${m.date} ${m.time}</span><span class="title">${m.title}</span></div>
-        <div class="chair">` + (m.chair_name ? `Chair: ${m.chair_name}` : 'No chair yet') + `</div>
+        <div class="chair">${chairInfo}</div>
       </div>`;
     }
     el.innerHTML = html;
