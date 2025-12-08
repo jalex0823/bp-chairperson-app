@@ -17,11 +17,9 @@
     // Apply the saved theme on page load
     if (currentTheme === 'dark') {
         body.classList.add('dark-theme');
-        themeIcon.classList.remove('fa-adjust');
-        themeIcon.classList.add('fa-moon');
+        themeIcon.textContent = '🌙';
     } else {
-        themeIcon.classList.remove('fa-moon');
-        themeIcon.classList.add('fa-adjust');
+        themeIcon.textContent = '☀️';
     }
 
     // Toggle theme when button is clicked
@@ -29,14 +27,12 @@
         if (body.classList.contains('dark-theme')) {
             // Switch to light theme
             body.classList.remove('dark-theme');
-            themeIcon.classList.remove('fa-moon');
-            themeIcon.classList.add('fa-adjust');
+            themeIcon.textContent = '☀️';
             localStorage.setItem('theme', 'light');
         } else {
             // Switch to dark theme
             body.classList.add('dark-theme');
-            themeIcon.classList.remove('fa-adjust');
-            themeIcon.classList.add('fa-moon');
+            themeIcon.textContent = '🌙';
             localStorage.setItem('theme', 'dark');
         }
     });
