@@ -78,6 +78,11 @@
       </ul>
       <div class="d-flex align-items-center">
         {% if current_user %}
+          <!-- Theme Toggle -->
+          <button id="themeToggle" class="btn btn-sm me-2" title="Toggle Dark/Light Theme" style="font-size: 1.2rem; border: none;">
+            <span id="themeIcon">🏮</span>
+          </button>
+          
           <!-- Profile Picture with Camera Icon -->
           <a href="{{ url_for('profile') }}" class="text-decoration-none me-2" style="position: relative; display: inline-block;">
             {% if current_user.profile_image %}
@@ -106,10 +111,6 @@
               {{ current_user.bp_id }}
             </small>
           </div>
-          
-          <button id="themeToggle" class="btn btn-sm me-2" title="Toggle Dark/Light Theme" style="font-size: 1.2rem; border: none;">
-            <span id="themeIcon">🏮</span>
-          </button>
           
           <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
             Logout
