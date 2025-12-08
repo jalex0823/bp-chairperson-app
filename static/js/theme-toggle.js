@@ -12,30 +12,30 @@
     // Apply the saved theme on page load
     if (currentTheme === 'dark') {
         body.classList.add('dark-theme');
-        themeIcon.classList.remove('fa-lightbulb');
-        themeIcon.classList.add('fa-moon');
-        themeIcon.style.color = '#6c757d'; // Dim gray for OFF (dark mode)
+        themeIcon.classList.remove('fa-toggle-off');
+        themeIcon.classList.add('fa-toggle-on');
+        themeIcon.style.color = '#6c757d'; // Gray for dark mode
     } else {
-        themeIcon.classList.remove('fa-moon');
-        themeIcon.classList.add('fa-lightbulb');
-        themeIcon.style.color = '#ffc107'; // Bright yellow for ON (light mode)
+        themeIcon.classList.remove('fa-toggle-on');
+        themeIcon.classList.add('fa-toggle-off');
+        themeIcon.style.color = '#ffc107'; // Yellow for light mode
     }
 
     // Toggle theme when button is clicked
     themeToggle.addEventListener('click', function() {
         if (body.classList.contains('dark-theme')) {
-            // Switch to light theme (lantern ON)
+            // Switch to light theme (toggle OFF = light on)
             body.classList.remove('dark-theme');
-            themeIcon.classList.remove('fa-moon');
-            themeIcon.classList.add('fa-lightbulb');
-            themeIcon.style.color = '#ffc107'; // Bright yellow ON
+            themeIcon.classList.remove('fa-toggle-on');
+            themeIcon.classList.add('fa-toggle-off');
+            themeIcon.style.color = '#ffc107'; // Yellow
             localStorage.setItem('theme', 'light');
         } else {
-            // Switch to dark theme (lantern OFF)
+            // Switch to dark theme (toggle ON = dark mode)
             body.classList.add('dark-theme');
-            themeIcon.classList.remove('fa-lightbulb');
-            themeIcon.classList.add('fa-moon');
-            themeIcon.style.color = '#6c757d'; // Dim gray OFF
+            themeIcon.classList.remove('fa-toggle-off');
+            themeIcon.classList.add('fa-toggle-on');
+            themeIcon.style.color = '#6c757d'; // Gray
             localStorage.setItem('theme', 'dark');
         }
     });
