@@ -359,3 +359,39 @@ body.dark-theme {
 .dark-theme .meeting-title {
     color: #ffffff !important;
 }
+
+/* Accordion button styling in dark mode */
+.dark-theme .accordion-button {
+    background-color: #2a2a2a;
+    color: #ffffff !important;
+    border-color: #333333;
+}
+
+.dark-theme .accordion-button:not(.collapsed) {
+    background-color: #2a2a2a;
+    color: #ffffff !important;
+    border-color: #333333;
+}
+
+.dark-theme .accordion-button:focus {
+    background-color: #333333;
+    border-color: #555555;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.1);
+}
+
+.dark-theme .accordion-button:hover {
+    background-color: #333333;
+    color: #ffffff !important;
+}
+
+.dark-theme .accordion-body {
+    background-color: #1a1a1a;
+    color: #ffffff !important;
+    border-color: #333333;
+}
+
+/* Accordion button icon color in dark mode */
+.dark-theme .accordion-button::after {
+    filter: brightness(1.5);
+}
