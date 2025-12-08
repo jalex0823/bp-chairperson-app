@@ -98,7 +98,7 @@
           </a>
           
           <!-- Display Name and BP ID -->
-          <div class="d-flex flex-column me-3">
+          <div class="d-flex flex-column me-2">
             <span class="navbar-text text-light mb-0" style="line-height: 1.2; font-size: 0.9rem;">
               {{ current_user.display_name }}
             </span>
@@ -108,8 +108,8 @@
           </div>
           
           <!-- Theme Toggle (Light Switch) -->
-          <button id="themeToggle" class="btn btn-link text-light p-1 me-2" title="Toggle Dark/Light Theme" style="font-size: 1.3rem; border: none; background: none;">
-            <i class="fas fa-toggle-off" id="themeIcon"></i>
+          <button id="themeToggle" class="btn btn-sm btn-outline-light me-2" title="Toggle Dark/Light Theme">
+            <i class="fas fa-adjust" id="themeIcon"></i>
           </button>
           
           <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
