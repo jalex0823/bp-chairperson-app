@@ -288,3 +288,74 @@ body.dark-theme {
 .dark-theme .calendar-out-month:hover {
     background-color: #1a1a1a !important;
 }
+
+/* Override ALL inline black text styles */
+.dark-theme [style*="color: black"],
+.dark-theme [style*="color:black"],
+.dark-theme [style*="color:#000"],
+.dark-theme [style*="color: #000"] {
+    color: #ffffff !important;
+}
+
+/* Ensure all text elements are white in dark mode */
+.dark-theme p,
+.dark-theme span,
+.dark-theme div,
+.dark-theme label,
+.dark-theme small,
+.dark-theme strong,
+.dark-theme em,
+.dark-theme li {
+    color: inherit;
+}
+
+/* Override Bootstrap text utilities */
+.dark-theme .text-body,
+.dark-theme .text-dark,
+.dark-theme .text-black {
+    color: #ffffff !important;
+}
+
+/* Form text and help text */
+.dark-theme .form-text,
+.dark-theme .form-help {
+    color: #aaaaaa !important;
+}
+
+/* Meeting detail page specific overrides */
+.dark-theme .card-body p,
+.dark-theme .card-body div,
+.dark-theme .card-body span {
+    color: #ffffff !important;
+}
+
+/* Alert boxes text */
+.dark-theme .alert p,
+.dark-theme .alert div,
+.dark-theme .alert span,
+.dark-theme .alert strong {
+    color: inherit !important;
+}
+
+/* Modal content text */
+.dark-theme .modal-body,
+.dark-theme .modal-body p,
+.dark-theme .modal-body div,
+.dark-theme .modal-body span {
+    color: #ffffff !important;
+}
+
+/* List items */
+.dark-theme .list-group-item p,
+.dark-theme .list-group-item div,
+.dark-theme .list-group-item span {
+    color: #ffffff !important;
+}
+
+/* Calendar specific text */
+.dark-theme .calendar-date,
+.dark-theme .day-number,
+.dark-theme .meeting-time,
+.dark-theme .meeting-title {
+    color: #ffffff !important;
+}
