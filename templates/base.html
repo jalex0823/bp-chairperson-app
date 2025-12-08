@@ -115,13 +115,13 @@
             
             <!-- User Info Column - Left Aligned -->
             <div class="d-flex flex-column justify-content-start">
-              <span class="navbar-text text-light mb-0" style="line-height: 1.1; font-size: 0.95rem; font-weight: 500;">
+              <span class="navbar-text text-light" style="line-height: 1; font-size: 0.95rem; font-weight: 500;">
                 {{ current_user.display_name }}
               </span>
-              <small class="text-light" style="opacity: 0.9; font-size: 0.75rem; line-height: 1.1;">
+              <small class="text-light" style="opacity: 0.9; font-size: 0.75rem; line-height: 1;">
                 🪙 {{ current_user.chair_points or 0 }} ChairPoints
               </small>
-              <small class="text-light" style="opacity: 0.8; font-size: 0.75rem; line-height: 1.1;">
+              <small class="text-light" style="opacity: 0.8; font-size: 0.75rem; line-height: 1;">
                 {{ current_user.bp_id }}
               </small>
             </div>
