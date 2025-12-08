@@ -65,19 +65,20 @@
 
   /* Meeting items in calendar */
   .meeting-badge { 
-    font-size: .65rem; 
-    padding: .2rem .35rem; 
-    border-radius: .25rem; 
-    margin-bottom: .2rem; 
-    display: block;
+    font-size: .75rem; 
+    padding: .3rem .4rem; 
+    border-radius: .35rem; 
+    margin-bottom: .25rem; 
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     text-decoration: none;
     color: white;
     font-weight: 500;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    border-left: 2px solid rgba(255,255,255,.3);
+    border-left: 3px solid rgba(255,255,255,.4);
     transition: all .15s ease;
+    min-height: 28px;
   }
   .meeting-badge:hover { 
     transform: translateX(2px);
@@ -88,6 +89,36 @@
   .meeting-badge.no-chair { background: #6b7280; }
   .meeting-badge.special { background: #f59e0b; }
   .meeting-badge.holiday { background: #ef4444; }
+  
+  .meeting-info {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 4px;
+  }
+  
+  .meeting-chair-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid white;
+    flex-shrink: 0;
+    object-fit: cover;
+  }
+  
+  .meeting-chair-placeholder {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,.5);
+    background: rgba(255,255,255,.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
   
   /* Weather icons */
   .weather-icon { font-size: 1.2rem; opacity: .6; }
@@ -452,7 +483,14 @@
                     {% if m.meeting_type == 'Special' %}{% set badge_class = 'special' %}{% endif %}
                     {% if m.meeting_type == 'Holiday' %}{% set badge_class = 'holiday' %}{% endif %}
                     <a href="{{ url_for('meeting_detail', meeting_id=m.id) }}" class="meeting-badge {{ badge_class }}" title="{{ m.start_time.strftime('%I:%M %p') }}{% if m.end_time %} – {{ m.end_time.strftime('%I:%M %p') }}{% endif %} • {% if m.chair_signup %}Chair: {{ m.chair_signup.display_name_snapshot }}{% else %}No chair yet{% endif %}">
-                      {{ m.start_time.strftime('%I:%M %p') }} {{ m.title[:20] }}{% if m.title|length > 20 %}...{% endif %}
+                      <span class="meeting-info">{{ m.start_time.strftime('%I:%M %p') }} {{ m.title }}</span>
+                      {% if m.chair_signup and m.chair_signup.user and m.chair_signup.user.profile_image %}
+                        <img src="{{ url_for('profile_image', user_id=m.chair_signup.user_id) }}" alt="{{ m.chair_signup.display_name_snapshot }}" class="meeting-chair-avatar">
+                      {% elif m.chair_signup %}
+                        <div class="meeting-chair-placeholder">
+                          <i class="fas fa-user" style="font-size: 8px;"></i>
+                        </div>
+                      {% endif %}
                     </a>
                   {% endfor %}
                 </div>
