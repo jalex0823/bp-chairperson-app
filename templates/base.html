@@ -90,40 +90,49 @@
       <div class="d-flex align-items-center">
         {% if current_user %}
           <!-- Theme Toggle -->
-          <button id="themeToggle" class="btn btn-sm me-2" title="Toggle Dark/Light Theme" style="font-size: 1.2rem; border: none;">
+          <button id="themeToggle" class="btn btn-sm me-3" title="Toggle Dark/Light Theme" style="font-size: 1.2rem; border: none;">
             <span id="themeIcon">🏮</span>
           </button>
           
-          <!-- Profile Picture with Camera Icon -->
-          <a href="{{ url_for('profile') }}" class="text-decoration-none me-2" style="position: relative; display: inline-block;">
-            {% if current_user.profile_image %}
-              <img src="{{ url_for('profile_image', user_id=current_user.id) }}" 
-                   alt="{{ current_user.display_name }}" 
-                   class="rounded-circle" 
-                   style="width: 32px; height: 32px; object-fit: cover; border: 2px solid white;">
-            {% else %}
-              <div class="rounded-circle d-flex align-items-center justify-content-center" 
-                   style="width: 32px; height: 32px; background-color: rgba(255,255,255,0.2); border: 2px solid white;">
-                <i class="fas fa-user text-light"></i>
+          <!-- User Profile Section - Reorganized -->
+          <div class="d-flex align-items-start me-3">
+            <!-- Profile Picture Column -->
+            <div class="d-flex flex-column align-items-center me-2">
+              <a href="{{ url_for('profile') }}" class="text-decoration-none" style="position: relative; display: inline-block;">
+                {% if current_user.profile_image %}
+                  <img src="{{ url_for('profile_image', user_id=current_user.id) }}" 
+                       alt="{{ current_user.display_name }}" 
+                       class="rounded-circle" 
+                       style="width: 40px; height: 40px; object-fit: cover;">
+                {% else %}
+                  <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                       style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.2);">
+                    <i class="fas fa-user text-light"></i>
+                  </div>
+                {% endif %}
+                <!-- Camera Icon Overlay -->
+                <div style="position: absolute; bottom: -2px; right: -2px; background-color: #0f6f75; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center;">
+                  <i class="fas fa-camera" style="font-size: 7px; color: white;"></i>
+                </div>
+              </a>
+              <!-- ChairPoints Chip under profile picture -->
+              <div class="mt-1">
+                <span class="chairpoints-chip" style="font-size: 1.1rem;"></span>
               </div>
-            {% endif %}
-            <!-- Camera Icon Overlay -->
-            <div style="position: absolute; bottom: -2px; right: -2px; background-color: #007bff; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; border: 1px solid white;">
-              <i class="fas fa-camera" style="font-size: 7px; color: white;"></i>
             </div>
-          </a>
-          
-          <!-- Display Name, BP ID, and ChairPoints -->
-          <div class="d-flex flex-column me-2">
-            <span class="navbar-text text-light mb-0" style="line-height: 1.1; font-size: 0.9rem; font-weight: 500;">
-              {{ current_user.display_name }}
-            </span>
-            <small class="text-light" style="opacity: 0.7; font-size: 0.75rem; line-height: 1.1;">
-              {{ current_user.bp_id }}
-            </small>
-            <small class="text-light" style="opacity: 0.9; font-size: 0.75rem; line-height: 1.1;">
-              <span class="chairpoints-chip" style="font-size: 1rem;"></span>{{ current_user.chair_points or 0 }} ChairPoints
-            </small>
+            
+            <!-- User Info Column - Left Aligned -->
+            <div class="d-flex flex-column">
+              <span class="navbar-text text-light mb-0" style="line-height: 1.2; font-size: 0.95rem; font-weight: 500;">
+                {{ current_user.display_name }}
+              </span>
+              <small class="text-light" style="opacity: 0.8; font-size: 0.75rem; line-height: 1.2;">
+                {{ current_user.bp_id }}
+              </small>
+              <small class="text-light" style="opacity: 0.9; font-size: 0.75rem; line-height: 1.2;">
+                {{ current_user.chair_points or 0 }} ChairPoints
+              </small>
+            </div>
           </div>
           
           <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
