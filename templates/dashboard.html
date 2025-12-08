@@ -77,6 +77,18 @@
     </div>
   </div>
 
+  <!-- Keyboard Shortcuts Info -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="text-center text-muted">
+        <small>
+          <i class="fas fa-keyboard"></i> 
+          <strong>Shortcuts:</strong> Ctrl+C (Calendar), Ctrl+P (Profile), Ctrl+H (Home)
+        </small>
+      </div>
+    </div>
+  </div>
+
   <!-- Main Content Row -->
   <div class="row">
     
@@ -447,19 +459,5 @@ document.getElementById('install-button').addEventListener('click', async () => 
 if (window.matchMedia('(display-mode: standalone)').matches) {
   document.getElementById('install-banner').style.display = 'none';
 }
-
-// Add keyboard shortcuts help
-document.addEventListener('DOMContentLoaded', function() {
-  // Add a small help indicator
-  const helpHtml = `
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1000;">
-      <small class="text-muted">
-        <i class="fas fa-keyboard"></i> 
-        <strong>Shortcuts:</strong> Ctrl+C (Calendar), Ctrl+P (Profile), Ctrl+H (Home)
-      </small>
-    </div>
-  `;
-  document.body.insertAdjacentHTML('beforeend', helpHtml);
-});
 </script>
 {% endblock %}
