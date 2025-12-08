@@ -110,13 +110,15 @@
         <span class="d-block mt-1">Run locally: <code>flask --app app.py seed-schedule</code> (set WEEKS=52 for a full year), or configure a source and run <code>flask --app app.py import-web</code>/<code>import-ics</code>.</span>
       </div>
       {% endif %}
-  {% endif %}
-    {% for date_str, meetings in meetings_by_date.items() %}
-      <h3 class="mt-4 mb-3">{{ meetings[0].event_date.strftime('%A, %B %d, %Y') }}</h3>
-      <div class="row">
+  {% else %}
+    <div class="row mt-4">
+      {% for date_str, meetings in meetings_by_date.items() %}
         {% for m in meetings %}
           <div class="col-md-6 mb-3">
             <div class="card h-100">
+              <div class="card-header bg-light">
+                <strong>{{ m.event_date.strftime('%A, %B %d, %Y') }}</strong>
+              </div>
               <div class="card-body">
                 <h5 class="card-title">{{ m.title }}</h5>
                 <h6 class="card-subtitle mb-2 text-muted">
@@ -157,6 +159,7 @@
             </div>
           </div>
         {% endfor %}
-      </div>
-    {% endfor %}
+      {% endfor %}
+    </div>
+  {% endif %}
 {% endblock %}
