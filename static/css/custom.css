@@ -39,6 +39,27 @@
     --bs-warning: var(--bp-gold);
 }
 
+/* Theme Toggle Pulse Animation */
+@keyframes theme-toggle-pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 0.8;
+    }
+}
+
+#themeToggle {
+    animation: theme-toggle-pulse 2s ease-in-out infinite;
+}
+
+#themeToggle:hover {
+    animation: none;
+    transform: scale(1.1);
+}
+
 body {
     color: var(--color-text);
     background-color: var(--color-bg);
