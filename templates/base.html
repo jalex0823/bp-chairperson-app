@@ -90,7 +90,7 @@
       <div class="d-flex align-items-center">
         {% if current_user %}
           <!-- Theme Toggle -->
-          <button id="themeToggle" class="btn btn-sm me-3" title="Toggle Dark/Light Theme" style="font-size: 1.2rem; border: none;">
+          <button id="themeToggle" class="btn btn-sm me-2" title="Toggle Dark/Light Theme" style="font-size: 1.2rem; border: none;">
             <span id="themeIcon">🏮</span>
           </button>
           
@@ -115,14 +115,14 @@
             
             <!-- User Info Column - Left Aligned -->
             <div class="d-flex flex-column">
-              <span class="navbar-text text-light mb-0" style="line-height: 1.2; font-size: 0.95rem; font-weight: 500;">
+              <span class="navbar-text text-light mb-0" style="line-height: 1.1; font-size: 0.95rem; font-weight: 500;">
                 {{ current_user.display_name }}
               </span>
-              <small class="text-light" style="opacity: 0.8; font-size: 0.75rem; line-height: 1.2;">
-                {{ current_user.bp_id }}
+              <small class="text-light" style="opacity: 0.9; font-size: 0.75rem; line-height: 1.1;">
+                🪙 {{ current_user.chair_points or 0 }} ChairPoints
               </small>
-              <small class="text-light" style="opacity: 0.9; font-size: 0.75rem; line-height: 1.2;">
-                {{ current_user.chair_points or 0 }} ChairPoints
+              <small class="text-light" style="opacity: 0.8; font-size: 0.75rem; line-height: 1.1;">
+                {{ current_user.bp_id }}
               </small>
             </div>
           </div>
