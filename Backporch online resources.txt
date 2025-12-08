@@ -1,132 +1,115 @@
-Backporch online resources
-06/04/2025
-==========================
-
-Email account
-backporchmeetings@outlook.com
-  
-zoom.com - required 2-step verification with code sent to the outlook email
-paid on the 19th monthly ($17.00???) - switched to *9269 (Chris) card as of 4/17/25, owner is "bill Wilson"
-backporchmeetings@outlook.com
-12!Gratitudeee
-Meeting
-
-Personal Meeting ID
-591 425 5203
-Hide Personal Meeting IDShow Personal Meeting ID
-https://us06web.zoom.us/j/5914255203?pwd=ZWdqQVkyWkFnNXdlcmNLM1NzbmRpdz09
-Zoom Meeting Host Key
-0061535
-
-
-GoDaddy.com - our main website (look in MyProduct to edit our pages)
-Primary mobile phone is John D, which may be required for new users to log in. May have a choice of
-using email for 2-step verification.
-Payment is quarterly (next due: 6/26/25). Chris's card (*9269) is payment method
-
-There is also some sort of PayPal method listed.
-backporchmeetings@outlook.com
-12!Gratituda
-GoDaddy Customer Number: 264654431
-
-jotform.com - this is for folks to order chips, books & attendance certificates
-paid monthly on the 8th ($29.00) currently set to use Chris's card (*9269) with Alyssa's as backup.
-backporchmeetings@outlook.com
-12!Gratitudeee
-
-ALSO: Paypal? Venmo?
-
-Theporchonedayatatime@gmail.com
-Password---- Grateful247365 
-
-EIN 
-39-3456041
-
-P.O. Box 544 Fort Montgomery NY 10922
-Account # 733275625
-
-Chase Debit Card
-Christopher Reese Orem 
-The Porch One Day At A Time
-4563 3100 5206 2423
-Ex-09/30
-Security- 481
-
-
-Physical Address: 
-Back Porch Meetings
-421 Madison Avenue, Loveland, Colorado 80537, United States
-
-New Site and Donation Information:
-Website: Dreamhost
-Host: https://panel.dreamhost.com/index.cgi?tree=home.over#/welcome/
-ID: jalex0823@gmail.com
-PW: 12!Gratitudeee
-
-
-chairperson:
-chair@therealbackporch.com
-PW: therealbp2025!
-
-PostSql Database:
-username: chairperson
-pw: 12!Gratitudeee
-
-MySQL Remote Access Credentials
-Hostname: mysql.therealbackporch.com
-Port: 3306
-Database Name: chairameeting
-Username: chairperson
+Back Porch – Master Online Resources & Credential Index
+Updated: 06/04/2025
+CONFIDENTIAL — STORE IN SECURE LOCATION ONLY
+________________________________________
+1. Email Account (Primary Admin Communications)
+Email: backporchmeetings@outlook.com
 Password: 12!Gratitudeee
-phpMyAdmin URL: https://mysql.therealbackporch.com/phpmyadmin
-DreamHost Panel: https://panel.dreamhost.com
-Server Location: US-East (Ashburn, VA)
-Server: odonoghue.iad1-mysql-e2-18b.dreamhost.com
-
-Back Porch Hosting Application
-Heroku: https://dashboard.heroku.com/apps/backporch-chair-app
-Username: backporchmeetings@outlook.com
-Password: 12!Gratitudeee2025
-App: https://backporch-chair-app-35851db28c9c.herokuapp.com/
-Login Details:
-Display Name: jalex0823
-Password: Disneychannel911!
-Email: jalex0823@admin.local
-Admin Status: Yes
-
-Registration Form Unlock Key:
-BP2025!ChairPersonAccess#Unlock$Key
-
-Whats New -  Website Update Key: 
-BackPorch2025!
-
-Speaker Meeting Update - Website Key: 
-BackPorch2025!
-
-Donation Form Hosting: https://donorbox.org/
-ID: backporchmeetings@outlook.com
-PW: 12!Gratitudeee
-
-☕ Keep the Porch Lights On — 7th Tradition Giving:
-🔗 https://donorbox.org/the-back-porch-7th-tradition-donation-form
-
-🏡 Step Onto the New Back Porch:
-🌐 https://www.therealbackporch.com
-
-
-Here are your current SSH/SFTP credentials:
-
-Connection Details:
-
+Notes:
+•	Used for Zoom 2-step verification
+•	Used for Donorbox, JotForm, Heroku, and DreamHost logins
+________________________________________
+2. Zoom Account (Meeting Platform)
+Login Email: backporchmeetings@outlook.com
+Password: 12!Gratitudeee
+Billing: Monthly on the 19th — Chris’s card ending *9269
+Account Owner: Bill Wilson
+Meeting Details
+•	Personal Meeting ID: 591 425 5203
+•	Meeting URL:
+https://us06web.zoom.us/j/5914255203?pwd=ZWdqQVkyWkFnNXdlcmNLM1NzbmRpdz09
+•	Host Key: 0061535
+________________________________________
+3. JotForm (Chips, Books, Certificates Orders)
+Login Email: backporchmeetings@outlook.com
+Password: 12!Gratitudeee
+Billing: Monthly on the 8th — Chris’s card *9269
+Backup payment: Alyssa
+________________________________________
+4. Organizational Details
+Organization Name: The Porch One Day at a Time
+EIN: 39-3456041
+Mailing Address
+P.O. Box 544
+Fort Montgomery, NY 10922
+Chase Bank Account
+Account Name: The Porch One Day At A Time
+Account #: 733275625
+Debit Card:
+•	Name: Christopher Reese Orem
+•	Number: 4563 3100 5206 2423
+•	Expiration: 09/30
+•	Security Code: 481
+Physical Address
+Back Porch Meetings
+421 Madison Avenue
+Loveland, CO 80537
+United States
+________________________________________
+5. DreamHost (Primary Web Hosting)
+Login Panel: https://panel.dreamhost.com
+Email: jalex0823@gmail.com
+Password: 12!Gratitudeee
+________________________________________
+6. Databases
+PostgreSQL Database
+•	Username: chairperson
+•	Password: 12!Gratitudeee
+MySQL Remote Database (Website/Chair App)
+•	Hostname: mysql.therealbackporch.com
+•	Port: 3306
+•	Database Name: chairameeting
+•	Username: chairperson
+•	Password: 12!Gratitudeee
+•	phpMyAdmin: https://mysql.therealbackporch.com/phpmyadmin
+•	Server: odonoghue.iad1-mysql-e2-18b.dreamhost.com
+•	Region: US-East (Ashburn, VA)
+________________________________________
+7. SFTP / SSH Credentials (DreamHost VPS)
 Host: vps66642.dreamhostps.com
 Port: 22
 Username: dh_cg5sdf
-Password: Disneychannel911! (the one you just set)
-Protocol: SFTP/SSH
-Shell Type: /bin/bash
-Home Directory: /home/dh_cg5sdf
-Site Path:
-
-Web Root: /home/dh_cg5sdf/therealbackporch.com
-To connect manually:
+Password: Disneychannel911!
+Protocol: SFTP / SSH
+Shell: /bin/bash
+Paths
+•	Home Directory: /home/dh_cg5sdf
+•	Web Root: /home/dh_cg5sdf/therealbackporch.com
+________________________________________
+8. Back Porch Hosting Application (Chair Scheduler)
+Platform: Heroku
+Dashboard: https://dashboard.heroku.com/apps/backporch-chair-app
+Heroku Login
+•	Email: backporchmeetings@outlook.com
+•	Password: 12!Gratitudeee2025
+Application URL
+https://backporch-chair-app-35851db28c9c.herokuapp.com/
+Admin Account (Internal)
+•	Display Name: jalex0823
+•	Email: jalex0823@admin.local
+•	Password: Disneychannel911!
+•	Admin Access: Yes
+________________________________________
+9. Website & Form Keys
+Registration Form Unlock Key:
+BP2025!ChairPersonAccess#Unlock$Key
+Website Update Key (What’s New):
+BackPorch2025!
+Speaker Meeting Update Key:
+BackPorch2025!
+________________________________________
+10. Donation Platform (Donorbox)
+URL: https://donorbox.org/
+Login Email: backporchmeetings@outlook.com
+Password: 12!Gratitudeee
+Donation Link (7th Tradition)
+https://donorbox.org/the-back-porch-7th-tradition-donation-form
+Main Site
+https://www.therealbackporch.com
+________________________________________
+11. Public Branding & Online Links
+Main Website:
+https://www.therealbackporch.com
+Official Donation Page:
+https://donorbox.org/the-back-porch-7th-tradition-donation-form
 
