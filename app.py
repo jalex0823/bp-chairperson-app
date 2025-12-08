@@ -2024,7 +2024,10 @@ def dashboard_refresh():
     """Refresh dashboard by clearing cache and reloading data."""
     try:
         # Clear all cached data
-        cache.clear()
+        try:
+            cache.clear()
+        except Exception as cache_error:
+            app.logger.warning(f"Failed to clear cache: {cache_error}")
         flash("Dashboard data refreshed!", "success")
     except Exception as e:
         app.logger.error(f"Error refreshing dashboard: {e}")
