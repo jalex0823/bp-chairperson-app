@@ -1506,7 +1506,10 @@ def cancel_chair_signup(meeting_id):
         db.session.commit()
         
         # Clear cache to ensure dashboard and calendar reflect the change
-        cache.clear()
+        try:
+            cache.clear()
+        except Exception as cache_error:
+            app.logger.warning(f"Failed to clear cache: {cache_error}")
         
         flash("You have successfully withdrawn from chairing this meeting.", "success")
     except Exception as e:
