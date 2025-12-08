@@ -208,6 +208,7 @@
                     <th>Type</th>
                     <th>Duration</th>
                     <th>Zoom</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -253,6 +254,14 @@
                         <a href="https://therealbackporch.com/meetings.html" target="_blank" class="btn btn-sm btn-outline-primary">
                           <i class="fas fa-video"></i> Join
                         </a>
+                      </td>
+                      <td>
+                        <form method="POST" action="{{ url_for('cancel_chair_signup', meeting_id=meeting.id) }}" style="display: inline;">
+                          <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                  onclick="return confirm('Are you sure you want to withdraw from chairing this meeting?');">
+                            <i class="fas fa-times"></i> Withdraw
+                          </button>
+                        </form>
                       </td>
                     </tr>
                   {% endfor %}
