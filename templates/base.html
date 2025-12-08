@@ -95,7 +95,7 @@
           </button>
           
           <!-- User Profile Section - Reorganized -->
-          <div class="d-flex align-items-start me-3">
+          <div class="d-flex me-3">
             <!-- Profile Picture Column -->
             <div class="me-2">
               <a href="{{ url_for('profile') }}" class="text-decoration-none">
@@ -114,7 +114,7 @@
             </div>
             
             <!-- User Info Column - Left Aligned -->
-            <div class="d-flex flex-column">
+            <div class="d-flex flex-column justify-content-start">
               <span class="navbar-text text-light mb-0" style="line-height: 1.1; font-size: 0.95rem; font-weight: 500;">
                 {{ current_user.display_name }}
               </span>
