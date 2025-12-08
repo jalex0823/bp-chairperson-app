@@ -2324,7 +2324,10 @@ def profile_refresh():
     """Refresh profile by clearing cache and reloading data."""
     try:
         # Clear all cached data
-        cache.clear()
+        try:
+            cache.clear()
+        except Exception as cache_error:
+            app.logger.warning(f"Failed to clear cache: {cache_error}")
         flash("Profile data refreshed!", "success")
     except Exception as e:
         app.logger.error(f"Error refreshing profile: {e}")
