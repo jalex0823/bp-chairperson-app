@@ -97,7 +97,7 @@
           <!-- User Profile Section - Reorganized -->
           <div class="d-flex align-items-start me-3">
             <!-- Profile Picture Column -->
-            <div class="d-flex flex-column align-items-center me-2">
+            <div class="me-2">
               <a href="{{ url_for('profile') }}" class="text-decoration-none" style="position: relative; display: inline-block;">
                 {% if current_user.profile_image %}
                   <img src="{{ url_for('profile_image', user_id=current_user.id) }}" 
@@ -115,10 +115,6 @@
                   <i class="fas fa-camera" style="font-size: 7px; color: white;"></i>
                 </div>
               </a>
-              <!-- ChairPoints Chip under profile picture -->
-              <div class="mt-1">
-                <span class="chairpoints-chip" style="font-size: 1.1rem;"></span>
-              </div>
             </div>
             
             <!-- User Info Column - Left Aligned -->

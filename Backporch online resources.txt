@@ -15,34 +15,19 @@ Personal Meeting ID
 591 425 5203
 Hide Personal Meeting IDShow Personal Meeting ID
 https://us06web.zoom.us/j/5914255203?pwd=ZWdqQVkyWkFnNXdlcmNLM1NzbmRpdz09
-
-Host Key
+Zoom Meeting Host Key
 0061535
-
-
-
-
-
 
 
 GoDaddy.com - our main website (look in MyProduct to edit our pages)
 Primary mobile phone is John D, which may be required for new users to log in. May have a choice of
 using email for 2-step verification.
 Payment is quarterly (next due: 6/26/25). Chris's card (*9269) is payment method
+
 There is also some sort of PayPal method listed.
 backporchmeetings@outlook.com
 12!Gratituda
 GoDaddy Customer Number: 264654431
-
-
-
-signupgenious.com - our chairperson signup
-Payment is monthly, due (autopay) 4/28/25, amount varies (no idea why)
-	changed card to one Chris had ending in 9269
-We are only allow a certain number of "slots" (a day&time). About every 6 months, I
-need to delete old (past) slots & add new ones in the future.
-backporchmeetings@outlook.com
-12!Gratitude
 
 jotform.com - this is for folks to order chips, books & attendance certificates
 paid monthly on the 8th ($29.00) currently set to use Chris's card (*9269) with Alyssa's as backup.
@@ -58,12 +43,9 @@ EIN
 39-3456041
 
 P.O. Box 544 Fort Montgomery NY 10922
-
 Account # 733275625
 
-
 Chase Debit Card
-
 Christopher Reese Orem 
 The Porch One Day At A Time
 4563 3100 5206 2423
@@ -72,12 +54,10 @@ Security- 481
 
 
 Physical Address: 
-
 Back Porch Meetings
 421 Madison Avenue, Loveland, Colorado 80537, United States
 
 New Site and Donation Information:
-
 Website: Dreamhost
 Host: https://panel.dreamhost.com/index.cgi?tree=home.over#/welcome/
 ID: jalex0823@gmail.com
@@ -113,8 +93,15 @@ Display Name: jalex0823
 Password: Disneychannel911!
 Email: jalex0823@admin.local
 Admin Status: Yes
+
 Registration Form Unlock Key:
 BP2025!ChairPersonAccess#Unlock$Key
+
+Whats New -  Website Update Key: 
+BackPorch2025!
+
+Speaker Meeting Update - Website Key: 
+BackPorch2025!
 
 Donation Form Hosting: https://donorbox.org/
 ID: backporchmeetings@outlook.com
