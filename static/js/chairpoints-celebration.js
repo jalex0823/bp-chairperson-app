@@ -29,7 +29,7 @@
       <div class="celebration-message">
         <div>🎉 Congratulations! 🎉</div>
         <div class="points-earned">+${pointsEarned} ChairPoint${pointsEarned > 1 ? 's' : ''}!</div>
-        <div>Total: <i class="fas fa-star"></i> ${totalPoints} ChairPoints</div>
+        <div>Total: 🪙 ${totalPoints} ChairPoints</div>
         <button class="close-btn" onclick="this.closest('.chairpoints-celebration').remove()">
           Awesome!
         </button>
@@ -96,7 +96,7 @@
     for (let i = 0; i < maxCoins; i++) {
       const coin = document.createElement('div');
       coin.className = 'gold-coin';
-      coin.innerHTML = '<i class="fas fa-star"></i>';
+      coin.innerHTML = '🪙';
       coin.style.left = `${20 + (i * 15)}%`;
       coin.style.top = '60%';
       coin.style.animationDelay = `${i * 0.2}s`;
