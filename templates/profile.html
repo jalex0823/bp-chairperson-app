@@ -96,8 +96,11 @@
           <hr class="my-2">
           <div class="row text-center">
             <div class="col-6">
-              <div class="h3 mb-0" style="background: linear-gradient(135deg, #FFD700, #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                🪙 <span id="chairPointsValue">{{ user.chair_points or 0 }}</span>
+              <div class="mb-2">
+                <span class="chairpoints-chip-large"></span>
+              </div>
+              <div class="h3 mb-0" style="color: #0f6f75; font-weight: bold;">
+                <span id="chairPointsValue">{{ user.chair_points or 0 }}</span>
               </div>
               <small class="text-muted">ChairPoints™</small>
             </div>

@@ -90,17 +90,17 @@
   position: absolute;
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FFD700 100%);
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
-  color: #fff;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
   animation: coin-flip 1s ease-in-out, float-up 2s ease-out forwards;
-  border: 3px solid #FFA500;
+}
+
+.gold-coin .chairpoints-chip-large {
+  width: 70px;
+  height: 70px;
+  font-size: 2rem;
+  box-shadow: 0 4px 20px rgba(15, 111, 117, 0.5);
 }
 
 /* Confetti pieces */
