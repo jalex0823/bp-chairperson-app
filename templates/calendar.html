@@ -505,7 +505,7 @@
                         <div class="d-flex align-items-center" style="font-size: 0.7rem; opacity: 0.9;">
                           {% if m.chair_signup %}
                             {% if m.chair_signup.user and m.chair_signup.user.profile_image %}
-                              <img src="{{ url_for('profile_image', user_id=m.chair_signup.user_id) }}" alt="{{ m.chair_signup.display_name_snapshot }}" class="rounded-circle me-1" style="width: 16px; height: 16px; object-fit: cover; border: 1px solid white;">
+                              <img src="{{ url_for('profile_image', user_id=m.chair_signup.user_id) }}" alt="{{ m.chair_signup.display_name_snapshot }}" class="rounded-circle me-1" style="width: 16px; height: 16px; object-fit: cover;">
                             {% else %}
                               <div class="rounded-circle me-1 d-flex align-items-center justify-content-center" style="width: 16px; height: 16px; border: 1px solid rgba(255,255,255,.5); background: rgba(255,255,255,.2);">
                                 <i class="fas fa-user" style="font-size: 7px;"></i>
