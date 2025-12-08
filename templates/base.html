@@ -48,11 +48,6 @@
       <span class="navbar-toggler-icon"></span>
     </button>
     
-    <!-- Theme Toggle (Always Visible) -->
-    <button id="themeToggle" class="btn btn-sm btn-outline-light ms-2" title="Toggle Dark/Light Theme" style="font-size: 1.2rem;">
-      <span id="themeIcon">☀️</span>
-    </button>
-    
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
@@ -111,6 +106,10 @@
               {{ current_user.bp_id }}
             </small>
           </div>
+          
+          <button id="themeToggle" class="btn btn-sm me-2" title="Toggle Dark/Light Theme" style="font-size: 1.2rem; border: none;">
+            <span id="themeIcon">🏮</span>
+          </button>
           
           <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
             Logout
