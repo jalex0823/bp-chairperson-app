@@ -39,39 +39,48 @@
 
   <!-- Quick Stats Row -->
   <div class="row mb-4">
-    <div class="col-md-3 mb-3">
+    <div class="col-md-2 mb-3">
       <div class="card bg-primary text-white h-100">
-        <div class="card-body text-center">
-          <i class="fas fa-calendar-check fa-2x mb-2"></i>
-          <h3 class="mb-1">{{ upcoming_commitments }}</h3>
-          <small>Upcoming Meetings</small>
+        <div class="card-body text-center p-2">
+          <i class="fas fa-calendar-check fa-2x mb-1"></i>
+          <h4 class="mb-0">{{ upcoming_commitments }}</h4>
+          <small>Upcoming</small>
         </div>
       </div>
     </div>
-    <div class="col-md-3 mb-3">
+    <div class="col-md-2 mb-3">
       <div class="card bg-success text-white h-100">
-        <div class="card-body text-center">
-          <i class="fas fa-trophy fa-2x mb-2"></i>
-          <h3 class="mb-1">{{ total_meetings_chaired }}</h3>
-          <small>Total Meetings Chaired</small>
+        <div class="card-body text-center p-2">
+          <i class="fas fa-trophy fa-2x mb-1"></i>
+          <h4 class="mb-0">{{ total_meetings_chaired }}</h4>
+          <small>Total Chaired</small>
         </div>
       </div>
     </div>
     <div class="col-md-3 mb-3">
+      <div class="card text-white h-100" style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);">
+        <div class="card-body text-center p-2">
+          <i class="fas fa-star fa-2x mb-1"></i>
+          <h3 class="mb-0"><strong>{{ user.chair_points or 0 }}</strong></h3>
+          <small><strong>ChairPoints™</strong></small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2 mb-3">
       <div class="card bg-warning text-white h-100">
-        <div class="card-body text-center">
-          <i class="fas fa-hand fa-2x mb-2"></i>
-          <h3 class="mb-1">{{ volunteer_signups }}</h3>
-          <small>Volunteer Signups</small>
+        <div class="card-body text-center p-2">
+          <i class="fas fa-hand fa-2x mb-1"></i>
+          <h4 class="mb-0">{{ volunteer_signups }}</h4>
+          <small>Volunteers</small>
         </div>
       </div>
     </div>
     <div class="col-md-3 mb-3">
       <div class="card bg-info text-white h-100">
-        <div class="card-body text-center">
-          <i class="fas fa-chart-line fa-2x mb-2"></i>
-          <h3 class="mb-1">{{ recent_meetings_count }}</h3>
-          <small>Recent Service (30 days)</small>
+        <div class="card-body text-center p-2">
+          <i class="fas fa-chart-line fa-2x mb-1"></i>
+          <h4 class="mb-0">{{ recent_meetings_count }}</h4>
+          <small>Last 30 Days</small>
         </div>
       </div>
     </div>

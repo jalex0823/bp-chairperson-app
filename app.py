@@ -172,6 +172,7 @@ class User(db.Model):
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True, index=True)  # Index for locked account queries
     profile_image = db.Column(db.Text, nullable=True)  # Store base64 encoded image data
+    chair_points = db.Column(db.Integer, default=0, index=True)  # ChairPoints earned by chairing meetings
 
     chair_signups = db.relationship("ChairSignup", back_populates="user")
     availability_signups = db.relationship("ChairpersonAvailability", back_populates="user")
@@ -2710,6 +2711,37 @@ Thanks for your willingness to serve the Back Porch community!
     send_email(user.email, subject, body)
 
 
+def award_chair_points_for_completed_meetings():
+    """Award 1 ChairPoint to users who chaired meetings that have passed.
+    Runs daily to award points for meetings from the previous day.
+    """
+    yesterday = date.today() - timedelta(days=1)
+    
+    # Find all meetings from yesterday that had a chair
+    completed_meetings = (
+        Meeting.query
+        .filter(Meeting.event_date == yesterday)
+        .join(ChairSignup)
+        .options(db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user))
+        .all()
+    )
+    
+    points_awarded = 0
+    for meeting in completed_meetings:
+        if meeting.chair_signup and meeting.chair_signup.user:
+            chair = meeting.chair_signup.user
+            # Award 1 point
+            chair.chair_points = (chair.chair_points or 0) + 1
+            points_awarded += 1
+            app.logger.info(f"Awarded 1 ChairPoint to {chair.display_name} (BP-{1000 + chair.id}) for meeting {meeting.title}")
+    
+    if points_awarded > 0:
+        db.session.commit()
+        app.logger.info(f"Total ChairPoints awarded: {points_awarded}")
+    
+    return points_awarded
+
+
 # ==========================
 # ADMIN ROUTES
 # ==========================
@@ -3498,6 +3530,14 @@ def admin_analytics():
         func.count(Meeting.id).label('count')
     ).filter(Meeting.start_time.isnot(None)).group_by('hour').order_by('hour').all()
     
+    # ChairPoints Leaderboard - Top 20 chairs by points
+    leaderboard = db.session.query(
+        User.id,
+        User.display_name,
+        User.chair_points,
+        User.profile_image
+    ).filter(User.chair_points > 0).order_by(User.chair_points.desc()).limit(20).all()
+    
     time_slots_data = {
         'labels': [f"{ts[0]}:00" for ts in time_slots],
         'data': [ts[1] for ts in time_slots]
@@ -3551,6 +3591,14 @@ def admin_analytics():
         ~Meeting.chair_signup.has()
     ).order_by(Meeting.event_date.asc(), Meeting.start_time.asc()).limit(10).all()
     
+    # ChairPoints Leaderboard - Top 20 chairs by points
+    leaderboard = db.session.query(
+        User.id,
+        User.display_name,
+        User.chair_points,
+        User.profile_image
+    ).filter(User.chair_points > 0).order_by(User.chair_points.desc()).limit(20).all()
+    
     return render_template(
         "admin_analytics.html",
         total_meetings=total_meetings,
@@ -3563,7 +3611,8 @@ def admin_analytics():
         weekly_distribution_data=json.dumps(weekly_distribution_data),
         top_chairpersons=top_chairpersons_list,
         uncovered_meetings=uncovered_meetings,
-        days_filter=days
+        days_filter=days,
+        leaderboard=leaderboard
     )
 
 
@@ -4070,6 +4119,15 @@ def init_db_command():
             replace_existing=True
         )
         print("Scheduled weekly open slots reminder.")
+        
+        # Schedule daily ChairPoints award at 1 AM
+        scheduler.add_job(
+            award_chair_points_for_completed_meetings,
+            CronTrigger(hour=1, minute=0),
+            id='daily-chairpoints-award',
+            replace_existing=True
+        )
+        print("Scheduled daily ChairPoints award job.")
 
     print("Database initialized.")
 

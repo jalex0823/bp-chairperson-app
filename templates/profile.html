@@ -84,13 +84,19 @@
         </div>
         <div class="card-body">
           <div class="row text-center">
-            <div class="col-6">
+            <div class="col-4">
               <div class="h4 text-primary mb-0">{{ upcoming_meetings|length }}</div>
               <small class="text-muted">Upcoming<br>Meetings</small>
             </div>
-            <div class="col-6">
+            <div class="col-4">
               <div class="h4 text-success mb-0">{{ past_meetings|length }}</div>
               <small class="text-muted">Completed<br>Meetings</small>
+            </div>
+            <div class="col-4">
+              <div class="h3 mb-0" style="background: linear-gradient(135deg, #FFD700, #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                <i class="fas fa-star"></i> {{ user.chair_points or 0 }}
+              </div>
+              <small class="text-muted">ChairPoints™</small>
             </div>
           </div>
           <hr class="my-2">
