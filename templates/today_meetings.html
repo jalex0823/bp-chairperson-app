@@ -12,7 +12,7 @@
     <ul class="list-group">
       {% for m in meetings %}
         <li class="list-group-item d-flex justify-content-between align-items-start">
-          <div>
+          <div class="flex-grow-1">
             <div class="fw-bold">
               {{ m.start_time.strftime('%I:%M %p') }} • {{ m.title }}
             </div>
@@ -21,11 +21,16 @@
             </div>
             <div class="small"><a href="https://therealbackporch.com/meetings.html" target="_blank" rel="noopener">Join Link</a></div>
           </div>
-          <div class="text-nowrap">
+          <div class="text-nowrap d-flex align-items-center gap-2">
             {% if m.chair_signup and m.chair_signup.user %}
               <span class="badge bg-success">Chair: {{ m.chair_signup.user.display_name }}</span>
             {% else %}
               <span class="badge bg-secondary">No chair yet</span>
+              {% if current_user and current_user.is_authenticated and m.is_open %}
+                <a href="{{ url_for('meeting_detail', meeting_id=m.id) }}" class="btn btn-sm btn-primary">
+                  <i class="fas fa-hand-paper"></i> Sign Up
+                </a>
+              {% endif %}
             {% endif %}
           </div>
         </li>
