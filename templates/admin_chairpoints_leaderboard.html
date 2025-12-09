@@ -4,6 +4,9 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-trophy"></i> ChairPoints™ Leaderboard - Full Report</h2>
     <div class="btn-group">
+      <button onclick="window.print()" class="btn btn-secondary btn-sm">
+        <i class="fas fa-print"></i> Print
+      </button>
       <a href="{{ url_for('admin_chairpoints_leaderboard', format='csv') }}" class="btn btn-success btn-sm">
         <i class="fas fa-file-csv"></i> Export CSV
       </a>
@@ -226,12 +229,129 @@
 
 /* Print styles */
 @media print {
-  .btn-group, .card-footer {
-    display: none;
+  /* Hide non-essential elements */
+  .btn-group, 
+  .card-footer,
+  nav,
+  footer,
+  .navbar {
+    display: none !important;
   }
   
+  /* Remove sticky positioning */
   .sticky-top {
     position: static;
+  }
+  
+  /* Optimize page layout */
+  body {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+  }
+  
+  .container-fluid {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+  }
+  
+  /* Ensure card displays properly */
+  .card {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+  
+  .card-header {
+    background: #FFD700 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color: #000 !important;
+    border-bottom: 2px solid #000;
+  }
+  
+  /* Ensure table is readable */
+  .table {
+    font-size: 10pt;
+    width: 100%;
+  }
+  
+  .table thead {
+    background: #f8f9fa !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .table-striped tbody tr:nth-of-type(odd) {
+    background-color: #f9f9f9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Preserve badge colors */
+  .badge {
+    border: 1px solid #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Print top 3 highlighting */
+  .table-warning {
+    background-color: #fff9e6 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Ensure images print */
+  img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Page break control */
+  .card {
+    page-break-after: avoid;
+  }
+  
+  thead {
+    display: table-header-group;
+  }
+  
+  tr {
+    page-break-inside: avoid;
+  }
+  
+  /* Summary cards - make them print in a row */
+  .row.mb-4:first-of-type {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  .row.mb-4:first-of-type .col-md-3 {
+    flex: 1;
+    padding: 5px;
+  }
+  
+  .row.mb-4:first-of-type .card {
+    font-size: 9pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Adjust margins for better printing */
+  h2, h4 {
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .mb-4 {
+    margin-bottom: 10px !important;
+  }
+  
+  .py-4 {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
   }
 }
 </style>
