@@ -111,9 +111,9 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Meeting Commitments Column -->
+      
+      <!-- Chairperson Resources Card -->
+      <div class="card mt-3">
         <div class="card-header bg-primary text-white">
           <h6 class="mb-0"><i class="fas fa-book"></i> Chairperson Resources</h6>
         </div>
@@ -135,6 +135,51 @@
               <i class="fas fa-question-circle"></i> Host Instructions
             </a>
           </div>
+        </div>
+      </div>
+      
+      <!-- Volunteer Availability Card -->
+      <div class="card mt-3">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="mb-0">
+            <i class="fas fa-hand"></i> Your Volunteer Availability
+            <span class="badge bg-dark float-end">{{ upcoming_availability|length }}</span>
+          </h6>
+        </div>
+        <div class="card-body p-3">
+          {% if upcoming_availability %}
+            <div class="list-group list-group-flush">
+              {% for availability in upcoming_availability[:5] %}
+                <div class="list-group-item px-0 py-2">
+                  <div class="d-flex w-100 justify-content-between align-items-start">
+                    <div>
+                      <h6 class="mb-1" style="font-size: 0.9rem;">
+                        <i class="fas fa-calendar-day text-warning"></i>
+                        {{ availability.volunteer_date.strftime('%b %d, %Y') }}
+                      </h6>
+                      <small class="text-muted d-block">
+                        <i class="fas fa-clock"></i> {{ availability.time_preference.title() }}
+                      </small>
+                      {% if availability.notes %}
+                        <small class="text-muted d-block mt-1">{{ availability.notes[:50] }}{% if availability.notes|length > 50 %}...{% endif %}</small>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+            {% if upcoming_availability|length > 5 %}
+              <div class="text-center mt-2">
+                <small class="text-muted">Showing 5 of {{ upcoming_availability|length }} signups</small>
+              </div>
+            {% endif %}
+          {% else %}
+            <div class="text-center text-muted py-3">
+              <i class="fas fa-hand fa-2x mb-2"></i>
+              <p class="mb-0" style="font-size: 0.85rem;">No volunteer signups yet.</p>
+              <small>Click dates in the <a href="{{ url_for('calendar_view') }}">calendar</a> to volunteer.</small>
+            </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -282,52 +327,6 @@
               <i class="fas fa-calendar-plus fa-3x mb-3"></i>
               <h5>No upcoming meetings</h5>
               <p>Visit the <a href="{{ url_for('calendar_view') }}">calendar</a> to sign up for meetings or volunteer for dates.</p>
-            </div>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Volunteer Availability -->
-      <div class="card mb-4">
-        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-          <h4 class="mb-0"><i class="fas fa-hand"></i> Your Volunteer Availability</h4>
-          <span class="badge bg-dark">{{ upcoming_availability|length }}</span>
-        </div>
-        <div class="card-body">
-          {% if upcoming_availability %}
-            <div class="row">
-              {% for availability in upcoming_availability %}
-                <div class="col-md-6 mb-3">
-                  <div class="card border-warning">
-                    <div class="card-body p-3">
-                      <h6 class="card-title mb-2">
-                        <i class="fas fa-calendar-day text-warning"></i>
-                        {{ availability.volunteer_date.strftime('%A, %B %d, %Y') }}
-                      </h6>
-                      <p class="card-text mb-2">
-                        <small class="text-muted">
-                          <i class="fas fa-clock"></i> 
-                          Time preference: {{ availability.time_preference.title() }}
-                        </small>
-                      </p>
-                      {% if availability.notes %}
-                        <p class="card-text">
-                          <small><strong>Notes:</strong> {{ availability.notes }}</small>
-                        </p>
-                      {% endif %}
-                      <small class="text-muted">
-                        Volunteered {{ availability.created_at.strftime('%b %d at %I:%M %p') }}
-                      </small>
-                    </div>
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <div class="text-center text-muted py-4">
-              <i class="fas fa-hand fa-3x mb-3"></i>
-              <h5>No volunteer signups</h5>
-              <p>Click on dates in the <a href="{{ url_for('calendar_view') }}">calendar</a> to volunteer for chairperson duties.</p>
             </div>
           {% endif %}
         </div>
