@@ -2938,6 +2938,52 @@ def admin_diagnostics():
     )
 
 
+@app.route("/admin/reports/chairpoints-leaderboard")
+@admin_required
+def admin_chairpoints_leaderboard():
+    """Full ChairPoints Leaderboard Report - All chairpersons sorted by points.
+    Optional CSV export with ?format=csv
+    """
+    fmt = request.args.get("format", "html").lower()
+    
+    # Get all users with chair points, sorted by points descending
+    leaderboard = db.session.query(
+        User.id,
+        User.display_name,
+        User.chair_points,
+        User.profile_image,
+        User.email,
+        func.count(ChairSignup.id).label('total_meetings')
+    ).outerjoin(ChairSignup).filter(
+        User.chair_points > 0
+    ).group_by(User.id).order_by(User.chair_points.desc()).all()
+    
+    if fmt == "csv":
+        import csv
+        from io import StringIO
+        si = StringIO()
+        writer = csv.DictWriter(si, fieldnames=[
+            "rank", "bp_id", "display_name", "email", "chair_points", "total_meetings"
+        ])
+        writer.writeheader()
+        for idx, chair in enumerate(leaderboard, start=1):
+            writer.writerow({
+                "rank": idx,
+                "bp_id": f"BP-{1000 + chair.id}",
+                "display_name": chair.display_name,
+                "email": chair.email,
+                "chair_points": chair.chair_points,
+                "total_meetings": chair.total_meetings
+            })
+        resp = make_response(si.getvalue())
+        resp.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        resp.headers['Content-Disposition'] = 'attachment; filename=chairpoints_leaderboard.csv'
+        return resp
+    
+    # HTML view
+    return render_template("admin_chairpoints_leaderboard.html", leaderboard=leaderboard)
+
+
 @app.route("/admin/reports/chair-schedule")
 @admin_required
 def admin_report_chair_schedule():
