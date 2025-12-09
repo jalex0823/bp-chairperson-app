@@ -6,6 +6,7 @@ import hashlib
 import secrets
 import base64
 from datetime import timezone
+from zoneinfo import ZoneInfo
 import time
 
 from flask import (
@@ -115,6 +116,19 @@ if os.getenv('FLASK_ENV') != 'production':
     scheduler.start()
 else:
     scheduler = None
+
+# Timezone helper functions
+# Back Porch meetings are in US Eastern Time
+EASTERN_TZ = ZoneInfo("America/New_York")
+
+def get_eastern_now():
+    """Get current datetime in Eastern Time."""
+    return datetime.now(EASTERN_TZ)
+
+def get_eastern_today():
+    """Get current date in Eastern Time (not UTC)."""
+    return get_eastern_now().date()
+
 # External resources directory for chairing PDFs (configurable)
 # Prefer project-local resources/pdfs so it works both locally and on Heroku.
 DEFAULT_PDFS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'pdfs')
@@ -1102,7 +1116,7 @@ def favicon():
 @app.route("/")
 def index():
     """List upcoming meetings grouped by date for calendar view."""
-    today = date.today()
+    today = get_eastern_today()
     meetings = (
         Meeting.query
         .filter(Meeting.event_date >= today)
@@ -1161,7 +1175,7 @@ def serve_pdf(filename):
 @app.route("/meetings/today")
 def meetings_today():
     """Public page listing today's meetings with time, title, and chair name."""
-    today = date.today()
+    today = get_eastern_today()
     meetings = (
         Meeting.query
         .filter(Meeting.event_date == today)
@@ -1176,7 +1190,7 @@ def meetings_today():
 def calendar_view():
     """Monthly calendar view showing meeting title, host, and time per day."""
     # Determine month to show from query params, default to current month
-    today = date.today()
+    today = get_eastern_today()
     year = int(request.args.get("year", today.year))
     month = int(request.args.get("month", today.month))
     q = (request.args.get("q", "") or "").strip().lower()
@@ -1256,7 +1270,7 @@ def calendar_view():
 @app.route("/calendar/display")
 def calendar_display():
     """Read-only display calendar: always shows current month, no navigation."""
-    today = date.today()
+    today = get_eastern_today()
     year = today.year
     month = today.month
 
@@ -1319,7 +1333,7 @@ def calendar_display():
 @app.route("/calendar/ics")
 def calendar_month_ics():
     """Export meetings for a specific month as iCal (.ics) file."""
-    today = date.today()
+    today = get_eastern_today()
     year = int(request.args.get("year", today.year))
     month = int(request.args.get("month", today.month))
 
@@ -1362,7 +1376,7 @@ def calendar_month_ics():
 @app.route("/calendar/day-ics")
 def calendar_day_ics():
     """Export meetings for a specific day as iCal (.ics) file."""
-    today = date.today()
+    today = get_eastern_today()
     date_str = request.args.get("date")
     
     if date_str:
@@ -2980,7 +2994,7 @@ def admin_report_chair_schedule():
 @admin_required
 def admin_monthly_pdf():
     """Generate a monthly PDF report listing meetings chronologically with date, time, chair name, and title."""
-    today = date.today()
+    today = get_eastern_today()
     year = int(request.args.get("year", today.year))
     month = int(request.args.get("month", today.month))
 
@@ -3066,7 +3080,7 @@ def admin_monthly_pdf():
 @admin_required
 def admin_monthly_html():
     """Printable HTML monthly report mirroring the PDF contents."""
-    today = date.today()
+    today = get_eastern_today()
     year = int(request.args.get("year", today.year))
     month = int(request.args.get("month", today.month))
 
