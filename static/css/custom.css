@@ -1058,15 +1058,33 @@ body.light-theme .alert.bg-secondary * {
     color: white !important;
 }
 
-/* Resource cards with dark backgrounds */
+/* Resource cards with dark backgrounds - FORCE WHITE TEXT */
 body.light-theme .resource-card,
 body.light-theme .resource-card *,
 body.light-theme .card[style*="background"],
-body.light-theme div[style*="background: #"],
-body.light-theme div[style*="background:#"],
-body.light-theme div[style*="background-color: #3"],
-body.light-theme div[style*="background-color: #4"],
-body.light-theme div[style*="background-color: #5"] {
+body.light-theme .card[style*="background"] *:not(.btn),
+body.light-theme div[style*="background: #"] *,
+body.light-theme div[style*="background:#"] *,
+body.light-theme div[style*="background-color: #3"] *,
+body.light-theme div[style*="background-color: #4"] *,
+body.light-theme div[style*="background-color: #5"] *,
+body.light-theme div[style*="background-color:#3"] *,
+body.light-theme div[style*="background-color:#4"] *,
+body.light-theme div[style*="background-color:#5"] * {
+    color: white !important;
+}
+
+/* Force white text on ANY element with dark background */
+body.light-theme div[class*="bg-"][style],
+body.light-theme div[class*="bg-"][style] h1,
+body.light-theme div[class*="bg-"][style] h2,
+body.light-theme div[class*="bg-"][style] h3,
+body.light-theme div[class*="bg-"][style] h4,
+body.light-theme div[class*="bg-"][style] h5,
+body.light-theme div[class*="bg-"][style] h6,
+body.light-theme div[class*="bg-"][style] p,
+body.light-theme div[class*="bg-"][style] span,
+body.light-theme div[class*="bg-"][style] div {
     color: white !important;
 }
 
