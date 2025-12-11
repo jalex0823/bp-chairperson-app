@@ -1174,8 +1174,16 @@ body.light-theme .navbar-dark a {
     color: white !important;
 }
 
-/* Footer on white background → BLACK text */
-body.light-theme footer.bg-white,
+/* Footer - WHITE background with BLACK text in light mode */
+body.light-theme footer,
+body.light-theme footer.footer-bp,
+body.light-theme footer.bg-white {
+    background-color: white !important;
+    color: #1a1a1a !important;
+}
+
+body.light-theme footer *,
+body.light-theme footer.footer-bp *,
 body.light-theme footer.bg-white * {
     color: #1a1a1a !important;
 }
