@@ -17,11 +17,16 @@
     // Apply the saved theme on page load
     if (currentTheme === 'dark') {
         body.classList.add('dark-theme');
+        body.classList.remove('light-theme');
+        document.documentElement.classList.add('dark-theme');
+        document.documentElement.classList.remove('light-theme');
         themeIcon.textContent = '🌙';
     } else {
         // Explicitly set light theme to override system preference
         body.classList.add('light-theme');
         body.classList.remove('dark-theme');
+        document.documentElement.classList.add('light-theme');
+        document.documentElement.classList.remove('dark-theme');
         themeIcon.textContent = '☀️';
     }
 
@@ -31,12 +36,16 @@
             // Switch to light theme
             body.classList.remove('dark-theme');
             body.classList.add('light-theme');
+            document.documentElement.classList.remove('dark-theme');
+            document.documentElement.classList.add('light-theme');
             themeIcon.textContent = '☀️';
             localStorage.setItem('theme', 'light');
         } else {
             // Switch to dark theme
             body.classList.remove('light-theme');
             body.classList.add('dark-theme');
+            document.documentElement.classList.remove('light-theme');
+            document.documentElement.classList.add('dark-theme');
             themeIcon.textContent = '🌙';
             localStorage.setItem('theme', 'dark');
         }

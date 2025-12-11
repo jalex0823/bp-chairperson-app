@@ -1002,7 +1002,15 @@ body.light-theme h1, body.light-theme h2, body.light-theme h3,
 body.light-theme h4, body.light-theme h5, body.light-theme h6,
 body.light-theme li,
 body.light-theme td,
-body.light-theme th {
+body.light-theme th,
+body.light-theme .small,
+body.light-theme small,
+body.light-theme .form-text {
+    color: #1a1a1a !important;
+}
+
+/* Override ANY gray colors in light mode */
+body.light-theme *:not(.btn):not(.badge):not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info):not(.meeting-badge) {
     color: #1a1a1a !important;
 }
 
@@ -1056,19 +1064,38 @@ body.light-theme .instructions-text {
 
 /* Preserve white text on colored backgrounds */
 body.light-theme .btn,
+body.light-theme .btn *,
 body.light-theme .badge,
+body.light-theme .badge *,
 body.light-theme .alert-warning .btn,
 body.light-theme .bg-primary,
+body.light-theme .bg-primary *,
 body.light-theme .bg-success,
+body.light-theme .bg-success *,
 body.light-theme .bg-danger,
+body.light-theme .bg-danger *,
 body.light-theme .bg-info,
-body.light-theme .bg-warning {
+body.light-theme .bg-info *,
+body.light-theme .bg-warning,
+body.light-theme .navbar-dark,
+body.light-theme .navbar-dark *,
+body.light-theme .meeting-badge,
+body.light-theme .meeting-badge *,
+body.light-theme .footer-bp.bg-white {
     color: white !important;
 }
 
 /* Warning badges and alerts need dark text */
 body.light-theme .alert-warning,
-body.light-theme .badge.bg-warning {
+body.light-theme .alert-warning *,
+body.light-theme .badge.bg-warning,
+body.light-theme .badge.bg-warning * {
+    color: #1a1a1a !important;
+}
+
+/* Footer in light mode should have dark text */
+body.light-theme footer.bg-white,
+body.light-theme footer.bg-white * {
     color: #1a1a1a !important;
 }
 

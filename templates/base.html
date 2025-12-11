@@ -37,8 +37,20 @@
     
     <!-- ChairPoints Celebration CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chairpoints-celebration.css') }}">
+    
+    <!-- Force light theme as default BEFORE page renders -->
+    <script>
+      (function() {
+        const theme = localStorage.getItem('theme') || 'light';
+        if (theme === 'light') {
+          document.documentElement.classList.add('light-theme');
+        } else {
+          document.documentElement.classList.add('dark-theme');
+        }
+      })();
+    </script>
 </head>
-<body>
+<body class="light-theme">
 <!-- Hidden element to track current ChairPoints for celebration -->
 {% if current_user %}
 <div id="currentChairPoints" data-points="{{ current_user.chair_points or 0 }}" style="display: none;"></div>
