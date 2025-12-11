@@ -88,6 +88,102 @@
     </div>
   </div>
 
+  <!-- Admin Statistics Section -->
+  {% if user.is_admin and admin_stats %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-danger shadow-sm">
+        <div class="card-header bg-danger text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-chart-bar"></i> Admin Statistics
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <!-- Registered Hosts -->
+            <div class="col-md-3 col-sm-6">
+              <div class="card bg-light h-100">
+                <div class="card-body text-center">
+                  <i class="fas fa-users fa-3x text-primary mb-2"></i>
+                  <h3 class="mb-1">{{ admin_stats.total_hosts }}</h3>
+                  <p class="mb-0 text-muted"><small>Registered Hosts</small></p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Current Chairs -->
+            <div class="col-md-3 col-sm-6">
+              <div class="card bg-light h-100">
+                <div class="card-body text-center">
+                  <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                  <h3 class="mb-1">{{ admin_stats.current_chairs }}</h3>
+                  <p class="mb-0 text-muted"><small>Assigned Chairs</small></p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Future Chairs Needed -->
+            <div class="col-md-3 col-sm-6">
+              <div class="card bg-light h-100">
+                <div class="card-body text-center">
+                  <i class="fas fa-calendar-alt fa-3x text-info mb-2"></i>
+                  <h3 class="mb-1">{{ admin_stats.future_chairs_needed }}</h3>
+                  <p class="mb-0 text-muted"><small>Total Future Meetings</small></p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Completion Percentage -->
+            <div class="col-md-3 col-sm-6">
+              <div class="card bg-light h-100">
+                <div class="card-body text-center">
+                  <i class="fas fa-percentage fa-3x mb-2" style="color: {% if admin_stats.chair_completion_percent >= 75 %}#28a745{% elif admin_stats.chair_completion_percent >= 50 %}#ffc107{% else %}#dc3545{% endif %};"></i>
+                  <h3 class="mb-1">{{ admin_stats.chair_completion_percent }}%</h3>
+                  <p class="mb-0 text-muted"><small>Completion Rate</small></p>
+                  <div class="progress mt-2" style="height: 10px;">
+                    <div class="progress-bar {% if admin_stats.chair_completion_percent >= 75 %}bg-success{% elif admin_stats.chair_completion_percent >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ admin_stats.chair_completion_percent }}%;" 
+                         aria-valuenow="{{ admin_stats.chair_completion_percent }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Additional Info -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="alert alert-{% if admin_stats.unfilled_chairs == 0 %}success{% elif admin_stats.unfilled_chairs <= 5 %}warning{% else %}danger{% endif %} mb-0">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <i class="fas fa-info-circle"></i>
+                    <strong>
+                      {% if admin_stats.unfilled_chairs == 0 %}
+                        All meetings are covered! Great job!
+                      {% elif admin_stats.unfilled_chairs == 1 %}
+                        1 meeting still needs a chair.
+                      {% else %}
+                        {{ admin_stats.unfilled_chairs }} meetings still need chairs.
+                      {% endif %}
+                    </strong>
+                  </div>
+                  <a href="{{ url_for('admin_meetings') }}" class="btn btn-sm btn-outline-dark">
+                    <i class="fas fa-cog"></i> Manage Meetings
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Keyboard Shortcuts Info -->
   <div class="row mb-3">
     <div class="col-12">

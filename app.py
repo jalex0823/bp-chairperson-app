@@ -2030,6 +2030,49 @@ def dashboard():
         if next_meeting:
             days_until_next = (next_meeting.event_date - today).days
         
+        # Admin statistics (only calculate if user is admin)
+        admin_stats = None
+        if user.is_admin:
+            try:
+                # Count all registered hosts (non-admin users)
+                total_hosts = User.query.filter_by(is_admin=False, is_active=True).count()
+                
+                # Count current chairs (meetings from today going forward that have chair signups)
+                current_chairs = (
+                    db.session.query(Meeting)
+                    .filter(
+                        Meeting.event_date >= today,
+                        Meeting.chair_signup.has()
+                    )
+                    .count()
+                )
+                
+                # Count future chairs needed (meetings from today going forward)
+                future_chairs_needed = (
+                    Meeting.query
+                    .filter(Meeting.event_date >= today)
+                    .count()
+                )
+                
+                # Calculate percentage of completed chairs
+                chair_completion_percent = 0
+                if future_chairs_needed > 0:
+                    chair_completion_percent = round((current_chairs / future_chairs_needed) * 100, 1)
+                
+                admin_stats = {
+                    'total_hosts': total_hosts,
+                    'current_chairs': current_chairs,
+                    'future_chairs_needed': future_chairs_needed,
+                    'chair_completion_percent': chair_completion_percent,
+                    'unfilled_chairs': future_chairs_needed - current_chairs
+                }
+                
+                app.logger.info(f"Admin stats: {admin_stats}")
+                
+            except Exception as e:
+                app.logger.error(f"Error calculating admin stats: {e}")
+                admin_stats = None
+        
         return render_template(
             "dashboard.html",
             user=user,
@@ -2044,7 +2087,8 @@ def dashboard():
             upcoming_commitments=upcoming_commitments,
             volunteer_signups=volunteer_signups,
             recent_meetings_count=recent_meetings_count,
-            open_meetings=open_meetings
+            open_meetings=open_meetings,
+            admin_stats=admin_stats
         )
     except Exception as e:
         app.logger.error(f"Dashboard error for user {user.id if user else 'unknown'}: {e}")
