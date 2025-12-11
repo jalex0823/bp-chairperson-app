@@ -1206,6 +1206,22 @@ body.light-theme .alert-dark *:not(.btn) {
     color: white !important;
 }
 
+/* Today's Meeting cards and any dark card - WHITE text */
+body.light-theme .card.border-dark,
+body.light-theme .card.border-dark *:not(.btn),
+body.light-theme .card.bg-dark,
+body.light-theme .card.bg-dark *:not(.btn),
+body.light-theme div[class*="meeting-"],
+body.light-theme div[class*="meeting-"] *:not(.btn) {
+    background-color: #2d2d2d !important;
+    color: white !important;
+}
+
+body.light-theme .card.border-dark a,
+body.light-theme .card.bg-dark a {
+    color: #66d9ef !important;
+}
+
 /* QUIZ PAGES - All text BLACK on white */
 body.light-theme .quiz-question,
 body.light-theme .quiz-question *,
