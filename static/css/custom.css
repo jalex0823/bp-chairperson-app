@@ -720,6 +720,65 @@ body.light-theme .text-warning {
     color: var(--bp-gold) !important;
 }
 
+/* Calendar meeting badges - restore colorful styling */
+body.light-theme .meeting-badge {
+    color: white !important;
+}
+
+body.light-theme .meeting-badge.has-chair {
+    background: #10b981 !important;
+    border-left-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+body.light-theme .meeting-badge.no-chair {
+    background: #6b7280 !important;
+    border-left-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+body.light-theme .meeting-badge.special {
+    background: #f59e0b !important;
+    border-left-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+body.light-theme .meeting-badge.holiday {
+    background: #ef4444 !important;
+    border-left-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+body.light-theme .meeting-info,
+body.light-theme .meeting-time,
+body.light-theme .meeting-chair {
+    color: white !important;
+}
+
+/* Calendar cells and day numbers */
+body.light-theme .calendar-cell {
+    background-color: white !important;
+    border-color: #e5e7eb !important;
+}
+
+body.light-theme .calendar-out-month {
+    background-color: #fafafa !important;
+    color: #9ca3af !important;
+}
+
+body.light-theme .day-number {
+    color: #374151 !important;
+}
+
+body.light-theme .calendar-out-month .day-number {
+    color: #9ca3af !important;
+}
+
+body.light-theme .calendar-cell.today {
+    background: #eff6ff !important;
+}
+
+body.light-theme .calendar-cell.today .day-number {
+    background: #3b82f6 !important;
+    color: white !important;
+}
+
 /* Dark mode CSS variables */
 @media (prefers-color-scheme: dark) {
     :root {
