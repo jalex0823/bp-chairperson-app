@@ -658,6 +658,74 @@ footer.bg-bp-green .container {
    DARK MODE SUPPORT
    ======================================== */
 
+/* Force light theme - overrides system preference */
+body.light-theme {
+    background-color: #f8f9fa !important;
+    color: #212529 !important;
+}
+
+body.light-theme .card {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+    border-color: #dee2e6 !important;
+}
+
+body.light-theme .card-header,
+body.light-theme .card-footer {
+    background-color: #f8f9fa !important;
+    color: #212529 !important;
+    border-color: #dee2e6 !important;
+}
+
+body.light-theme .form-control,
+body.light-theme .form-select {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+    border-color: #ced4da !important;
+}
+
+body.light-theme .modal-content {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+}
+
+body.light-theme .modal-header,
+body.light-theme .modal-footer {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+}
+
+body.light-theme .table {
+    color: #212529 !important;
+}
+
+body.light-theme .table thead th {
+    background-color: #e9ecef !important;
+    color: #212529 !important;
+}
+
+body.light-theme .btn-outline-primary {
+    color: #0d6efd !important;
+    border-color: #0d6efd !important;
+}
+
+body.light-theme .btn-outline-primary:hover {
+    background-color: #0d6efd !important;
+    color: #ffffff !important;
+}
+
+body.light-theme .text-muted {
+    color: #6c757d !important;
+}
+
+body.light-theme a {
+    color: #0d6efd !important;
+}
+
+body.light-theme a:hover {
+    color: #0a58ca !important;
+}
+
 /* Dark mode CSS variables */
 @media (prefers-color-scheme: dark) {
     :root {
@@ -669,6 +737,12 @@ footer.bg-bp-green .container {
         --bp-dark-border: #404040;
         --bp-dark-card: #252525;
         --bp-dark-card-hover: #2f2f2f;
+    }
+    
+    /* Don't apply dark mode if light-theme is explicitly set */
+    body.light-theme {
+        background-color: #f8f9fa !important;
+        color: #212529 !important;
     }
 }
 
@@ -685,8 +759,8 @@ body.dark-theme {
 
 /* Apply dark mode styles for BOTH system preference AND manual toggle */
 @media (prefers-color-scheme: dark) {
-    /* Base styles */
-    body {
+    /* Base styles - but NOT if light-theme is explicitly set */
+    body:not(.light-theme) {
         background-color: var(--bp-dark-bg);
         color: var(--bp-dark-text);
     }
