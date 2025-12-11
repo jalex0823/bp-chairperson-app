@@ -992,6 +992,95 @@ body.light-theme .calendar-table thead th {
     color: #ffffff !important;
 }
 
+/* FIX: All text on white backgrounds should be dark/black in light mode */
+body.light-theme,
+body.light-theme p,
+body.light-theme div,
+body.light-theme span,
+body.light-theme label,
+body.light-theme h1, body.light-theme h2, body.light-theme h3, 
+body.light-theme h4, body.light-theme h5, body.light-theme h6,
+body.light-theme li,
+body.light-theme td,
+body.light-theme th {
+    color: #1a1a1a !important;
+}
+
+/* Text-muted should be readable dark gray, not light gray */
+body.light-theme .text-muted,
+body.light-theme .text-secondary,
+body.light-theme small.text-muted {
+    color: #4a4a4a !important;
+}
+
+/* Form labels and text */
+body.light-theme .form-label,
+body.light-theme .form-text,
+body.light-theme .form-check-label {
+    color: #1a1a1a !important;
+}
+
+/* Card text */
+body.light-theme .card-text,
+body.light-theme .card-title,
+body.light-theme .card-subtitle {
+    color: #1a1a1a !important;
+}
+
+body.light-theme .card-subtitle.text-muted {
+    color: #4a4a4a !important;
+}
+
+/* List group items */
+body.light-theme .list-group-item {
+    color: #1a1a1a !important;
+}
+
+/* Alert text */
+body.light-theme .alert {
+    color: #1a1a1a !important;
+}
+
+/* Table text */
+body.light-theme table,
+body.light-theme .table {
+    color: #1a1a1a !important;
+}
+
+/* Quiz and instruction page text */
+body.light-theme .quiz-question,
+body.light-theme .quiz-answer,
+body.light-theme .instructions-text {
+    color: #1a1a1a !important;
+}
+
+/* Preserve white text on colored backgrounds */
+body.light-theme .btn,
+body.light-theme .badge,
+body.light-theme .alert-warning .btn,
+body.light-theme .bg-primary,
+body.light-theme .bg-success,
+body.light-theme .bg-danger,
+body.light-theme .bg-info,
+body.light-theme .bg-warning {
+    color: white !important;
+}
+
+/* Warning badges and alerts need dark text */
+body.light-theme .alert-warning,
+body.light-theme .badge.bg-warning {
+    color: #1a1a1a !important;
+}
+
+/* Link colors should be visible */
+body.light-theme a:not(.btn) {
+    color: var(--bp-green) !important;
+}
+
+body.light-theme a:not(.btn):hover {
+    color: var(--bp-green-dark) !important;
+}
+
 /* Dark mode CSS variables */
 @media (prefers-color-scheme: dark) {
     :root {
