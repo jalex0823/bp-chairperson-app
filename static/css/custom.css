@@ -1048,13 +1048,25 @@ body.light-theme .card.bg-dark *:not(.btn),
 body.light-theme .card.bg-secondary,
 body.light-theme .card.bg-secondary *:not(.btn),
 body.light-theme .bg-dark,
-body.light-theme .bg-dark *:not(.btn),
+body.light-theme .bg-dark *:not(.btn):not(.badge),
 body.light-theme .bg-secondary,
 body.light-theme .bg-secondary *:not(.btn),
 body.light-theme .alert.bg-dark,
 body.light-theme .alert.bg-dark *,
 body.light-theme .alert.bg-secondary,
 body.light-theme .alert.bg-secondary * {
+    color: white !important;
+}
+
+/* Resource cards with dark backgrounds */
+body.light-theme .resource-card,
+body.light-theme .resource-card *,
+body.light-theme .card[style*="background"],
+body.light-theme div[style*="background: #"],
+body.light-theme div[style*="background:#"],
+body.light-theme div[style*="background-color: #3"],
+body.light-theme div[style*="background-color: #4"],
+body.light-theme div[style*="background-color: #5"] {
     color: white !important;
 }
 
