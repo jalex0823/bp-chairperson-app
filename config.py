@@ -48,6 +48,14 @@ class Config:
 
     # Scheduler configuration
     SCHEDULER_API_ENABLED = True
+
+    # Video hosting configuration
+    # For production (Heroku), use external video hosting
+    # For local development, use local files in static/videos/
+    VIDEO_BASE_URL = os.environ.get(
+        'VIDEO_BASE_URL',
+        'https://therealbackporch.com/Videos/'
+    )
     
     # CSRF configuration
     WTF_CSRF_ENABLED = os.environ.get("WTF_CSRF_ENABLED", "True").lower() == "true"

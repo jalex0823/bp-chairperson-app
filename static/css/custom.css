@@ -658,6 +658,7 @@ footer.bg-bp-green .container {
    DARK MODE SUPPORT
    ======================================== */
 
+/* Dark mode CSS variables */
 @media (prefers-color-scheme: dark) {
     :root {
         --bp-dark-bg: #1a1a1a;
@@ -669,7 +670,21 @@ footer.bg-bp-green .container {
         --bp-dark-card: #252525;
         --bp-dark-card-hover: #2f2f2f;
     }
+}
 
+body.dark-theme {
+    --bp-dark-bg: #1a1a1a;
+    --bp-dark-bg-secondary: #2d2d2d;
+    --bp-dark-bg-tertiary: #3a3a3a;
+    --bp-dark-text: #e0e0e0;
+    --bp-dark-text-muted: #a0a0a0;
+    --bp-dark-border: #404040;
+    --bp-dark-card: #252525;
+    --bp-dark-card-hover: #2f2f2f;
+}
+
+/* Apply dark mode styles for BOTH system preference AND manual toggle */
+@media (prefers-color-scheme: dark) {
     /* Base styles */
     body {
         background-color: var(--bp-dark-bg);
@@ -1006,3 +1021,316 @@ footer.bg-bp-green .container {
     }
 }
 
+/* Manual dark mode toggle - duplicate all dark mode styles for .dark-theme class */
+body.dark-theme {
+    background-color: var(--bp-dark-bg);
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .text-muted {
+    color: var(--bp-dark-text-muted) !important;
+}
+
+body.dark-theme .text-dark {
+    color: var(--bp-dark-text) !important;
+}
+
+body.dark-theme .card {
+    background-color: var(--bp-dark-card);
+    border-color: var(--bp-dark-border);
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .card:hover {
+    background-color: var(--bp-dark-card-hover);
+}
+
+body.dark-theme .card-body {
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .card-header {
+    background-color: var(--bp-dark-bg-secondary);
+    border-bottom-color: var(--bp-dark-border);
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .card-footer {
+    background-color: var(--bp-dark-bg-secondary);
+    border-top-color: var(--bp-dark-border);
+}
+
+body.dark-theme .alert-success {
+    background-color: #1a4d3a;
+    border-color: #0f6f75;
+    color: #90ee90;
+}
+
+body.dark-theme .alert-warning {
+    background-color: #4d3d1a;
+    border-color: #f7b733;
+    color: #ffd966;
+}
+
+body.dark-theme .alert-info {
+    background-color: #1a3d4d;
+    border-color: #17a2b8;
+    color: #66d9ef;
+}
+
+body.dark-theme .alert-danger {
+    background-color: #4d1a1a;
+    border-color: #dc3545;
+    color: #ff6b6b;
+}
+
+body.dark-theme .badge.bg-info {
+    background-color: #17a2b8 !important;
+    color: #000 !important;
+}
+
+body.dark-theme .badge.bg-warning {
+    background-color: #f7b733 !important;
+    color: #000 !important;
+}
+
+body.dark-theme .badge.bg-success {
+    background-color: #0f6f75 !important;
+    color: #fff !important;
+}
+
+body.dark-theme .badge.bg-primary {
+    background-color: #0f6f75 !important;
+    color: #fff !important;
+}
+
+body.dark-theme .badge.text-dark {
+    color: #000 !important;
+}
+
+body.dark-theme .form-control,
+body.dark-theme .form-select {
+    background-color: var(--bp-dark-bg-tertiary);
+    border-color: var(--bp-dark-border);
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .form-control:focus,
+body.dark-theme .form-select:focus {
+    background-color: var(--bp-dark-bg-secondary);
+    border-color: var(--bp-green);
+    color: var(--bp-dark-text);
+    box-shadow: 0 0 0 0.25rem rgba(15, 111, 117, 0.25);
+}
+
+body.dark-theme .form-control::placeholder {
+    color: var(--bp-dark-text-muted);
+}
+
+body.dark-theme .form-check-input {
+    background-color: var(--bp-dark-bg-tertiary);
+    border-color: var(--bp-dark-border);
+}
+
+body.dark-theme .form-check-input:checked {
+    background-color: var(--bp-green);
+    border-color: var(--bp-green);
+}
+
+body.dark-theme .form-check-input:focus {
+    border-color: var(--bp-green);
+    box-shadow: 0 0 0 0.25rem rgba(15, 111, 117, 0.25);
+}
+
+body.dark-theme .form-check-label {
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .table {
+    color: var(--bp-dark-text);
+    border-color: var(--bp-dark-border);
+}
+
+body.dark-theme .table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: var(--bp-dark-bg-secondary);
+}
+
+body.dark-theme .table-hover > tbody > tr:hover > * {
+    background-color: var(--bp-dark-bg-tertiary);
+}
+
+body.dark-theme .modal-content {
+    background-color: var(--bp-dark-card);
+    border-color: var(--bp-dark-border);
+}
+
+body.dark-theme .modal-header,
+body.dark-theme .modal-footer {
+    border-color: var(--bp-dark-border);
+}
+
+body.dark-theme .modal-title {
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .dropdown-menu {
+    background-color: var(--bp-dark-card);
+    border-color: var(--bp-dark-border);
+}
+
+body.dark-theme .dropdown-item {
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .dropdown-item:hover,
+body.dark-theme .dropdown-item:focus {
+    background-color: var(--bp-dark-bg-tertiary);
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme video {
+    border: 1px solid var(--bp-dark-border);
+}
+
+body.dark-theme .shadow,
+body.dark-theme .shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5) !important;
+}
+
+body.dark-theme .card.shadow,
+body.dark-theme .card.shadow-sm {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.6) !important;
+}
+
+body.dark-theme .border,
+body.dark-theme .border-top,
+body.dark-theme .border-bottom,
+body.dark-theme .border-start,
+body.dark-theme .border-end {
+    border-color: var(--bp-dark-border) !important;
+}
+
+body.dark-theme .list-group-item {
+    background-color: var(--bp-dark-card);
+    border-color: var(--bp-dark-border);
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .list-group-item:hover {
+    background-color: var(--bp-dark-card-hover);
+}
+
+body.dark-theme .breadcrumb {
+    background-color: var(--bp-dark-bg-secondary);
+}
+
+body.dark-theme .breadcrumb-item.active {
+    color: var(--bp-dark-text-muted);
+}
+
+body.dark-theme .navbar.bg-bp-green {
+    background: var(--color-primary) !important;
+}
+
+body.dark-theme .btn-outline-secondary {
+    color: var(--bp-dark-text);
+    border-color: var(--bp-dark-border);
+}
+
+body.dark-theme .btn-outline-secondary:hover {
+    background-color: var(--bp-dark-bg-tertiary);
+    border-color: var(--bp-dark-text);
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .chairpoints-chip,
+body.dark-theme .chairpoints-chip-large {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.6);
+}
+
+body.dark-theme .ratio video {
+    background-color: #000;
+}
+
+body.dark-theme .progress {
+    background-color: var(--bp-dark-bg-tertiary);
+}
+
+body.dark-theme .toast {
+    background-color: var(--bp-dark-card);
+    border-color: var(--bp-dark-border);
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .toast-header {
+    background-color: var(--bp-dark-bg-secondary);
+    border-bottom-color: var(--bp-dark-border);
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .pagination .page-link {
+    background-color: var(--bp-dark-card);
+    border-color: var(--bp-dark-border);
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .pagination .page-link:hover {
+    background-color: var(--bp-dark-bg-tertiary);
+    border-color: var(--bp-dark-border);
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme .pagination .page-item.active .page-link {
+    background-color: var(--bp-green);
+    border-color: var(--bp-green);
+    color: #fff;
+}
+
+body.dark-theme .bg-light {
+    background-color: var(--bp-dark-bg-secondary) !important;
+}
+
+body.dark-theme .bg-white {
+    background-color: var(--bp-dark-card) !important;
+}
+
+body.dark-theme h1,
+body.dark-theme h2,
+body.dark-theme h3,
+body.dark-theme h4,
+body.dark-theme h5,
+body.dark-theme h6 {
+    color: var(--bp-dark-text);
+}
+
+body.dark-theme small {
+    color: var(--bp-dark-text-muted);
+}
+
+body.dark-theme a {
+    color: #66b3ff;
+}
+
+body.dark-theme a:hover {
+    color: #99ccff;
+}
+
+body.dark-theme .text-primary {
+    color: #66d9ef !important;
+}
+
+body.dark-theme .text-success {
+    color: #90ee90 !important;
+}
+
+body.dark-theme .text-warning {
+    color: #ffd966 !important;
+}
+
+body.dark-theme .text-danger {
+    color: #ff6b6b !important;
+}
+
+body.dark-theme .text-info {
+    color: #66d9ef !important;
+}

@@ -17,9 +17,9 @@
     // Apply the saved theme on page load
     if (currentTheme === 'dark') {
         body.classList.add('dark-theme');
-        themeIcon.textContent = '⚫';
+        themeIcon.textContent = '🌙';
     } else {
-        themeIcon.textContent = '🏮';
+        themeIcon.textContent = '☀️';
     }
 
     // Toggle theme when button is clicked

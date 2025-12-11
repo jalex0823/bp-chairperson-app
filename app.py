@@ -2399,7 +2399,7 @@ QUIZZES = {
     'registration': {
         'id': 'registration',
         'title': 'How to Register to Host a BP Online Zoom Meeting',
-        'video': 'registration_tutorial.mp4',
+        'video': 'BP_Zoom_Host_Registration_Walkthrough.mp4',
         'description': 'Learn how to register as a chairperson for Back Porch meetings.',
         'questions': [
             {
@@ -2507,7 +2507,7 @@ QUIZZES = {
     'hosting': {
         'id': 'hosting',
         'title': 'How to Host a Zoom Meeting',
-        'video': 'hosting_tutorial.mp4',
+        'video': 'BP_Zoom_Hosting_Chairing_Guide.mp4',
         'description': 'Learn the best practices for hosting a Back Porch Zoom meeting.',
         'questions': [
             {
@@ -2655,9 +2655,13 @@ def quiz_view(quiz_id):
         passed=True
     ).first()
     
+    # Build video URL from config
+    video_url = app.config['VIDEO_BASE_URL'] + quiz['video']
+    
     return render_template("quiz_view.html", 
                          user=user, 
                          quiz=quiz,
+                         video_url=video_url,
                          passed_attempt=passed_attempt)
 
 
