@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">
+            <i class="fas fa-file-upload"></i> Bulk Volunteer Date Upload
+          </h4>
+        </div>
+        <div class="card-body">
+          
+          <!-- Instructions -->
+          <div class="alert alert-info">
+            <h6><i class="fas fa-info-circle"></i> How to Use Bulk Upload</h6>
+            <ol class="mb-0">
+              <li><strong>Download</strong> the CSV template below</li>
+              <li><strong>Open it</strong> in Excel, Google Sheets, or any spreadsheet app</li>
+              <li><strong>Fill in your dates</strong> with the format YYYY-MM-DD (e.g., 2025-12-25)</li>
+              <li><strong>Select time preference</strong> for each date: <code>any</code>, <code>morning</code>, <code>afternoon</code>, or <code>evening</code></li>
+              <li><strong>Add optional notes</strong> for any date</li>
+              <li><strong>Save the file</strong> as CSV and upload it below</li>
+            </ol>
+          </div>
+
+          <!-- Download Template Buttons -->
+          <div class="text-center mb-4">
+            <div class="btn-group" role="group">
+              <a href="{{ url_for('volunteer_bulk_template') }}" class="btn btn-success btn-lg">
+                <i class="fas fa-file-csv"></i> Download CSV Template
+              </a>
+              <a href="{{ url_for('volunteer_bulk_template_excel') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-file-excel"></i> Download Excel Template
+              </a>
+            </div>
+            <p class="text-muted mt-2 mb-0">
+              <small>Choose CSV for compatibility or Excel for easier editing. Both templates include example dates for the next 7 days.</small>
+            </p>
+          </div>
+
+          <hr>
+
+          <!-- Upload Form -->
+          <div class="mt-4">
+            <h5 class="mb-3">Upload Your Completed CSV</h5>
+            
+            <form method="POST" enctype="multipart/form-data">
+              <div class="mb-3">
+                <label for="csv_file" class="form-label fw-bold">Select CSV or Excel File</label>
+                <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv,.xlsx,.xls" required>
+                <div class="form-text">
+                  Accepts CSV (.csv) or Excel (.xlsx) files. Maximum 100 dates per upload.
+                </div>
+              </div>
+
+              <div class="alert alert-warning">
+                <h6><i class="fas fa-exclamation-triangle"></i> Important Notes</h6>
+                <ul class="mb-0">
+                  <li>Dates must be in the future (not past dates)</li>
+                  <li>Dates you've already volunteered for will be skipped</li>
+                  <li>You'll receive email confirmations for each successfully registered date</li>
+                  <li>Invalid rows will be reported after upload</li>
+                </ul>
+              </div>
+
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-upload"></i> Upload CSV
+                </button>
+                <a href="{{ url_for('profile') }}" class="btn btn-secondary">
+                  <i class="fas fa-times"></i> Cancel
+                </a>
+              </div>
+            </form>
+          </div>
+
+          <!-- Example Format -->
+          <div class="mt-5">
+            <h6 class="mb-3">Example CSV Format</h6>
+            <div class="card bg-light">
+              <div class="card-body">
+                <pre class="mb-0" style="font-size: 0.85rem;">Date (YYYY-MM-DD),Time Preference,Notes (Optional)
+2025-12-15,morning,Available before noon
+2025-12-22,evening,Prefer after 6 PM
+2026-01-05,any,Flexible schedule
+2026-01-12,afternoon,</pre>
+              </div>
+            </div>
+            <p class="text-muted mt-2 mb-0">
+              <small><strong>Time Preference Options:</strong> <code>any</code>, <code>morning</code>, <code>afternoon</code>, <code>evening</code></small>
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Tips Card -->
+      <div class="card mt-4">
+        <div class="card-header bg-light">
+          <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Tips for Success</h6>
+        </div>
+        <div class="card-body">
+          <ul class="mb-0">
+            <li>Don't modify the header row (first row with column names)</li>
+            <li>Make sure dates follow YYYY-MM-DD format exactly</li>
+            <li>Time preference must be lowercase: <code>any</code>, <code>morning</code>, <code>afternoon</code>, or <code>evening</code></li>
+            <li>Empty rows will be skipped automatically</li>
+            <li>If you get errors, fix them in your CSV and re-upload</li>
+            <li>You can upload multiple times - duplicate dates will be skipped</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+.card-header {
+  background: linear-gradient(135deg, #007bff, #0056b3) !important;
+}
+pre {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  padding: 1rem;
+  overflow-x: auto;
+}
+</style>
+{% endblock %}

@@ -4096,6 +4096,258 @@ def volunteer_date_page(date_str):
                          form=form)
 
 
+@app.route("/volunteer/bulk-template")
+@login_required
+def volunteer_bulk_template():
+    """Download a CSV template for bulk volunteer date registration."""
+    import csv
+    from io import StringIO
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # Write header row
+    writer.writerow(['Date (YYYY-MM-DD)', 'Time Preference', 'Notes (Optional)'])
+    
+    # Write example rows with next 7 days
+    today = date.today()
+    for i in range(1, 8):
+        example_date = today + timedelta(days=i)
+        time_pref = ['morning', 'afternoon', 'evening', 'any'][i % 4]
+        writer.writerow([example_date.strftime('%Y-%m-%d'), time_pref, ''])
+    
+    # Create response
+    output.seek(0)
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = 'attachment; filename=volunteer_dates_template.csv'
+    
+    return response
+
+
+@app.route("/volunteer/bulk-template-excel")
+@login_required
+def volunteer_bulk_template_excel():
+    """Download an Excel template for bulk volunteer date registration."""
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from io import BytesIO
+    except ImportError:
+        flash("Excel template not available. Please use CSV format.", "warning")
+        return redirect(url_for('volunteer_bulk_template'))
+    
+    # Create workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Volunteer Dates"
+    
+    # Style for headers
+    header_fill = PatternFill(start_color="0066CC", end_color="0066CC", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True)
+    
+    # Write headers
+    headers = ['Date (YYYY-MM-DD)', 'Time Preference', 'Notes (Optional)']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center')
+    
+    # Set column widths
+    ws.column_dimensions['A'].width = 20
+    ws.column_dimensions['B'].width = 18
+    ws.column_dimensions['C'].width = 35
+    
+    # Write example rows with next 7 days
+    today = date.today()
+    for i in range(1, 8):
+        example_date = today + timedelta(days=i)
+        time_pref = ['morning', 'afternoon', 'evening', 'any'][i % 4]
+        
+        ws.cell(row=i+1, column=1, value=example_date.strftime('%Y-%m-%d'))
+        ws.cell(row=i+1, column=2, value=time_pref)
+        ws.cell(row=i+1, column=3, value='')
+    
+    # Save to BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    # Create response
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['Content-Disposition'] = 'attachment; filename=volunteer_dates_template.xlsx'
+    
+    return response
+
+
+@app.route("/volunteer/bulk-upload", methods=["GET", "POST"])
+@login_required
+def volunteer_bulk_upload():
+    """Bulk upload volunteer dates via CSV or Excel file."""
+    user = get_current_user()
+    
+    if request.method == "GET":
+        return render_template('volunteer_bulk_upload.html')
+    
+    # POST: Process file upload
+    if 'csv_file' not in request.files:
+        flash("No file uploaded.", "danger")
+        return redirect(url_for('volunteer_bulk_upload'))
+    
+    file = request.files['csv_file']
+    
+    if file.filename == '':
+        flash("No file selected.", "danger")
+        return redirect(url_for('volunteer_bulk_upload'))
+    
+    # Check file extension
+    filename = file.filename.lower()
+    if not (filename.endswith('.csv') or filename.endswith('.xlsx') or filename.endswith('.xls')):
+        flash("Please upload a CSV or Excel (.xlsx) file.", "danger")
+        return redirect(url_for('volunteer_bulk_upload'))
+    
+    try:
+        # Parse file based on type
+        rows = []
+        
+        if filename.endswith('.csv'):
+            # Parse CSV
+            import csv
+            from io import TextIOWrapper
+            
+            stream = TextIOWrapper(file.stream, encoding='utf-8')
+            csv_reader = csv.DictReader(stream)
+            
+            # Validate headers
+            expected_headers = {'Date (YYYY-MM-DD)', 'Time Preference', 'Notes (Optional)'}
+            if not expected_headers.issubset(set(csv_reader.fieldnames or [])):
+                flash("Invalid CSV format. Please download the template and use the correct headers.", "danger")
+                return redirect(url_for('volunteer_bulk_upload'))
+            
+            rows = list(csv_reader)
+            
+        else:
+            # Parse Excel
+            try:
+                import openpyxl
+            except ImportError:
+                flash("Excel file support not available. Please use CSV format.", "danger")
+                return redirect(url_for('volunteer_bulk_upload'))
+            
+            workbook = openpyxl.load_workbook(file.stream)
+            sheet = workbook.active
+            
+            # Get headers from first row
+            headers = [cell.value for cell in sheet[1]]
+            expected_headers = ['Date (YYYY-MM-DD)', 'Time Preference', 'Notes (Optional)']
+            
+            if headers[:3] != expected_headers:
+                flash("Invalid Excel format. Please download the template and use the correct headers.", "danger")
+                return redirect(url_for('volunteer_bulk_upload'))
+            
+            # Convert rows to dict format
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                if row[0]:  # Skip empty rows
+                    rows.append({
+                        'Date (YYYY-MM-DD)': str(row[0]) if row[0] else '',
+                        'Time Preference': str(row[1]) if row[1] else '',
+                        'Notes (Optional)': str(row[2]) if row[2] else ''
+                    })
+        
+        # Process rows
+        success_count = 0
+        error_count = 0
+        errors = []
+        today = date.today()
+        
+        for row_num, row in enumerate(csv_reader, start=2):  # Start at 2 (header is row 1)
+            try:
+                # Parse date
+                date_str = row['Date (YYYY-MM-DD)'].strip()
+                if not date_str:
+                    continue  # Skip empty rows
+                
+                volunteer_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                
+                # Validate date is not in the past
+                if volunteer_date < today:
+                    errors.append(f"Row {row_num}: Date {date_str} is in the past")
+                    error_count += 1
+                    continue
+                
+                # Validate time preference
+                time_pref = row['Time Preference'].strip().lower()
+                valid_prefs = ['any', 'morning', 'afternoon', 'evening']
+                if time_pref not in valid_prefs:
+                    errors.append(f"Row {row_num}: Invalid time preference '{time_pref}'. Must be one of: {', '.join(valid_prefs)}")
+                    error_count += 1
+                    continue
+                
+                # Check for existing volunteer record
+                existing = ChairpersonAvailability.query.filter_by(
+                    user_id=user.id,
+                    volunteer_date=volunteer_date,
+                    is_active=True
+                ).first()
+                
+                if existing:
+                    errors.append(f"Row {row_num}: Already volunteered for {date_str}")
+                    error_count += 1
+                    continue
+                
+                # Create availability record
+                notes = row['Notes (Optional)'].strip() if row.get('Notes (Optional)') else None
+                
+                availability = ChairpersonAvailability(
+                    user_id=user.id,
+                    volunteer_date=volunteer_date,
+                    time_preference=time_pref,
+                    notes=notes[:500] if notes else None,  # Limit to 500 chars
+                    display_name_snapshot=user.display_name
+                )
+                
+                db.session.add(availability)
+                success_count += 1
+                
+                # Send confirmation email for each date
+                try:
+                    send_availability_confirmation_email(user, volunteer_date, time_pref)
+                except Exception as e:
+                    app.logger.error(f"Failed to send bulk upload confirmation email: {e}")
+                
+            except ValueError as e:
+                errors.append(f"Row {row_num}: Invalid date format '{date_str}'. Use YYYY-MM-DD")
+                error_count += 1
+            except Exception as e:
+                errors.append(f"Row {row_num}: {str(e)}")
+                error_count += 1
+        
+        # Commit all successful records
+        if success_count > 0:
+            db.session.commit()
+            flash(f"Successfully registered {success_count} volunteer date(s)!", "success")
+        
+        # Show errors if any
+        if error_count > 0:
+            error_msg = f"{error_count} row(s) had errors:<br>" + "<br>".join(errors[:10])
+            if len(errors) > 10:
+                error_msg += f"<br>...and {len(errors) - 10} more errors"
+            flash(error_msg, "warning")
+        
+        if success_count == 0 and error_count == 0:
+            flash("No valid dates found in CSV file.", "info")
+        
+        return redirect(url_for('profile'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error processing CSV file: {str(e)}", "danger")
+        app.logger.error(f"Bulk upload error: {e}")
+        return redirect(url_for('volunteer_bulk_upload'))
+
+
 # ==========================
 # CLI: init DB + default admin
 # ==========================
