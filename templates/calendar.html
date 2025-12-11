@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
+  /* Calendar page footer positioning */
+  .footer-bp {
+    grid-column: 1 / -1;
+    margin-top: 2rem;
+    width: 100%;
+  }
+  
   /* Sidebar (dark portion) - Made smaller to fit full month in view */
   .calendar-layout { display: grid; grid-template-columns: 200px 1fr; gap: 1rem; }
   @media (max-width: 992px) { .calendar-layout { grid-template-columns: 1fr; } }

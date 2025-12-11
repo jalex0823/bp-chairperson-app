@@ -220,9 +220,16 @@ body {
     color: #000000;
     border-top: 1px solid #e5e7eb;
     box-shadow: none;
+    max-width: 100%;
+    text-align: center;
 }
 .footer-bp a { color: #000000; }
 .footer-bp a:hover { color: var(--color-primary); }
+.footer-bp .container-fluid {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem 2rem;
+}
 
 .btn-gold {
     color: var(--bp-dark-text);
@@ -800,14 +807,14 @@ body.light-theme .calendar-cell.today .day-number {
 }
 
 body.dark-theme {
-    --bp-dark-bg: #1a1a1a;
-    --bp-dark-bg-secondary: #2d2d2d;
-    --bp-dark-bg-tertiary: #3a3a3a;
-    --bp-dark-text: #e0e0e0;
+    --bp-dark-bg: #000000;
+    --bp-dark-bg-secondary: #1a1a1a;
+    --bp-dark-bg-tertiary: #2d2d2d;
+    --bp-dark-text: #ffffff;
     --bp-dark-text-muted: #a0a0a0;
     --bp-dark-border: #404040;
-    --bp-dark-card: #252525;
-    --bp-dark-card-hover: #2f2f2f;
+    --bp-dark-card: #1a1a1a;
+    --bp-dark-card-hover: #2d2d2d;
 }
 
 /* Apply dark mode styles for BOTH system preference AND manual toggle */
@@ -1154,6 +1161,33 @@ body.dark-theme {
     color: var(--bp-dark-text);
 }
 
+/* Keep text white on colored backgrounds for readability */
+body.dark-theme .badge,
+body.dark-theme .meeting-badge,
+body.dark-theme .btn-primary,
+body.dark-theme .btn-success,
+body.dark-theme .btn-warning,
+body.dark-theme .btn-danger,
+body.dark-theme .btn-info,
+body.dark-theme .bg-primary,
+body.dark-theme .bg-success,
+body.dark-theme .bg-warning,
+body.dark-theme .bg-danger,
+body.dark-theme .bg-info {
+    color: #ffffff !important;
+}
+
+/* Calendar meeting badges in dark mode */
+body.dark-theme .meeting-badge {
+    color: #ffffff !important;
+}
+
+body.dark-theme .meeting-info,
+body.dark-theme .meeting-time,
+body.dark-theme .meeting-chair {
+    color: #ffffff !important;
+}
+
 body.dark-theme .text-muted {
     color: var(--bp-dark-text-muted) !important;
 }
@@ -1185,6 +1219,21 @@ body.dark-theme .card-header {
 body.dark-theme .card-footer {
     background-color: var(--bp-dark-bg-secondary);
     border-top-color: var(--bp-dark-border);
+}
+
+/* Footer in dark mode */
+body.dark-theme .footer-bp {
+    background-color: var(--bp-dark-card) !important;
+    color: var(--bp-dark-text) !important;
+    border-top-color: var(--bp-dark-border) !important;
+}
+
+body.dark-theme .footer-bp a {
+    color: var(--bp-dark-text) !important;
+}
+
+body.dark-theme .footer-bp a:hover {
+    color: var(--bp-green) !important;
 }
 
 body.dark-theme .alert-success {
