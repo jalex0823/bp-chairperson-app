@@ -8,24 +8,15 @@ const soundSettings = {
     volume: parseFloat(localStorage.getItem('soundVolume') || '0.3')
 };
 
-// Create audio context for button clicks
+// Create audio elements for custom sounds
+const clickAudio = new Audio('/static/audio/computer-mouse-click.mp3');
+const coinAudio = new Audio('/static/audio/Coin.mp3');
+
+// Button click sound using custom audio file
 const buttonClickSound = () => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    // Short, pleasant click sound
-    oscillator.frequency.value = 800;
-    oscillator.type = 'sine';
-    
-    gainNode.gain.setValueAtTime(soundSettings.volume, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.1);
+    const sound = clickAudio.cloneNode();
+    sound.volume = soundSettings.volume;
+    sound.play().catch(err => console.log('Click sound blocked'));
 };
 
 // Create hover sound
