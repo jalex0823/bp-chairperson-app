@@ -1384,9 +1384,14 @@ body.light-theme footer.bg-white * {
 
 /* Alert boxes - vary by type */
 body.light-theme .alert-success,
-body.light-theme .alert-info,
 body.light-theme .alert-danger {
     color: white !important;
+}
+
+/* Alert info - dark text on light blue background */
+body.light-theme .alert-info,
+body.light-theme .alert-info * {
+    color: #1a1a1a !important;
 }
 
 body.light-theme .alert-warning,
