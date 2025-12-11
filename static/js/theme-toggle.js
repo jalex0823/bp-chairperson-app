@@ -32,6 +32,11 @@
 
     // Toggle theme when button is clicked
     themeToggle.addEventListener('click', function() {
+        // Play lamp switch sound
+        if (window.soundEffects && typeof window.soundEffects.playLampToggle === 'function') {
+            window.soundEffects.playLampToggle();
+        }
+        
         if (body.classList.contains('dark-theme')) {
             // Switch to light theme
             body.classList.remove('dark-theme');

@@ -11,12 +11,34 @@ const soundSettings = {
 // Create audio elements for custom sounds
 const clickAudio = new Audio('/static/audio/computer-mouse-click.mp3');
 const coinAudio = new Audio('/static/audio/Coin.mp3');
+const lampAudio = new Audio('/static/audio/lamp.mp3');
 
 // Button click sound using custom audio file
 const buttonClickSound = () => {
     const sound = clickAudio.cloneNode();
     sound.volume = soundSettings.volume;
     sound.play().catch(err => console.log('Click sound blocked'));
+};
+
+// Tile hover sound (softer)
+const tileHoverSound = () => {
+    const sound = hoverAudio.cloneNode();
+    sound.volume = soundSettings.volume * 0.4;
+    sound.play().catch(err => console.log('Hover sound blocked'));
+};
+
+// Tile click sound (distinct from button)
+const tileClickSound = () => {
+    const sound = clickAudio.cloneNode();
+    sound.volume = soundSettings.volume * 0.8;
+    sound.play().catch(err => console.log('Tile click blocked'));
+};
+
+// Lamp toggle sound for theme switching
+const lampToggleSound = () => {
+    const sound = lampAudio.cloneNode();
+    sound.volume = soundSettings.volume * 0.6;
+    sound.play().catch(err => console.log('Lamp sound blocked'));
 };
 
 // Create hover sound
@@ -101,6 +123,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Add tile-specific sounds (calendar tiles, meeting cards, etc.)
+    document.querySelectorAll('.calendar-day, .meeting-card, .card.quiz-card, .list-group-item-action').forEach(tile => {
+        // Tile hover sound
+        tile.addEventListener('mouseenter', function() {
+            playSound(tileHoverSound);
+        });
+        
+        // Tile click sound
+        tile.addEventListener('click', function() {
+            playSound(tileClickSound);
+        });
+    });
+    
     // Add click sound to links
     document.querySelectorAll('a:not(.btn)').forEach(element => {
         element.addEventListener('click', function(e) {
@@ -160,6 +195,9 @@ window.soundEffects = {
     playClick: () => playSound(buttonClickSound),
     playHover: () => playSound(hoverSound),
     playSuccess: () => playSound(successSound),
+    playTileHover: () => playSound(tileHoverSound),
+    playTileClick: () => playSound(tileClickSound),
+    playLampToggle: () => playSound(lampToggleSound),
     toggle: () => {
         soundSettings.enabled = !soundSettings.enabled;
         localStorage.setItem('soundEnabled', soundSettings.enabled);
