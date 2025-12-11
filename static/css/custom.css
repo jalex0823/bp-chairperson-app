@@ -658,72 +658,66 @@ footer.bg-bp-green .container {
    DARK MODE SUPPORT
    ======================================== */
 
-/* Force light theme - overrides system preference */
+/* Force light theme - overrides system preference but preserves color scheme */
 body.light-theme {
-    background-color: #f8f9fa !important;
-    color: #212529 !important;
+    background-color: var(--color-bg) !important;
+    color: var(--color-text) !important;
 }
 
+/* Ensure buttons keep their colors in light mode */
+body.light-theme .btn-primary {
+    background-color: var(--bp-green) !important;
+    border-color: var(--bp-green) !important;
+    color: white !important;
+}
+
+body.light-theme .btn-primary:hover {
+    background-color: var(--bp-green-dark) !important;
+    border-color: var(--bp-green-dark) !important;
+}
+
+body.light-theme .btn-warning {
+    background-color: var(--bp-gold) !important;
+    border-color: var(--bp-gold) !important;
+    color: var(--bp-slate) !important;
+}
+
+body.light-theme .btn-warning:hover {
+    background-color: var(--bp-gold-dark) !important;
+    border-color: var(--bp-gold-dark) !important;
+}
+
+body.light-theme .btn-info {
+    background-color: var(--bp-green) !important;
+    border-color: var(--bp-green) !important;
+}
+
+/* Preserve colored badges */
+body.light-theme .badge.bg-warning {
+    background-color: var(--bp-gold) !important;
+}
+
+body.light-theme .badge.bg-success {
+    background-color: var(--bp-green) !important;
+}
+
+/* Keep card styling natural */
 body.light-theme .card {
-    background-color: #ffffff !important;
-    color: #212529 !important;
-    border-color: #dee2e6 !important;
+    background-color: white;
+    color: var(--color-text);
 }
 
-body.light-theme .card-header,
-body.light-theme .card-footer {
-    background-color: #f8f9fa !important;
-    color: #212529 !important;
-    border-color: #dee2e6 !important;
+/* Preserve teal header styling */
+body.light-theme .bg-primary {
+    background-color: var(--bp-green) !important;
 }
 
-body.light-theme .form-control,
-body.light-theme .form-select {
-    background-color: #ffffff !important;
-    color: #212529 !important;
-    border-color: #ced4da !important;
+body.light-theme .text-primary {
+    color: var(--bp-green) !important;
 }
 
-body.light-theme .modal-content {
-    background-color: #ffffff !important;
-    color: #212529 !important;
-}
-
-body.light-theme .modal-header,
-body.light-theme .modal-footer {
-    background-color: #f8f9fa !important;
-    border-color: #dee2e6 !important;
-}
-
-body.light-theme .table {
-    color: #212529 !important;
-}
-
-body.light-theme .table thead th {
-    background-color: #e9ecef !important;
-    color: #212529 !important;
-}
-
-body.light-theme .btn-outline-primary {
-    color: #0d6efd !important;
-    border-color: #0d6efd !important;
-}
-
-body.light-theme .btn-outline-primary:hover {
-    background-color: #0d6efd !important;
-    color: #ffffff !important;
-}
-
-body.light-theme .text-muted {
-    color: #6c757d !important;
-}
-
-body.light-theme a {
-    color: #0d6efd !important;
-}
-
-body.light-theme a:hover {
-    color: #0a58ca !important;
+body.light-theme .text-warning {
+    color: var(--bp-gold) !important;
 }
 
 /* Dark mode CSS variables */
