@@ -1026,11 +1026,27 @@ body.light-theme .list-group-item,
 body.light-theme .table,
 body.light-theme .table td,
 body.light-theme .table th,
-body.light-theme .form-control,
 body.light-theme .form-label,
 body.light-theme .form-text,
 body.light-theme p:not(.hero-gradient *):not(.card-header *):not(.navbar *):not(.btn *):not(.alert *) {
     color: #1a1a1a !important;
+}
+
+/* ALL FORM INPUTS - White background with black text */
+body.light-theme input[type="text"],
+body.light-theme input[type="email"],
+body.light-theme input[type="password"],
+body.light-theme input[type="search"],
+body.light-theme input[type="date"],
+body.light-theme input[type="time"],
+body.light-theme input[type="file"],
+body.light-theme textarea,
+body.light-theme select,
+body.light-theme .form-control,
+body.light-theme .form-select {
+    background-color: white !important;
+    color: #1a1a1a !important;
+    border: 1px solid #ced4da !important;
 }
 
 /* Card headers with colored backgrounds → WHITE text */
