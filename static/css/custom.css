@@ -1019,17 +1019,43 @@ body.light-theme {
     color: #1a1a1a !important;
 }
 
+/* ALL HEADINGS → BLACK on light backgrounds */
+body.light-theme h1:not(.hero-gradient *):not(.card-header *):not(.navbar *),
+body.light-theme h2:not(.hero-gradient *):not(.card-header *):not(.navbar *),
+body.light-theme h3:not(.hero-gradient *):not(.card-header *):not(.navbar *),
+body.light-theme h4:not(.hero-gradient *):not(.card-header *):not(.navbar *),
+body.light-theme h5:not(.hero-gradient *):not(.card-header *):not(.navbar *),
+body.light-theme h6:not(.hero-gradient *):not(.card-header *):not(.navbar *) {
+    color: #1a1a1a !important;
+}
+
 /* Text on WHITE card bodies → BLACK */
-body.light-theme .card:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info) .card-body,
-body.light-theme .card:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info) .card-body *:not(.btn):not(.badge),
+body.light-theme .card:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info):not(.bg-dark):not(.bg-secondary) .card-body,
+body.light-theme .card:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info):not(.bg-dark):not(.bg-secondary) .card-body *:not(.btn):not(.badge),
 body.light-theme .list-group-item,
 body.light-theme .table,
 body.light-theme .table td,
 body.light-theme .table th,
 body.light-theme .form-label,
 body.light-theme .form-text,
-body.light-theme p:not(.hero-gradient *):not(.card-header *):not(.navbar *):not(.btn *):not(.alert *) {
+body.light-theme p:not(.hero-gradient *):not(.card-header *):not(.navbar *):not(.btn *):not(.alert *):not(.bg-dark *):not(.bg-secondary *) {
     color: #1a1a1a !important;
+}
+
+/* DARK background cards/sections → WHITE text */
+body.light-theme .card.bg-dark,
+body.light-theme .card.bg-dark *:not(.btn),
+body.light-theme .card.bg-secondary,
+body.light-theme .card.bg-secondary *:not(.btn),
+body.light-theme .bg-dark,
+body.light-theme .bg-dark *:not(.btn),
+body.light-theme .bg-secondary,
+body.light-theme .bg-secondary *:not(.btn),
+body.light-theme .alert.bg-dark,
+body.light-theme .alert.bg-dark *,
+body.light-theme .alert.bg-secondary,
+body.light-theme .alert.bg-secondary * {
+    color: white !important;
 }
 
 /* ALL FORM INPUTS - White background with black text */
@@ -1161,6 +1187,14 @@ body.light-theme .badge.bg-info {
 /* Meeting status badges → WHITE text */
 body.light-theme .meeting-badge,
 body.light-theme .meeting-badge * {
+    color: white !important;
+}
+
+/* Meeting cards with dark backgrounds → WHITE text */
+body.light-theme .meeting-card,
+body.light-theme .meeting-card *:not(.btn),
+body.light-theme .alert-dark,
+body.light-theme .alert-dark *:not(.btn) {
     color: white !important;
 }
 
