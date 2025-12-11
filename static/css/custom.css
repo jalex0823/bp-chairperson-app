@@ -1254,17 +1254,35 @@ body.light-theme .card.bg-dark a {
 
 /* List group items with dark/gray backgrounds */
 body.light-theme .list-group-item {
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+    border: 1px solid #dee2e6 !important;
+}
+
+body.light-theme .list-group-item-action {
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+}
+
+body.light-theme .list-group-item-action:hover,
+body.light-theme .list-group-item-action:focus {
     background-color: #f8f9fa !important;
     color: #1a1a1a !important;
 }
 
 body.light-theme .list-group-item .fw-bold,
+body.light-theme .list-group-item h6,
+body.light-theme .list-group-item p,
 body.light-theme .list-group-item div,
-body.light-theme .list-group-item .small {
+body.light-theme .list-group-item .small,
+body.light-theme .list-group-item-action h6,
+body.light-theme .list-group-item-action p,
+body.light-theme .list-group-item-action .mb-1 {
     color: #1a1a1a !important;
 }
 
-body.light-theme .list-group-item a {
+body.light-theme .list-group-item a,
+body.light-theme .list-group-item-action a {
     color: #0066cc !important;
 }
 
