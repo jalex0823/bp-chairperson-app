@@ -654,3 +654,355 @@ footer.bg-bp-green .container {
     }
 }
 
+/* ========================================
+   DARK MODE SUPPORT
+   ======================================== */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bp-dark-bg: #1a1a1a;
+        --bp-dark-bg-secondary: #2d2d2d;
+        --bp-dark-bg-tertiary: #3a3a3a;
+        --bp-dark-text: #e0e0e0;
+        --bp-dark-text-muted: #a0a0a0;
+        --bp-dark-border: #404040;
+        --bp-dark-card: #252525;
+        --bp-dark-card-hover: #2f2f2f;
+    }
+
+    /* Base styles */
+    body {
+        background-color: var(--bp-dark-bg);
+        color: var(--bp-dark-text);
+    }
+
+    /* Text colors */
+    .text-muted {
+        color: var(--bp-dark-text-muted) !important;
+    }
+
+    .text-dark {
+        color: var(--bp-dark-text) !important;
+    }
+
+    /* Cards */
+    .card {
+        background-color: var(--bp-dark-card);
+        border-color: var(--bp-dark-border);
+        color: var(--bp-dark-text);
+    }
+
+    .card:hover {
+        background-color: var(--bp-dark-card-hover);
+    }
+
+    .card-body {
+        color: var(--bp-dark-text);
+    }
+
+    .card-header {
+        background-color: var(--bp-dark-bg-secondary);
+        border-bottom-color: var(--bp-dark-border);
+        color: var(--bp-dark-text);
+    }
+
+    .card-footer {
+        background-color: var(--bp-dark-bg-secondary);
+        border-top-color: var(--bp-dark-border);
+    }
+
+    /* Alerts - maintain visibility */
+    .alert-success {
+        background-color: #1a4d3a;
+        border-color: #0f6f75;
+        color: #90ee90;
+    }
+
+    .alert-warning {
+        background-color: #4d3d1a;
+        border-color: #f7b733;
+        color: #ffd966;
+    }
+
+    .alert-info {
+        background-color: #1a3d4d;
+        border-color: #17a2b8;
+        color: #66d9ef;
+    }
+
+    .alert-danger {
+        background-color: #4d1a1a;
+        border-color: #dc3545;
+        color: #ff6b6b;
+    }
+
+    /* Badges - maintain contrast */
+    .badge.bg-info {
+        background-color: #17a2b8 !important;
+        color: #000 !important;
+    }
+
+    .badge.bg-warning {
+        background-color: #f7b733 !important;
+        color: #000 !important;
+    }
+
+    .badge.bg-success {
+        background-color: #0f6f75 !important;
+        color: #fff !important;
+    }
+
+    .badge.bg-primary {
+        background-color: #0f6f75 !important;
+        color: #fff !important;
+    }
+
+    .badge.text-dark {
+        color: #000 !important;
+    }
+
+    /* Form controls */
+    .form-control,
+    .form-select {
+        background-color: var(--bp-dark-bg-tertiary);
+        border-color: var(--bp-dark-border);
+        color: var(--bp-dark-text);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        background-color: var(--bp-dark-bg-secondary);
+        border-color: var(--bp-green);
+        color: var(--bp-dark-text);
+        box-shadow: 0 0 0 0.25rem rgba(15, 111, 117, 0.25);
+    }
+
+    .form-control::placeholder {
+        color: var(--bp-dark-text-muted);
+    }
+
+    /* Form check (radio/checkbox) */
+    .form-check-input {
+        background-color: var(--bp-dark-bg-tertiary);
+        border-color: var(--bp-dark-border);
+    }
+
+    .form-check-input:checked {
+        background-color: var(--bp-green);
+        border-color: var(--bp-green);
+    }
+
+    .form-check-input:focus {
+        border-color: var(--bp-green);
+        box-shadow: 0 0 0 0.25rem rgba(15, 111, 117, 0.25);
+    }
+
+    .form-check-label {
+        color: var(--bp-dark-text);
+    }
+
+    /* Tables */
+    .table {
+        color: var(--bp-dark-text);
+        border-color: var(--bp-dark-border);
+    }
+
+    .table-striped > tbody > tr:nth-of-type(odd) > * {
+        background-color: var(--bp-dark-bg-secondary);
+    }
+
+    .table-hover > tbody > tr:hover > * {
+        background-color: var(--bp-dark-bg-tertiary);
+    }
+
+    /* Modals */
+    .modal-content {
+        background-color: var(--bp-dark-card);
+        border-color: var(--bp-dark-border);
+    }
+
+    .modal-header,
+    .modal-footer {
+        border-color: var(--bp-dark-border);
+    }
+
+    .modal-title {
+        color: var(--bp-dark-text);
+    }
+
+    /* Dropdown */
+    .dropdown-menu {
+        background-color: var(--bp-dark-card);
+        border-color: var(--bp-dark-border);
+    }
+
+    .dropdown-item {
+        color: var(--bp-dark-text);
+    }
+
+    .dropdown-item:hover,
+    .dropdown-item:focus {
+        background-color: var(--bp-dark-bg-tertiary);
+        color: var(--bp-dark-text);
+    }
+
+    /* Video player */
+    video {
+        border: 1px solid var(--bp-dark-border);
+    }
+
+    /* Shadows - reduce intensity in dark mode */
+    .shadow,
+    .shadow-sm {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .card.shadow,
+    .card.shadow-sm {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.6) !important;
+    }
+
+    /* Borders */
+    .border,
+    .border-top,
+    .border-bottom,
+    .border-start,
+    .border-end {
+        border-color: var(--bp-dark-border) !important;
+    }
+
+    /* List groups */
+    .list-group-item {
+        background-color: var(--bp-dark-card);
+        border-color: var(--bp-dark-border);
+        color: var(--bp-dark-text);
+    }
+
+    .list-group-item:hover {
+        background-color: var(--bp-dark-card-hover);
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+        background-color: var(--bp-dark-bg-secondary);
+    }
+
+    .breadcrumb-item.active {
+        color: var(--bp-dark-text-muted);
+    }
+
+    /* Navbar stays with brand colors */
+    .navbar.bg-bp-green {
+        background: var(--color-primary) !important;
+    }
+
+    /* Buttons - keep brand colors visible */
+    .btn-outline-secondary {
+        color: var(--bp-dark-text);
+        border-color: var(--bp-dark-border);
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: var(--bp-dark-bg-tertiary);
+        border-color: var(--bp-dark-text);
+        color: var(--bp-dark-text);
+    }
+
+    /* Maintain ChairPoint coin visibility */
+    .chairpoints-chip,
+    .chairpoints-chip-large {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.6);
+    }
+
+    /* Quiz specific styles */
+    .ratio video {
+        background-color: #000;
+    }
+
+    /* Progress bars */
+    .progress {
+        background-color: var(--bp-dark-bg-tertiary);
+    }
+
+    /* Toast notifications */
+    .toast {
+        background-color: var(--bp-dark-card);
+        border-color: var(--bp-dark-border);
+        color: var(--bp-dark-text);
+    }
+
+    .toast-header {
+        background-color: var(--bp-dark-bg-secondary);
+        border-bottom-color: var(--bp-dark-border);
+        color: var(--bp-dark-text);
+    }
+
+    /* Pagination */
+    .pagination .page-link {
+        background-color: var(--bp-dark-card);
+        border-color: var(--bp-dark-border);
+        color: var(--bp-dark-text);
+    }
+
+    .pagination .page-link:hover {
+        background-color: var(--bp-dark-bg-tertiary);
+        border-color: var(--bp-dark-border);
+        color: var(--bp-dark-text);
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: var(--bp-green);
+        border-color: var(--bp-green);
+        color: #fff;
+    }
+
+    /* Ensure readable contrast on colored backgrounds */
+    .bg-light {
+        background-color: var(--bp-dark-bg-secondary) !important;
+    }
+
+    .bg-white {
+        background-color: var(--bp-dark-card) !important;
+    }
+
+    /* Fix any remaining text visibility issues */
+    h1, h2, h3, h4, h5, h6 {
+        color: var(--bp-dark-text);
+    }
+
+    /* Small text elements */
+    small {
+        color: var(--bp-dark-text-muted);
+    }
+
+    /* Links in dark mode */
+    a {
+        color: #66b3ff;
+    }
+
+    a:hover {
+        color: #99ccff;
+    }
+
+    /* Keep primary colored links visible */
+    .text-primary {
+        color: #66d9ef !important;
+    }
+
+    .text-success {
+        color: #90ee90 !important;
+    }
+
+    .text-warning {
+        color: #ffd966 !important;
+    }
+
+    .text-danger {
+        color: #ff6b6b !important;
+    }
+
+    .text-info {
+        color: #66d9ef !important;
+    }
+}
+

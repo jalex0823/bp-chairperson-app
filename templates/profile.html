@@ -19,8 +19,8 @@
   </div>
 
   <div class="row">
-    <!-- Profile Information Column -->
-    <div class="col-lg-4 mb-4">
+    <!-- Left Column: Profile Information and Stats -->
+    <div class="col-lg-5 mb-4">
       <div class="card">
         <div class="card-header bg-primary text-white">
           <h4 class="mb-0"><i class="fas fa-user"></i> Profile Information</h4>
@@ -97,7 +97,7 @@
           <div class="row text-center">
             <div class="col-6">
               <div class="mb-1" style="font-size: 2.5rem;">
-                🪙
+                <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 20px; height: 20px; vertical-align: middle;" alt="ChairPoints">
               </div>
               <div class="h3 mb-0" style="color: #0f6f75; font-weight: bold;">
                 <span id="chairPointsValue">{{ user.chair_points or 0 }}</span>
@@ -111,9 +111,12 @@
           </div>
         </div>
       </div>
-      
+    </div>
+
+    <!-- Right Column: Resources and Volunteer Availability -->
+    <div class="col-lg-3 mb-4">
       <!-- Chairperson Resources Card -->
-      <div class="card mt-3">
+      <div class="card">
         <div class="card-header bg-primary text-white">
           <h6 class="mb-0"><i class="fas fa-book"></i> Chairperson Resources</h6>
         </div>
@@ -185,7 +188,7 @@
     </div>
 
     <!-- Meeting Commitments Column -->
-    <div class="col-lg-8">
+    <div class="col-lg-4">
       <!-- Search and Filter Section -->
       <div class="card mb-3">
         <div class="card-header bg-light">

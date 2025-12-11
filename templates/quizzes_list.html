@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="mb-2"><i class="fas fa-graduation-cap"></i> Training Quizzes</h1>
+      <p class="text-muted">Complete these training quizzes to earn ChairPoints and improve your skills!</p>
+    </div>
+  </div>
+
+  <!-- Quiz Cards -->
+  <div class="row">
+    {% for quiz_id, quiz in quizzes.items() %}
+    <div class="col-md-6 mb-4">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <h4 class="card-title mb-0">
+              <i class="fas fa-video text-primary"></i> {{ quiz.title }}
+            </h4>
+            {% if attempts[quiz_id] %}
+            <span class="badge bg-success">
+              <i class="fas fa-check"></i> Completed
+            </span>
+            {% else %}
+            <span class="badge bg-warning text-dark">
+              <i class="fas fa-clock"></i> Not Started
+            </span>
+            {% endif %}
+          </div>
+          
+          <p class="card-text text-muted">{{ quiz.description }}</p>
+          
+          <div class="mt-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <small class="text-muted">
+                <i class="fas fa-question-circle"></i> {{ quiz.questions|length }} questions
+              </small>
+              <small class="text-success">
+                <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 20px; height: 20px; vertical-align: middle;" alt="ChairPoints"> <strong>50 ChairPoints</strong>
+              </small>
+            </div>
+            
+            {% if attempts[quiz_id] %}
+            <div class="alert alert-success mb-2">
+              <i class="fas fa-trophy"></i> 
+              <strong>Score: {{ attempts[quiz_id].score }}%</strong>
+              ({{ attempts[quiz_id].correct_answers }}/{{ attempts[quiz_id].total_questions }} correct)
+              <br>
+              <small>Completed: {{ attempts[quiz_id].completed_at.strftime('%B %d, %Y at %I:%M %p') }}</small>
+            </div>
+            {% endif %}
+            
+            <div class="d-grid gap-2">
+              <a href="{{ url_for('quiz_view', quiz_id=quiz_id) }}" class="btn btn-primary">
+                {% if attempts[quiz_id] %}
+                <i class="fas fa-eye"></i> Review Quiz
+                {% else %}
+                <i class="fas fa-play"></i> Start Quiz
+                {% endif %}
+              </a>
+              
+              {% if attempts[quiz_id] %}
+              <a href="{{ url_for('quiz_certificate', quiz_id=quiz_id, attempt_id=attempts[quiz_id].id) }}" 
+                 class="btn btn-outline-success" target="_blank">
+                <i class="fas fa-certificate"></i> Download Certificate
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Instructions -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card bg-light">
+        <div class="card-body">
+          <h5><i class="fas fa-info-circle text-info"></i> How It Works</h5>
+          <ol class="mb-0">
+            <li>Watch the instructional video carefully</li>
+            <li>Complete the quiz (you need 70% or higher to pass)</li>
+            <li>Earn 50 ChairPoints upon passing each quiz</li>
+            <li>You can retake quizzes, but points are only awarded once</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Back Button -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<style>
+.card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+}
+</style>
+{% endblock %}

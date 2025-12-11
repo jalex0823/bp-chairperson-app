@@ -119,7 +119,7 @@
                 {{ current_user.display_name }}
               </span>
               <small class="text-light" style="opacity: 0.9; font-size: 0.75rem; line-height: 1;">
-                🪙 {{ current_user.chair_points or 0 }} Chair Points
+                <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 16px; height: 16px; vertical-align: middle;" alt="ChairPoints"> {{ current_user.chair_points or 0 }} Chair Points
               </small>
               <small class="text-light" style="opacity: 0.8; font-size: 0.75rem; line-height: 1; margin-left: 1.5em;">
                 {{ current_user.bp_id }}

@@ -33,7 +33,7 @@
     <div class="col-md-3">
       <div class="card bg-success text-white">
         <div class="card-body text-center">
-          <i class="fas fa-coins fa-2x mb-2"></i>
+          <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 48px; height: 48px;" class="mb-2" alt="ChairPoints">
           <h3 class="mb-1">{{ leaderboard|sum(attribute='chair_points') }}</h3>
           <small>Total ChairPoints</small>
         </div>
@@ -82,7 +82,7 @@
               <th>Email</th>
               <th class="text-center">Total Meetings</th>
               <th class="text-center" style="width: 180px;">
-                <i class="fas fa-coins"></i> ChairPoints™
+                <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 20px; height: 20px; vertical-align: middle;" alt="ChairPoints"> ChairPoints™
               </th>
             </tr>
           </thead>

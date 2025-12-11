@@ -130,7 +130,7 @@
                   <th style="width: 80px;"></th>
                   <th>Chairperson</th>
                   <th class="text-center" style="width: 150px;">
-                    🪙 ChairPoints
+                    <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 20px; height: 20px; vertical-align: middle;" alt="ChairPoints"> ChairPoints
                   </th>
                 </tr>
               </thead>
@@ -176,7 +176,7 @@
                   <td class="text-center align-middle">
                     <span class="badge rounded-pill" 
                           style="background: linear-gradient(135deg, #28a745, #20c997); font-size: 1.2rem; padding: 0.6rem 1rem;">
-                      🪙 {{ chair.chair_points }}
+                      <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 16px; height: 16px; vertical-align: middle;" alt="ChairPoints"> {{ chair.chair_points }}
                     </span>
                   </td>
                 </tr>

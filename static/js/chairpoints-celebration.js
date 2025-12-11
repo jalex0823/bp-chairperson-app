@@ -96,7 +96,7 @@
     for (let i = 0; i < maxCoins; i++) {
       const coin = document.createElement('div');
       coin.className = 'gold-coin';
-      coin.innerHTML = '🪙';
+      coin.innerHTML = '<img src="/static/img/chairpoint-coin.png" style="width: 100%; height: 100%; object-fit: contain;">';
       coin.style.left = `${20 + (i * 15)}%`;
       coin.style.top = '60%';
       coin.style.animationDelay = `${i * 0.2}s`;

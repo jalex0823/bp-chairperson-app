@@ -28,6 +28,7 @@ from wtforms.validators import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from icalendar import Calendar, Event, Alarm
+from reportlab.lib.utils import ImageReader
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
@@ -434,6 +435,26 @@ class BackupLog(db.Model):
     completed_at = db.Column(db.DateTime, nullable=True)
 
     initiated_by_user = db.relationship("User", backref="initiated_backups")
+
+
+class QuizAttempt(db.Model):
+    """
+    Track user quiz attempts and scores for video training quizzes.
+    """
+    __tablename__ = "quiz_attempts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    quiz_id = db.Column(db.String(50), nullable=False)  # 'registration_quiz' or 'hosting_quiz'
+    score = db.Column(db.Integer, nullable=False)  # Percentage score (0-100)
+    total_questions = db.Column(db.Integer, nullable=False)
+    correct_answers = db.Column(db.Integer, nullable=False)
+    passed = db.Column(db.Boolean, nullable=False)  # True if score >= 70%
+    answers = db.Column(db.Text, nullable=True)  # JSON string of user answers
+    completed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    points_awarded = db.Column(db.Integer, default=0)  # ChairPoints earned
+
+    user = db.relationship("User", backref="quiz_attempts")
 
 
 # ==========================
@@ -2370,6 +2391,575 @@ def profile_image(user_id):
 
 
 # ==========================
+# VIDEO QUIZ SYSTEM
+# ==========================
+
+# Quiz data structure
+QUIZZES = {
+    'registration': {
+        'id': 'registration',
+        'title': 'How to Register to Host a BP Online Zoom Meeting',
+        'video': 'registration_tutorial.mp4',
+        'description': 'Learn how to register as a chairperson for Back Porch meetings.',
+        'questions': [
+            {
+                'question': 'Who presents the tutorial in the transcript?',
+                'options': ['John the guide', 'Jeff the genius', 'The Back Porch Committee', 'Zoom Tech Support'],
+                'correct': 1
+            },
+            {
+                'question': 'What is the main purpose of this tutorial?',
+                'options': ['To show how to host in-person AA meetings', 'To explain how to access and register for the Back Porch Zoom host application', 'To teach advanced Zoom security settings', 'To review AA literature readings'],
+                'correct': 1
+            },
+            {
+                'question': 'According to the tutorial, how can you access the Back Porch Zoom host registration application?',
+                'options': ['Only from the Zoom mobile app', 'Through a direct URL or by visiting therealbackporch.com', 'Only through an email invite', 'Through the AA World Services website'],
+                'correct': 1
+            },
+            {
+                'question': 'After reaching the Back Porch website, which link should you select to get to the sign-up portal?',
+                'options': ['Meetings', 'Resources', 'Chairs', 'Contact'],
+                'correct': 2
+            },
+            {
+                'question': 'What does the green button on the Chairs page do?',
+                'options': ['Logs you into your existing account', 'Opens the portal where you register as a host for Back Porch Zoom AA meetings', 'Starts a Zoom meeting immediately', 'Sends an email to support'],
+                'correct': 1
+            },
+            {
+                'question': 'What color is the Chairperson Sign Up button at the top of the application?',
+                'options': ['Blue', 'Red', 'Yellow', 'Purple'],
+                'correct': 2
+            },
+            {
+                'question': 'What do you need in order to become a host and unlock the registration form?',
+                'options': ['A Zoom Pro license', "A sponsor's approval code", 'A registration key', 'A host meeting ID'],
+                'correct': 2
+            },
+            {
+                'question': 'What happens when you select the link under the registration unlock key field?',
+                'options': ['It opens a live chat with support', 'It generates an email that you send to Back Porch support to request your key', 'It automatically approves you as a host', 'It shows a list of available meetings'],
+                'correct': 1
+            },
+            {
+                'question': 'After entering your registration key and unlocking the form, which pieces of information are required?',
+                'options': ['Name, phone number, home group, sponsor', 'Name, email, password, sobriety date', 'Name, address, Zoom ID, phone number', 'Email, meeting ID, password, phone'],
+                'correct': 1
+            },
+            {
+                'question': 'Why is your sobriety date required on the registration form?',
+                'options': ['To send birthday announcements', 'To confirm that you meet the 90-day requirement to host', 'To create your Back Porch username', 'To share with other members on the calendar'],
+                'correct': 1
+            },
+            {
+                'question': 'How is gender selection used in the registration process?',
+                'options': ['It is required for all meetings', 'It is used for marketing surveys', 'It is optional and used only for gender-specific meetings', 'It is used to decide your hosting level'],
+                'correct': 2
+            },
+            {
+                'question': 'Once your account is created, what are you instructed to do next?',
+                'options': ['Wait for a phone call from support', 'Immediately choose a meeting date', 'Return to the home page, select Login, and enter your new credentials', 'Re-enter your sobriety date for verification'],
+                'correct': 2
+            },
+            {
+                'question': 'Which of the following is NOT mentioned as something you can do or see on your dashboard?',
+                'options': ['Update your profile and upload a photo', 'View upcoming meetings you are scheduled to chair', 'Check your last 30 days of hosting history', 'Change the 90-day sobriety requirement'],
+                'correct': 3
+            },
+            {
+                'question': 'What must be true before you can register for a meeting on the calendar?',
+                'options': ['You must be on a mobile device', 'You must be signed up and logged in', 'You must have hosted at least one meeting already', 'You must be approved by two other hosts'],
+                'correct': 1
+            },
+            {
+                'question': 'How are available dates displayed on the calendar?',
+                'options': ['In blue with the label "Open"', 'In green with the label "Available"', 'In gray with the label "No Chair"', 'In yellow with the label "Unassigned"'],
+                'correct': 2
+            },
+            {
+                'question': 'After you select a date to chair a meeting, which emails does the system send?',
+                'options': ['A confirmation email and a weekly newsletter', 'A confirmation email and a reminder email 24 hours before your scheduled meeting', 'Only a reminder email one hour before the meeting', 'Only a confirmation email if it\'s your first time hosting'],
+                'correct': 1
+            },
+            {
+                'question': 'If something changes and you cannot chair a meeting, what should you do?',
+                'options': ['Ignore the meeting and let it pass', 'Email every group member', 'Go to your profile, select the red button next to the meeting to cancel, and confirm your choice', 'Call Zoom support to cancel'],
+                'correct': 2
+            },
+            {
+                'question': 'Who can view the Back Porch hosting calendar?',
+                'options': ['Only registered hosts', 'Only members with 90 days or more of sobriety', 'Anyone can view it without registering', 'Only the web administrator'],
+                'correct': 2
+            },
+            {
+                'question': 'Which of the following is specifically mentioned as part of the "How to Chair Resources" section?',
+                'options': ['Host payment policies', 'Zoom best practices and handling online disruptions', 'Step study handouts from other groups', 'Insurance and liability information'],
+                'correct': 1
+            },
+            {
+                'question': 'Which interface or display options are mentioned for viewing and using the calendar and profile?',
+                'options': ['Sorting by region and switching to printer mode', 'Filtering by date or your name, and choosing between light mode and dark mode using the lamp icon', 'Enabling slideshow mode and auto-play', 'Switching between desktop and TV mode'],
+                'correct': 1
+            }
+        ]
+    },
+    'hosting': {
+        'id': 'hosting',
+        'title': 'How to Host a Zoom Meeting',
+        'video': 'hosting_tutorial.mp4',
+        'description': 'Learn the best practices for hosting a Back Porch Zoom meeting.',
+        'questions': [
+            {
+                'question': 'What is the first step to start hosting a Back Porch Zoom meeting?',
+                'options': ['Open Zoom and wait for participants', 'Visit therealbackporch.com/meetings and click the Zoom link', 'Enter the host code in Zoom settings', 'Start a breakout room'],
+                'correct': 1
+            },
+            {
+                'question': 'How do you claim host controls once the Zoom window opens?',
+                'options': ['Click Security > Claim Host', 'Click Participants > Claim Host', 'Click Chat > Claim Host', 'Use the breakout room panel'],
+                'correct': 1
+            },
+            {
+                'question': 'What must you enter in order to become the host of the meeting?',
+                'options': ['Your sobriety date', 'Your Back Porch login password', 'The host code emailed to you', 'Your personal meeting ID'],
+                'correct': 2
+            },
+            {
+                'question': 'What appears beside your name once you have successfully claimed host control?',
+                'options': ['Admin', 'Owner', 'Host', 'Leader'],
+                'correct': 2
+            },
+            {
+                'question': 'What is the purpose of enabling the Waiting Room?',
+                'options': ['To create breakout rooms', 'To prevent uninvited attendees from entering directly', 'To mute participants automatically', 'To assign chair points'],
+                'correct': 1
+            },
+            {
+                'question': 'How do you enable the Waiting Room?',
+                'options': ['From the Chat panel', 'From the Security button', 'From the three dots at the bottom of the participant list', 'From the Audio settings'],
+                'correct': 2
+            },
+            {
+                'question': 'How do you make someone a co-host?',
+                'options': ['Click the participant\'s name and choose "Make co-host"', 'Send them the host key', 'Promote them in the chat', 'Add them in Zoom settings before the meeting'],
+                'correct': 0
+            },
+            {
+                'question': 'Why should hosts mute all participants before the meeting begins?',
+                'options': ['To reduce bandwidth', 'To ensure no one speaks out of turn', 'To activate screen sharing', 'To start recording automatically'],
+                'correct': 1
+            },
+            {
+                'question': 'Which setting must be unchecked to prevent participants from unmuting themselves?',
+                'options': ['Allow participants to chat', 'Allow participants to rename', 'Allow participants to unmute themselves', 'Allow participants to start video'],
+                'correct': 2
+            },
+            {
+                'question': 'What should the host do if the chat contains offensive behavior?',
+                'options': ['Report the person to Zoom headquarters', 'Delete the message using the three-dot menu', 'Transfer the host role', 'Remove all participants'],
+                'correct': 1
+            },
+            {
+                'question': 'How can the host turn off chat entirely?',
+                'options': ['Click Security and uncheck Chat', 'Click Participants and uncheck Chat', 'Click Video and uncheck Chat', 'Click View and disable Chat'],
+                'correct': 0
+            },
+            {
+                'question': 'What happens once chat is turned off?',
+                'options': ['It becomes read-only', 'It becomes visible only to hosts', 'The chat box disappears for the rest of the meeting', 'It restarts after 60 seconds'],
+                'correct': 2
+            },
+            {
+                'question': 'Where do you remove a disruptive participant?',
+                'options': ['Breakout Rooms > Remove', 'Security > Kick Out', 'Manage Participants > More > Remove', 'Chat > Block User'],
+                'correct': 2
+            },
+            {
+                'question': 'What happens when you remove a disruptive attendee?',
+                'options': ['They can re-enter at any time', 'They cannot return under the same account', 'They are permanently banned from Zoom', 'They are placed on hold in the waiting room'],
+                'correct': 1
+            },
+            {
+                'question': 'How do you stop a participant\'s video?',
+                'options': ['In Security, uncheck Start Video', 'In Manage Participants, click More > Stop Video', 'In Chat, click Disable Camera', 'In Settings, turn off participant video'],
+                'correct': 1
+            },
+            {
+                'question': 'Which setting prevents participants from renaming themselves?',
+                'options': ['Disable video', 'Uncheck Allow participants to rename themselves', 'Lock the meeting', 'Turn off screen sharing'],
+                'correct': 1
+            },
+            {
+                'question': 'How can the host restrict chat so participants can send messages only to the host?',
+                'options': ['Use Chat > Private Mode', 'Set chat permissions to "Host Only"', 'Turn off all chat features', 'Add participants to a quiet list'],
+                'correct': 1
+            },
+            {
+                'question': 'What is the purpose of locking the meeting?',
+                'options': ['To hide the participant list', 'To prevent new attendees from entering', 'To disable screen sharing', 'To reset host controls'],
+                'correct': 1
+            },
+            {
+                'question': 'What is recommended if a group experiences repeated disruptions?',
+                'options': ['Close the meeting permanently', 'Hold a group conscience to discuss solutions', 'Change Zoom accounts', 'Assign every attendee as co-host'],
+                'correct': 1
+            },
+            {
+                'question': 'What message does the video end with?',
+                'options': ['Stay safe and avoid Zoom.', 'Thank you for attending Back Porch training.', 'Happy hosting and keep coming back.', 'Goodbye and sign off.'],
+                'correct': 2
+            }
+        ]
+    }
+}
+
+
+@app.route("/quizzes")
+@login_required
+def quizzes_list():
+    """Show available quizzes."""
+    user = User.query.get(session["user_id"])
+    
+    # Get user's quiz attempts
+    attempts = {}
+    for quiz_id in QUIZZES.keys():
+        attempt = QuizAttempt.query.filter_by(
+            user_id=user.id,
+            quiz_id=quiz_id,
+            passed=True
+        ).first()
+        attempts[quiz_id] = attempt
+    
+    return render_template("quizzes_list.html", 
+                         user=user, 
+                         quizzes=QUIZZES,
+                         attempts=attempts)
+
+
+@app.route("/quiz/<quiz_id>")
+@login_required
+def quiz_view(quiz_id):
+    """Show quiz video and questions."""
+    if quiz_id not in QUIZZES:
+        flash("Quiz not found.", "error")
+        return redirect(url_for("quizzes_list"))
+    
+    user = User.query.get(session["user_id"])
+    quiz = QUIZZES[quiz_id]
+    
+    # Check if user has already passed this quiz
+    passed_attempt = QuizAttempt.query.filter_by(
+        user_id=user.id,
+        quiz_id=quiz_id,
+        passed=True
+    ).first()
+    
+    return render_template("quiz_view.html", 
+                         user=user, 
+                         quiz=quiz,
+                         passed_attempt=passed_attempt)
+
+
+@app.route("/quiz/<quiz_id>/submit", methods=["POST"])
+@login_required
+def quiz_submit(quiz_id):
+    """Process quiz submission and award points."""
+    if quiz_id not in QUIZZES:
+        return jsonify({"error": "Quiz not found"}), 404
+    
+    user = User.query.get(session["user_id"])
+    quiz = QUIZZES[quiz_id]
+    
+    # Get user answers from form
+    user_answers = []
+    for i in range(len(quiz['questions'])):
+        answer = request.form.get(f'question_{i}')
+        user_answers.append(int(answer) if answer else -1)
+    
+    # Calculate score
+    correct_count = 0
+    for i, question in enumerate(quiz['questions']):
+        if i < len(user_answers) and user_answers[i] == question['correct']:
+            correct_count += 1
+    
+    total_questions = len(quiz['questions'])
+    score = int((correct_count / total_questions) * 100)
+    passed = score >= 70
+    
+    # Award points if passed and not already completed
+    points_awarded = 0
+    if passed:
+        previous_pass = QuizAttempt.query.filter_by(
+            user_id=user.id,
+            quiz_id=quiz_id,
+            passed=True
+        ).first()
+        
+        if not previous_pass:
+            points_awarded = 50
+            user.chair_points = (user.chair_points or 0) + points_awarded
+    
+    # Save attempt
+    attempt = QuizAttempt(
+        user_id=user.id,
+        quiz_id=quiz_id,
+        score=score,
+        total_questions=total_questions,
+        correct_answers=correct_count,
+        passed=passed,
+        answers=json.dumps(user_answers),
+        points_awarded=points_awarded
+    )
+    db.session.add(attempt)
+    db.session.commit()
+    
+    if passed:
+        if points_awarded > 0:
+            flash(f"Congratulations! You passed with {score}% and earned {points_awarded} ChairPoints! 🎉 Your certificate is ready to download!", "success")
+        else:
+            flash(f"Great job! You passed with {score}%. Your certificate is available for download.", "success")
+    else:
+        flash(f"You scored {score}%. You need 70% to pass. Please watch the video again and try again.", "warning")
+    
+    return redirect(url_for("quiz_view", quiz_id=quiz_id))
+
+
+def generate_standard_certificate(user, quiz, attempt):
+    """Generate a standard programmatic PDF certificate (fallback)"""
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import letter
+    from io import BytesIO
+    
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    
+    # Background border
+    c.setStrokeColorRGB(0.06, 0.43, 0.46)  # Back Porch teal color
+    c.setLineWidth(10)
+    c.rect(30, 30, width - 60, height - 60, stroke=1, fill=0)
+    
+    # Inner decorative border
+    c.setStrokeColorRGB(0.8, 0.8, 0.8)
+    c.setLineWidth(2)
+    c.rect(50, 50, width - 100, height - 100, stroke=1, fill=0)
+    
+    # Title
+    c.setFont("Helvetica-Bold", 32)
+    c.setFillColorRGB(0.06, 0.43, 0.46)
+    c.drawCentredString(width / 2, height - 120, "CERTIFICATE OF COMPLETION")
+    
+    # Subtitle
+    c.setFont("Helvetica", 16)
+    c.setFillColorRGB(0.3, 0.3, 0.3)
+    c.drawCentredString(width / 2, height - 150, "Back Porch Online AA Meetings")
+    
+    # Decorative line
+    c.setStrokeColorRGB(0.06, 0.43, 0.46)
+    c.setLineWidth(2)
+    c.line(150, height - 170, width - 150, height - 170)
+    
+    # "This certifies that"
+    c.setFont("Helvetica", 14)
+    c.setFillColorRGB(0.2, 0.2, 0.2)
+    c.drawCentredString(width / 2, height - 220, "This certifies that")
+    
+    # User name
+    c.setFont("Helvetica-Bold", 28)
+    c.setFillColorRGB(0.06, 0.43, 0.46)
+    c.drawCentredString(width / 2, height - 260, user.display_name)
+    
+    # Achievement text
+    c.setFont("Helvetica", 14)
+    c.setFillColorRGB(0.2, 0.2, 0.2)
+    c.drawCentredString(width / 2, height - 300, "has successfully completed the training quiz")
+    
+    # Quiz title
+    c.setFont("Helvetica-Bold", 18)
+    c.setFillColorRGB(0.06, 0.43, 0.46)
+    
+    # Word wrap quiz title if too long
+    quiz_title = quiz['title']
+    if len(quiz_title) > 60:
+        # Split into two lines
+        words = quiz_title.split()
+        mid = len(words) // 2
+        line1 = ' '.join(words[:mid])
+        line2 = ' '.join(words[mid:])
+        c.drawCentredString(width / 2, height - 340, line1)
+        c.drawCentredString(width / 2, height - 365, line2)
+        y_offset = 390
+    else:
+        c.drawCentredString(width / 2, height - 340, quiz_title)
+        y_offset = 365
+    
+    # Score and details
+    c.setFont("Helvetica", 12)
+    c.setFillColorRGB(0.3, 0.3, 0.3)
+    c.drawCentredString(width / 2, height - y_offset - 40, 
+                       f"Score: {attempt.score}% ({attempt.correct_answers}/{attempt.total_questions} correct)")
+    c.drawCentredString(width / 2, height - y_offset - 60, 
+                       f"ChairPoints Earned: {attempt.points_awarded}")
+    
+    # Date
+    c.setFont("Helvetica-Oblique", 11)
+    c.drawCentredString(width / 2, height - y_offset - 90, 
+                       f"Completed on {attempt.completed_at.strftime('%B %d, %Y at %I:%M %p')}")
+    
+    # Bottom section - BP ID and signature line
+    c.setFont("Helvetica", 10)
+    c.setFillColorRGB(0.4, 0.4, 0.4)
+    
+    # Left side - BP ID
+    c.drawString(100, 120, f"Back Porch ID: {user.bp_id}")
+    
+    # Right side - Signature line
+    c.line(width - 250, 135, width - 100, 135)
+    c.drawString(width - 250, 120, "Authorized by Back Porch")
+    
+    # Footer
+    c.setFont("Helvetica-Oblique", 9)
+    c.setFillColorRGB(0.5, 0.5, 0.5)
+    c.drawCentredString(width / 2, 80, "The Real Back Porch - therealbackporch.com")
+    c.drawCentredString(width / 2, 65, "Alcoholics Anonymous Online Meetings")
+    
+    # Certificate ID for verification
+    c.setFont("Helvetica", 8)
+    c.setFillColorRGB(0.6, 0.6, 0.6)
+    c.drawString(50, 50, f"Certificate ID: {attempt.id}-{user.id}-{quiz['id']}")
+    
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+
+@app.route("/quiz/<quiz_id>/certificate/<int:attempt_id>")
+@login_required
+def quiz_certificate(quiz_id, attempt_id):
+    """Generate a printable PDF certificate for a passed quiz."""
+    user = User.query.get(session["user_id"])
+    
+    # Verify the attempt belongs to the user and they passed
+    attempt = QuizAttempt.query.filter_by(
+        id=attempt_id,
+        user_id=user.id,
+        quiz_id=quiz_id,
+        passed=True
+    ).first()
+    
+    if not attempt:
+        flash("Certificate not found or quiz not passed.", "error")
+        return redirect(url_for("quizzes_list"))
+    
+    quiz = QUIZZES.get(quiz_id)
+    if not quiz:
+        flash("Quiz not found.", "error")
+        return redirect(url_for("quizzes_list"))
+    
+    # Try to use custom certificate image if available
+    cert_image_path = os.path.join(app.root_path, 'static', 'img', 'certificate_template.png')
+    
+    if os.path.exists(cert_image_path):
+        # Use custom certificate image with PIL
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+            
+            # Open the certificate template
+            img = Image.open(cert_image_path)
+            draw = ImageDraw.Draw(img)
+            
+            # Get image dimensions
+            img_width, img_height = img.size
+            
+            # Try to load a nice font, fallback to default
+            try:
+                # Try different font sizes for name and date
+                name_font = ImageFont.truetype("arial.ttf", 48)
+                date_font = ImageFont.truetype("arial.ttf", 24)
+                detail_font = ImageFont.truetype("arial.ttf", 18)
+            except:
+                # Fallback to default font
+                name_font = ImageFont.load_default()
+                date_font = ImageFont.load_default()
+                detail_font = ImageFont.load_default()
+            
+            # Text color (dark, will work on light backgrounds)
+            text_color = (0, 0, 0)  # Black - adjust if needed
+            
+            # Calculate text positions (centered horizontally)
+            # NAME - Position at approximately 45% from top
+            name_text = user.display_name
+            name_bbox = draw.textbbox((0, 0), name_text, font=name_font)
+            name_width = name_bbox[2] - name_bbox[0]
+            name_x = (img_width - name_width) // 2
+            name_y = int(img_height * 0.45)  # Adjust this percentage as needed
+            draw.text((name_x, name_y), name_text, fill=text_color, font=name_font)
+            
+            # DATE - Position at approximately 65% from top
+            date_text = attempt.completed_at.strftime('%B %d, %Y')
+            date_bbox = draw.textbbox((0, 0), date_text, font=date_font)
+            date_width = date_bbox[2] - date_bbox[0]
+            date_x = (img_width - date_width) // 2
+            date_y = int(img_height * 0.65)  # Adjust this percentage as needed
+            draw.text((date_x, date_y), date_text, fill=text_color, font=date_font)
+            
+            # SCORE - Position at approximately 75% from top
+            score_text = f"Score: {attempt.score}% | ChairPoints: {attempt.points_awarded}"
+            score_bbox = draw.textbbox((0, 0), score_text, font=detail_font)
+            score_width = score_bbox[2] - score_bbox[0]
+            score_x = (img_width - score_width) // 2
+            score_y = int(img_height * 0.75)  # Adjust this percentage as needed
+            draw.text((score_x, score_y), score_text, fill=text_color, font=detail_font)
+            
+            # Convert PIL image to PDF
+            img_buffer = BytesIO()
+            img.save(img_buffer, format='PNG')
+            img_buffer.seek(0)
+            
+            # Create PDF with the image
+            buffer = BytesIO()
+            c = canvas.Canvas(buffer, pagesize=letter)
+            width, height = letter
+            
+            # Calculate scaling to fit letter size while maintaining aspect ratio
+            aspect = img_width / img_height
+            if aspect > (width / height):
+                # Image is wider
+                new_width = width
+                new_height = width / aspect
+            else:
+                # Image is taller
+                new_height = height
+                new_width = height * aspect
+            
+            # Center the image
+            x = (width - new_width) / 2
+            y = (height - new_height) / 2
+            
+            # Draw the image
+            c.drawImage(ImageReader(img_buffer), x, y, width=new_width, height=new_height)
+            
+            c.save()
+            buffer.seek(0)
+            
+        except Exception as e:
+            app.logger.error(f"Error using custom certificate: {e}")
+            # Fall back to generating standard certificate
+            buffer = generate_standard_certificate(user, quiz, attempt)
+    else:
+        # No custom image, use standard certificate
+        buffer = generate_standard_certificate(user, quiz, attempt)
+    
+    # Return PDF as downloadable file
+    response = make_response(buffer.getvalue())
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'inline; filename=BP_Certificate_{user.display_name.replace(" ", "_")}_{quiz_id}.pdf'
+    
+    return response
+
+
+# ==========================
 # EMAIL FUNCTIONS
 # ==========================
 
@@ -4276,3 +4866,4 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run(debug=True)
+
