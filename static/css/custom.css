@@ -1111,6 +1111,14 @@ body.light-theme .card.text-white .card-body {
     color: white !important;
 }
 
+/* Quiz cards - WHITE background with BLACK text */
+body.light-theme .card.quiz-card,
+body.light-theme .quiz-card .card-body,
+body.light-theme .quiz-card * {
+    background-color: white !important;
+    color: #1a1a1a !important;
+}
+
 /* Hero section → WHITE text on teal gradient */
 body.light-theme .hero-gradient,
 body.light-theme .hero-gradient p,
@@ -1196,6 +1204,26 @@ body.light-theme .meeting-card *:not(.btn),
 body.light-theme .alert-dark,
 body.light-theme .alert-dark *:not(.btn) {
     color: white !important;
+}
+
+/* QUIZ PAGES - All text BLACK on white */
+body.light-theme .quiz-question,
+body.light-theme .quiz-question *,
+body.light-theme .form-check-label,
+body.light-theme .form-check,
+body.light-theme .quiz-answer-option,
+body.light-theme .quiz-container,
+body.light-theme .quiz-container * {
+    color: #1a1a1a !important;
+}
+
+/* Radio buttons and checkboxes visible */
+body.light-theme input[type="radio"],
+body.light-theme input[type="checkbox"],
+body.light-theme .form-check-input {
+    opacity: 1 !important;
+    background-color: white !important;
+    border: 2px solid #1a1a1a !important;
 }
 
 /* Navbar (dark teal) → WHITE text - ALL elements */
