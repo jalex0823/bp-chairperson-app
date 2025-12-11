@@ -119,7 +119,7 @@
 
 <style>
 .card-header {
-  background: linear-gradient(135deg, #007bff, #0056b3) !important;
+  background: linear-gradient(135deg, #0f6f75, #0a5a5e) !important;
 }
 pre {
   background-color: #f8f9fa;
@@ -127,6 +127,32 @@ pre {
   border-radius: 0.25rem;
   padding: 1rem;
   overflow-x: auto;
+}
+
+/* Darken text for light mode */
+body.light-theme .card-body h5,
+body.light-theme .card-body h6,
+body.light-theme .card-body p,
+body.light-theme .card-body li,
+body.light-theme .card-body .form-label,
+body.light-theme .card-body label {
+  color: #1a1a1a !important;
+}
+
+body.light-theme .alert-info {
+  background-color: rgba(15, 111, 117, 0.1);
+  color: #0a5a5e;
+  border-color: rgba(15, 111, 117, 0.3);
+}
+
+body.light-theme .alert-warning {
+  background-color: rgba(247, 183, 51, 0.1);
+  color: #8b6024;
+  border-color: rgba(247, 183, 51, 0.3);
+}
+
+body.light-theme .text-muted {
+  color: #4a4a4a !important;
 }
 </style>
 {% endblock %}

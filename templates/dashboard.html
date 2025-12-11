@@ -402,15 +402,30 @@
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
-.bg-primary { background-color: #007bff !important; }
+.bg-primary { background-color: #0f6f75 !important; }
 .bg-success { background-color: #28a745 !important; }
-.bg-warning { background-color: #ffc107 !important; }
+.bg-warning { background-color: #f7b733 !important; }
 .bg-info { background-color: #17a2b8 !important; }
 .bg-danger { background-color: #dc3545 !important; }
 
 .btn-group-sm > .btn {
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
+}
+
+/* Darken text for light mode */
+body.light-theme .card-body h6,
+body.light-theme .card-body h5,
+body.light-theme .card-body h4,
+body.light-theme .card-body p,
+body.light-theme .card-body small,
+body.light-theme .card-body .text-muted {
+  color: #1a1a1a !important;
+}
+
+body.light-theme .card-body .text-muted.d-block,
+body.light-theme .card-body .text-muted small {
+  color: #4a4a4a !important;
 }
 
 @media (max-width: 768px) {

@@ -218,19 +218,66 @@
 </div>
 
 <style>
-.accordion-button {
+/* Logo color palette (teal and gold) */
+body.light-theme .accordion-button {
   background-color: #f8f9fa;
-  color: #212529;
+  color: #1a1a1a;
 }
-.accordion-button:not(.collapsed) {
-  background-color: #e7f3ff;
-  color: #0066cc;
+
+body.light-theme .accordion-button:not(.collapsed) {
+  background-color: rgba(15, 111, 117, 0.1);
+  color: #0a5a5e;
 }
-.list-group-item-action {
+
+body.light-theme .list-group-item-action {
   border-left: 3px solid transparent;
+  color: #2a2a2a;
 }
-.list-group-item-action:hover {
-  border-left-color: #007bff;
+
+body.light-theme .list-group-item-action:hover {
+  border-left-color: #0f6f75;
+}
+
+body.light-theme .card-header {
+  background: linear-gradient(135deg, #0f6f75, #0a5a5e) !important;
+  color: white !important;
+}
+
+body.light-theme .card-body {
+  color: #1a1a1a;
+}
+
+body.light-theme .card-body h4,
+body.light-theme .card-body h5,
+body.light-theme .card-body h6,
+body.light-theme .card-body p,
+body.light-theme .card-body li,
+body.light-theme .card-body small {
+  color: #2a2a2a;
+}
+
+body.light-theme .alert-primary {
+  background-color: rgba(15, 111, 117, 0.1);
+  color: #0a5a5e;
+  border-color: rgba(15, 111, 117, 0.3);
+}
+
+body.light-theme .alert-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #0d5d45;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+body.light-theme .btn-primary,
+body.light-theme .btn-success {
+  background-color: #0f6f75;
+  border-color: #0f6f75;
+}
+
+body.light-theme .btn-primary:hover,
+body.light-theme .btn-success:hover {
+  background-color: #0a5a5e;
+  border-color: #0a5a5e;
 }
 </style>
 {% endblock %}
