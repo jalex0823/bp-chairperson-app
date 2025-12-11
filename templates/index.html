@@ -1,5 +1,61 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  /* Glass morphism cards for light mode */
+  body.light-theme .index-card-1 {
+    background: linear-gradient(135deg, rgba(15, 111, 117, 0.1) 0%, rgba(15, 111, 117, 0.05) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(15, 111, 117, 0.2);
+    box-shadow: 0 8px 32px rgba(15, 111, 117, 0.1);
+  }
+  
+  body.light-theme .index-card-2 {
+    background: linear-gradient(135deg, rgba(247, 183, 51, 0.1) 0%, rgba(247, 183, 51, 0.05) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(247, 183, 51, 0.2);
+    box-shadow: 0 8px 32px rgba(247, 183, 51, 0.1);
+  }
+  
+  body.light-theme .index-card-3 {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(236, 72, 153, 0.05) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(236, 72, 153, 0.2);
+    box-shadow: 0 8px 32px rgba(236, 72, 153, 0.1);
+  }
+  
+  body.light-theme .index-card-4 {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.1);
+  }
+  
+  body.light-theme .index-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+  }
+  
+  body.light-theme .schedule-card-1 {
+    background: linear-gradient(135deg, rgba(15, 111, 117, 0.15) 0%, rgba(15, 111, 117, 0.08) 100%);
+    border: 1px solid rgba(15, 111, 117, 0.3);
+  }
+  
+  body.light-theme .schedule-card-2 {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(236, 72, 153, 0.08) 100%);
+    border: 1px solid rgba(236, 72, 153, 0.3);
+  }
+  
+  body.light-theme .schedule-card-3 {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  
+  body.light-theme .schedule-card-4 {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.08) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+  }
+</style>
   <!-- Hero Section -->
   <section class="py-5 mb-4 hero-gradient">
     <div class="container">
@@ -21,7 +77,7 @@
   <!-- Quick Actions -->
   <div class="row g-3 mb-4">
     <div class="col-md-4">
-      <div class="card h-100">
+      <div class="card h-100 index-card index-card-1">
         <div class="card-body">
           <h5 class="card-title">Sign Up to Chair</h5>
           <a href="{{ url_for('calendar_view') }}" class="btn btn-primary align-self-start mb-2">Go to Calendar</a>
@@ -30,16 +86,16 @@
       </div>
     </div>
     <div class="col-md-4">
-      <div class="card h-100">
+      <div class="card h-100 index-card index-card-2">
         <div class="card-body">
-          <h5 class="card-title">Today’s Meetings</h5>
-          <a href="{{ url_for('meetings_today') }}" class="btn btn-secondary align-self-start mb-2">View Today</a>
+          <h5 class="card-title">Today's Meetings</h5>
+          <a href="{{ url_for('meetings_today') }}" class="btn btn-warning align-self-start mb-2">View Today</a>
           <p class="card-text text-muted">See what’s on today and who’s hosting right now.</p>
         </div>
       </div>
     </div>
     <div class="col-md-4">
-      <div class="card h-100">
+      <div class="card h-100 index-card index-card-3">
         <div class="card-body">
           <h5 class="card-title">Chair Resources</h5>
           <a href="{{ url_for('chair_resources') }}" class="btn btn-outline-gold align-self-start mb-2">Open Resources</a>
@@ -52,7 +108,7 @@
   <!-- App Instructions -->
   <div class="row g-3 mb-4">
     <div class="col-12">
-      <div class="card border-info">
+      <div class="card border-info index-card index-card-4">
         <div class="card-body">
           <h5 class="card-title"><i class="fas fa-book-open"></i> App Instructions & ChairPoints™</h5>
           <a href="{{ url_for('registration_instructions') }}" class="btn btn-info align-self-start mb-2">View Full Instructions</a>
@@ -71,31 +127,31 @@
       <div class="card-body">
         <div class="row g-3">
           <div class="col-12 col-md-3">
-            <div class="p-3 bg-light rounded h-100">
+            <div class="p-3 rounded h-100 schedule-card-1">
               <div class="fw-semibold">Daily</div>
               <div class="text-muted">5:30 PM MT</div>
               <div class="small">Literature-based Meeting</div>
             </div>
           </div>
           <div class="col-12 col-md-3">
-            <div class="p-3 bg-light rounded h-100">
+            <div class="p-3 rounded h-100 schedule-card-2">
               <div class="fw-semibold">Saturday</div>
               <div class="text-muted">8:30 AM MT</div>
               <div class="small">Women’s Meeting</div>
             </div>
           </div>
           <div class="col-12 col-md-3">
-            <div class="p-3 bg-light rounded h-100">
+            <div class="p-3 rounded h-100 schedule-card-3">
               <div class="fw-semibold">Sunday</div>
               <div class="text-muted">8:30 AM MT</div>
               <div class="small">Co-ed Meeting</div>
             </div>
           </div>
           <div class="col-12 col-md-3">
-            <div class="p-3 bg-light rounded h-100">
+            <div class="p-3 rounded h-100 schedule-card-4">
               <div class="fw-semibold">Sunday</div>
               <div class="text-muted">3:30 PM MT</div>
-              <div class="small">Men’s Meeting</div>
+              <div class="small">Men's Meeting</div>
             </div>
           </div>
         </div>
