@@ -1238,11 +1238,11 @@ body.light-theme .alert-dark *:not(.btn) {
 
 /* Today's Meeting cards and any dark card - WHITE text */
 body.light-theme .card.border-dark,
-body.light-theme .card.border-dark *:not(.btn),
+body.light-theme .card.border-dark *:not(.btn):not(.badge),
 body.light-theme .card.bg-dark,
-body.light-theme .card.bg-dark *:not(.btn),
+body.light-theme .card.bg-dark *:not(.btn):not(.badge),
 body.light-theme div[class*="meeting-"],
-body.light-theme div[class*="meeting-"] *:not(.btn) {
+body.light-theme div[class*="meeting-"] *:not(.btn):not(.badge) {
     background-color: #2d2d2d !important;
     color: white !important;
 }
@@ -1250,6 +1250,26 @@ body.light-theme div[class*="meeting-"] *:not(.btn) {
 body.light-theme .card.border-dark a,
 body.light-theme .card.bg-dark a {
     color: #66d9ef !important;
+}
+
+/* List group items with dark/gray backgrounds */
+body.light-theme .list-group-item {
+    background-color: #f8f9fa !important;
+    color: #1a1a1a !important;
+}
+
+body.light-theme .list-group-item .fw-bold,
+body.light-theme .list-group-item div,
+body.light-theme .list-group-item .small {
+    color: #1a1a1a !important;
+}
+
+body.light-theme .list-group-item a {
+    color: #0066cc !important;
+}
+
+body.light-theme .list-group-item .text-muted {
+    color: #6c757d !important;
 }
 
 /* QUIZ PAGES - All text BLACK on white */
