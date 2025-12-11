@@ -1323,6 +1323,39 @@ body.light-theme .form-check-input {
     opacity: 1 !important;
     background-color: white !important;
     border: 2px solid #1a1a1a !important;
+    width: 20px !important;
+    height: 20px !important;
+    cursor: pointer !important;
+}
+
+/* Checked radio buttons - dark filled circle */
+body.light-theme input[type="radio"]:checked,
+body.light-theme .form-check-input[type="radio"]:checked {
+    background-color: #0f6f75 !important;
+    border-color: #0f6f75 !important;
+    box-shadow: 0 0 0 3px rgba(15, 111, 117, 0.2) !important;
+}
+
+/* Checked checkboxes - dark filled */
+body.light-theme input[type="checkbox"]:checked,
+body.light-theme .form-check-input[type="checkbox"]:checked {
+    background-color: #0f6f75 !important;
+    border-color: #0f6f75 !important;
+    box-shadow: 0 0 0 3px rgba(15, 111, 117, 0.2) !important;
+}
+
+/* Radio button label - darken when checked */
+body.light-theme .form-check-input:checked + .form-check-label {
+    color: #0f6f75 !important;
+    font-weight: 600 !important;
+}
+
+/* Hover states for radio buttons */
+body.light-theme input[type="radio"]:hover,
+body.light-theme input[type="checkbox"]:hover,
+body.light-theme .form-check-input:hover {
+    border-color: #0f6f75 !important;
+    box-shadow: 0 0 0 2px rgba(15, 111, 117, 0.1) !important;
 }
 
 /* Navbar (dark teal) → WHITE text - ALL elements */
