@@ -1019,34 +1019,53 @@ body.light-theme {
     color: #1a1a1a !important;
 }
 
-/* Text on WHITE backgrounds → BLACK */
-body.light-theme .card:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info),
-body.light-theme .card:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info) *:not(.btn):not(.badge),
-body.light-theme .container > *:not(.hero-gradient):not(.navbar):not(.card),
+/* Text on WHITE card bodies → BLACK */
+body.light-theme .card:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info) .card-body,
+body.light-theme .card:not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info) .card-body *:not(.btn):not(.badge),
 body.light-theme .list-group-item,
-body.light-theme table,
 body.light-theme .table,
+body.light-theme .table td,
+body.light-theme .table th,
 body.light-theme .form-control,
 body.light-theme .form-label,
-body.light-theme .form-text {
+body.light-theme .form-text,
+body.light-theme p:not(.hero-gradient *):not(.card-header *):not(.navbar *):not(.btn *):not(.alert *) {
     color: #1a1a1a !important;
 }
 
-/* Text on COLORED cards (teal, green, blue backgrounds) → WHITE */
+/* Card headers with colored backgrounds → WHITE text */
+body.light-theme .card-header.bg-primary,
+body.light-theme .card-header.bg-primary *,
+body.light-theme .card-header.bg-success,
+body.light-theme .card-header.bg-success *,
+body.light-theme .card-header.bg-info,
+body.light-theme .card-header.bg-info *,
+body.light-theme .card-header.bg-danger,
+body.light-theme .card-header.bg-danger *,
+body.light-theme .card-header.bg-secondary,
+body.light-theme .card-header.bg-secondary *,
+body.light-theme .card-header.text-white,
+body.light-theme .card-header.text-white * {
+    color: white !important;
+}
+
+/* Card headers with YELLOW background → BLACK text */
+body.light-theme .card-header.bg-warning,
+body.light-theme .card-header.bg-warning *,
+body.light-theme .card-header.text-dark,
+body.light-theme .card-header.text-dark * {
+    color: #1a1a1a !important;
+}
+
+/* Full colored cards → WHITE text */
 body.light-theme .card.bg-primary,
-body.light-theme .card.bg-primary *:not(.btn),
+body.light-theme .card.bg-primary .card-body,
 body.light-theme .card.bg-success,
-body.light-theme .card.bg-success *:not(.btn),
+body.light-theme .card.bg-success .card-body,
 body.light-theme .card.bg-info,
-body.light-theme .card.bg-info *:not(.btn),
-body.light-theme .card.bg-danger,
-body.light-theme .card.bg-danger *:not(.btn),
+body.light-theme .card.bg-info .card-body,
 body.light-theme .card.text-white,
-body.light-theme .card.text-white *:not(.btn),
-body.light-theme .alert-success,
-body.light-theme .alert-success *:not(.btn),
-body.light-theme .alert-info,
-body.light-theme .alert-info *:not(.btn) {
+body.light-theme .card.text-white .card-body {
     color: white !important;
 }
 
@@ -1082,16 +1101,34 @@ body.light-theme .small {
     color: inherit !important;
 }
 
-/* Buttons → WHITE text on colored backgrounds */
+/* All buttons get proper text color */
 body.light-theme .btn-primary,
+body.light-theme .btn-primary *,
 body.light-theme .btn-success,
+body.light-theme .btn-success *,
 body.light-theme .btn-danger,
-body.light-theme .btn-info {
+body.light-theme .btn-danger *,
+body.light-theme .btn-info,
+body.light-theme .btn-info *,
+body.light-theme .btn-secondary,
+body.light-theme .btn-secondary *,
+body.light-theme .btn-dark,
+body.light-theme .btn-dark * {
     color: white !important;
+}
+
+/* Light buttons → BLACK text */
+body.light-theme .btn-light,
+body.light-theme .btn-light *,
+body.light-theme .btn-outline-primary,
+body.light-theme .btn-outline-secondary,
+body.light-theme .btn-outline-light {
+    color: #1a1a1a !important;
 }
 
 /* Warning button/badge → BLACK text on gold/yellow */
 body.light-theme .btn-warning,
+body.light-theme .btn-warning *,
 body.light-theme .badge.bg-warning,
 body.light-theme .alert-warning {
     color: #1a1a1a !important;
@@ -1111,10 +1148,13 @@ body.light-theme .meeting-badge * {
     color: white !important;
 }
 
-/* Navbar (dark teal) → WHITE text */
+/* Navbar (dark teal) → WHITE text - ALL elements */
 body.light-theme .navbar-dark,
+body.light-theme .navbar-dark *,
 body.light-theme .navbar-dark .navbar-brand,
-body.light-theme .navbar-dark .nav-link {
+body.light-theme .navbar-dark .nav-link,
+body.light-theme .navbar-dark .navbar-text,
+body.light-theme .navbar-dark a {
     color: white !important;
 }
 
