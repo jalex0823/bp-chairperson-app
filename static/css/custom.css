@@ -1408,6 +1408,60 @@ body.light-theme a:not(.btn):hover {
     color: var(--bp-green-dark) !important;
 }
 
+/* MODALS - Light theme styling */
+body.light-theme .modal-content {
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+    border: 1px solid #dee2e6 !important;
+}
+
+body.light-theme .modal-header {
+    background-color: #f8f9fa !important;
+    border-bottom: 1px solid #dee2e6 !important;
+    color: #1a1a1a !important;
+}
+
+body.light-theme .modal-title,
+body.light-theme .modal-header *,
+body.light-theme .modal-header h1,
+body.light-theme .modal-header h2,
+body.light-theme .modal-header h3,
+body.light-theme .modal-header h4,
+body.light-theme .modal-header h5 {
+    color: #1a1a1a !important;
+}
+
+body.light-theme .modal-body {
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+}
+
+body.light-theme .modal-body *,
+body.light-theme .modal-body p,
+body.light-theme .modal-body div,
+body.light-theme .modal-body span,
+body.light-theme .modal-body label {
+    color: #1a1a1a !important;
+}
+
+body.light-theme .modal-footer {
+    background-color: #f8f9fa !important;
+    border-top: 1px solid #dee2e6 !important;
+}
+
+body.light-theme .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+body.light-theme .btn-close {
+    filter: invert(0) !important;
+    opacity: 0.5 !important;
+}
+
+body.light-theme .btn-close:hover {
+    opacity: 1 !important;
+}
+
 /* Dark mode CSS variables */
 @media (prefers-color-scheme: dark) {
     :root {
