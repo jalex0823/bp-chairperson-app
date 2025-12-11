@@ -786,6 +786,12 @@ body.light-theme .calendar-cell.today .day-number {
     color: white !important;
 }
 
+/* Calendar day headers in light mode */
+body.light-theme .calendar-table thead th {
+    background: #1a1a1a !important;
+    color: #ffffff !important;
+}
+
 /* Dark mode CSS variables */
 @media (prefers-color-scheme: dark) {
     :root {
@@ -1186,6 +1192,13 @@ body.dark-theme .meeting-info,
 body.dark-theme .meeting-time,
 body.dark-theme .meeting-chair {
     color: #ffffff !important;
+}
+
+/* Calendar day headers in dark mode */
+body.dark-theme .calendar-table thead th {
+    background: #1a1a1a !important;
+    color: #ffffff !important;
+    border-bottom: 2px solid #404040 !important;
 }
 
 body.dark-theme .text-muted {
