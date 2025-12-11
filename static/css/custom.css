@@ -356,6 +356,23 @@ body {
 }
 .hero-gradient .btn { box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
 
+/* Hero heading - yellow base with green hover and zoom effect */
+.hero-gradient h1 {
+    color: var(--bp-gold) !important;
+    transition: all 0.3s ease;
+    cursor: default;
+}
+
+.hero-gradient h1:hover {
+    color: var(--bp-green) !important;
+    transform: scale(1.05);
+}
+
+/* Hero subtitle stays white */
+.hero-gradient .lead {
+    color: white !important;
+}
+
 /* Links */
 a { color: var(--color-primary); }
 a:hover { color: var(--color-secondary); }
@@ -1009,9 +1026,21 @@ body.light-theme .form-text {
     color: #1a1a1a !important;
 }
 
-/* Override ANY gray colors in light mode */
-body.light-theme *:not(.btn):not(.badge):not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info):not(.meeting-badge) {
+/* Override ANY gray colors in light mode - BUT NOT HERO SECTION */
+body.light-theme *:not(.btn):not(.badge):not(.bg-primary):not(.bg-success):not(.bg-danger):not(.bg-warning):not(.bg-info):not(.meeting-badge):not(.hero-gradient):not(.hero-gradient *):not(.navbar-dark):not(.navbar-dark *) {
     color: #1a1a1a !important;
+}
+
+/* Hero section text must be white in both light and dark mode */
+body.light-theme .hero-gradient,
+body.light-theme .hero-gradient h1,
+body.light-theme .hero-gradient h2,
+body.light-theme .hero-gradient h3,
+body.light-theme .hero-gradient p,
+body.light-theme .hero-gradient .lead,
+body.light-theme .hero-gradient span,
+body.light-theme .hero-gradient div {
+    color: white !important;
 }
 
 /* Text-muted should be readable dark gray, not light gray */
