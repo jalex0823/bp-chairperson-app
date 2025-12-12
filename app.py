@@ -2987,26 +2987,19 @@ def generate_standard_certificate(user, quiz, attempt):
     # Achievement text
     c.setFont("Helvetica", 14)
     c.setFillColorRGB(0.2, 0.2, 0.2)
-    c.drawCentredString(width / 2, height - 300, "has successfully completed the training quiz")
+    c.drawCentredString(width / 2, height - 300, "has successfully completed")
     
-    # Quiz title
-    c.setFont("Helvetica-Bold", 18)
+    # Training program title
+    c.setFont("Helvetica-Bold", 20)
     c.setFillColorRGB(0.06, 0.43, 0.46)
+    c.drawCentredString(width / 2, height - 335, "Back Porch Chairperson Training Program")
     
-    # Word wrap quiz title if too long
-    quiz_title = quiz['title']
-    if len(quiz_title) > 60:
-        # Split into two lines
-        words = quiz_title.split()
-        mid = len(words) // 2
-        line1 = ' '.join(words[:mid])
-        line2 = ' '.join(words[mid:])
-        c.drawCentredString(width / 2, height - 340, line1)
-        c.drawCentredString(width / 2, height - 365, line2)
-        y_offset = 390
-    else:
-        c.drawCentredString(width / 2, height - 340, quiz_title)
-        y_offset = 365
+    # Both videos completed
+    c.setFont("Helvetica", 13)
+    c.setFillColorRGB(0.2, 0.2, 0.2)
+    c.drawCentredString(width / 2, height - 365, "Registration & Hosting Video Training")
+    
+    y_offset = 365
     
     # Score and details
     c.setFont("Helvetica", 12)
@@ -3051,7 +3044,7 @@ def generate_standard_certificate(user, quiz, attempt):
 @app.route("/quiz/<quiz_id>/certificate/<int:attempt_id>")
 @login_required
 def quiz_certificate(quiz_id, attempt_id):
-    """Generate a printable PDF certificate for a passed quiz."""
+    """Generate a printable PDF certificate for a passed quiz - requires both quizzes to be completed."""
     user = User.query.get(session["user_id"])
     
     # Verify the attempt belongs to the user and they passed
@@ -3064,6 +3057,22 @@ def quiz_certificate(quiz_id, attempt_id):
     
     if not attempt:
         flash("Certificate not found or quiz not passed.", "error")
+        return redirect(url_for("quizzes_list"))
+    
+    # Check if user has completed BOTH quizzes before awarding certificate
+    all_quiz_ids = list(QUIZZES.keys())  # ['registration', 'hosting']
+    passed_quizzes = QuizAttempt.query.filter_by(
+        user_id=user.id,
+        passed=True
+    ).filter(QuizAttempt.quiz_id.in_(all_quiz_ids)).all()
+    
+    passed_quiz_ids = set([q.quiz_id for q in passed_quizzes])
+    required_quiz_ids = set(all_quiz_ids)
+    
+    if not required_quiz_ids.issubset(passed_quiz_ids):
+        missing_quizzes = required_quiz_ids - passed_quiz_ids
+        missing_titles = [QUIZZES[qid]['title'] for qid in missing_quizzes]
+        flash(f"You must complete all video quizzes before receiving your certificate. Still needed: {', '.join(missing_titles)}", "warning")
         return redirect(url_for("quizzes_list"))
     
     quiz = QUIZZES.get(quiz_id)
@@ -3103,28 +3112,36 @@ def quiz_certificate(quiz_id, attempt_id):
             
             # Calculate text positions (centered horizontally)
             # NAME - Position at approximately 45% from top
-            name_text = user.display_name
+            name_text = user.display_name.upper()  # Uppercase for emphasis
             name_bbox = draw.textbbox((0, 0), name_text, font=name_font)
             name_width = name_bbox[2] - name_bbox[0]
             name_x = (img_width - name_width) // 2
             name_y = int(img_height * 0.45)  # Adjust this percentage as needed
             draw.text((name_x, name_y), name_text, fill=text_color, font=name_font)
             
-            # DATE - Position at approximately 65% from top
-            date_text = attempt.completed_at.strftime('%B %d, %Y')
+            # DATE - Position at approximately 60% from top
+            date_text = f"Completed on {attempt.completed_at.strftime('%B %d, %Y')}"
             date_bbox = draw.textbbox((0, 0), date_text, font=date_font)
             date_width = date_bbox[2] - date_bbox[0]
             date_x = (img_width - date_width) // 2
-            date_y = int(img_height * 0.65)  # Adjust this percentage as needed
+            date_y = int(img_height * 0.60)  # Adjust this percentage as needed
             draw.text((date_x, date_y), date_text, fill=text_color, font=date_font)
             
-            # SCORE - Position at approximately 75% from top
-            score_text = f"Score: {attempt.score}% | ChairPoints: {attempt.points_awarded}"
-            score_bbox = draw.textbbox((0, 0), score_text, font=detail_font)
-            score_width = score_bbox[2] - score_bbox[0]
-            score_x = (img_width - score_width) // 2
-            score_y = int(img_height * 0.75)  # Adjust this percentage as needed
-            draw.text((score_x, score_y), score_text, fill=text_color, font=detail_font)
+            # COMPLETION TEXT - Position at approximately 70% from top
+            completion_text = "Back Porch Chairperson Training Program"
+            completion_bbox = draw.textbbox((0, 0), completion_text, font=detail_font)
+            completion_width = completion_bbox[2] - completion_bbox[0]
+            completion_x = (img_width - completion_width) // 2
+            completion_y = int(img_height * 0.70)  # Adjust this percentage as needed
+            draw.text((completion_x, completion_y), completion_text, fill=text_color, font=detail_font)
+            
+            # BP ID - Position at approximately 80% from top
+            bp_id_text = f"BP ID: {user.bp_id}"
+            bp_id_bbox = draw.textbbox((0, 0), bp_id_text, font=detail_font)
+            bp_id_width = bp_id_bbox[2] - bp_id_bbox[0]
+            bp_id_x = (img_width - bp_id_width) // 2
+            bp_id_y = int(img_height * 0.80)  # Adjust this percentage as needed
+            draw.text((bp_id_x, bp_id_y), bp_id_text, fill=text_color, font=detail_font)
             
             # Convert PIL image to PDF
             img_buffer = BytesIO()
