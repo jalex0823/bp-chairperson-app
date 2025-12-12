@@ -214,11 +214,11 @@ class User(db.Model):
 
     def is_locked(self):
         """Check if user account is locked due to failed login attempts."""
-        return self.locked_until and self.locked_until > datetime.now(timezone.utc)
+        return self.locked_until and self.locked_until > datetime.utcnow()
 
     def lock_account(self, duration_minutes=30):
         """Lock user account for specified duration."""
-        self.locked_until = datetime.now(timezone.utc) + timedelta(minutes=duration_minutes)
+        self.locked_until = datetime.utcnow() + timedelta(minutes=duration_minutes)
         db.session.commit()
 
     def unlock_account(self):
@@ -1883,7 +1883,7 @@ def login():
             if user.check_password(form.password.data):
                 # Successful login
                 session["user_id"] = user.id
-                user.last_login = datetime.now(timezone.utc)
+                user.last_login = datetime.utcnow()
                 user.failed_login_attempts = 0  # Reset failed attempts
                 db.session.commit()
                 
