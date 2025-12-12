@@ -63,27 +63,27 @@ mail = Mail(app)
 
 # Configure caching
 if REDIS_AVAILABLE and os.getenv('REDIS_URL'):
-    # Use Redis for caching in production
-    cache = Cache(app, config={
-        'CACHE_TYPE': 'RedisCache',
-        'CACHE_REDIS_URL': os.getenv('REDIS_URL'),
-        'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutes default
-    })
-elif REDIS_AVAILABLE:
-    # Use Redis locally if available
-    cache = Cache(app, config={
-        'CACHE_TYPE': 'RedisCache',
-        'CACHE_REDIS_HOST': 'localhost',
-        'CACHE_REDIS_PORT': 6379,
-        'CACHE_REDIS_DB': 0,
-        'CACHE_DEFAULT_TIMEOUT': 300
-    })
+    # Use Redis for caching in production when REDIS_URL is set
+    try:
+        cache = Cache(app, config={
+            'CACHE_TYPE': 'RedisCache',
+            'CACHE_REDIS_URL': os.getenv('REDIS_URL'),
+            'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutes default
+        })
+        print("✓ Using Redis cache")
+    except Exception as e:
+        print(f"⚠ Redis connection failed, falling back to SimpleCache: {e}")
+        cache = Cache(app, config={
+            'CACHE_TYPE': 'SimpleCache',
+            'CACHE_DEFAULT_TIMEOUT': 300
+        })
 else:
-    # Fallback to simple cache
+    # Fallback to simple cache (no Redis available or configured)
     cache = Cache(app, config={
         'CACHE_TYPE': 'SimpleCache',
         'CACHE_DEFAULT_TIMEOUT': 300
     })
+    print("✓ Using SimpleCache (Redis not configured)")
 
 # Performance monitoring
 @app.before_request
