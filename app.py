@@ -4733,23 +4733,17 @@ def admin_analytics():
     filter_start_date = date.today() - timedelta(days=days)
     top_chairpersons = db.session.query(
         User.display_name,
-        func.count(ChairSignup.id).label('total_meetings'),
-        func.sum(
-            func.case(
-                (Meeting.event_date >= filter_start_date, 1),
-                else_=0
-            )
-        ).label('period_count')
+        func.count(ChairSignup.id).label('total_meetings')
     ).join(ChairSignup).join(Meeting).filter(
         Meeting.event_date >= filter_start_date
-    ).group_by(User.id).order_by(func.count(ChairSignup.id).desc()).limit(15).all()
+    ).group_by(User.id, User.display_name).order_by(func.count(ChairSignup.id).desc()).limit(15).all()
     
     # Convert to list of dicts for easier template access
     top_chairpersons_list = [
         {
             'display_name': chair[0],
             'total_meetings': chair[1],
-            'period_count': chair[2] or 0
+            'period_count': chair[1]  # Same as total in this filtered query
         }
         for chair in top_chairpersons
     ]
