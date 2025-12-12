@@ -1,47 +1,241 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="mb-0">Monthly Report — {{ month_name }} {{ year }}</h1>
-  <div>
-    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin_monthly_pdf', year=year, month=month) }}">Download PDF</a>
-    <a class="btn btn-outline-success btn-sm" href="{{ url_for('calendar_month_ics', year=year, month=month) }}">Download .ics</a>
-    <button class="btn btn-outline-dark btn-sm" onclick="window.print()">Print</button>
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0"><i class="fas fa-chart-line"></i> User Chair Statistics</h1>
+    <div>
+      <button class="btn btn-outline-dark btn-sm" onclick="window.print()">
+        <i class="fas fa-print"></i> Print
+      </button>
+    </div>
   </div>
-</div>
 
-{% if not meetings %}
-  <p class="text-muted">No meetings scheduled for this month.</p>
-{% else %}
-  <div class="table-responsive">
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Time</th>
-          <th>Chair</th>
-          <th>Meeting</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for m in meetings %}
+  <!-- Summary Stats -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body text-center">
+          <h3>{{ user_stats|length }}</h3>
+          <small>Active Chairpersons</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body text-center">
+          <h3>{{ total_past }}</h3>
+          <small>Past Meetings Chaired</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body text-center">
+          <h3>{{ total_future }}</h3>
+          <small>Future Meetings Scheduled</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body text-center">
+          <h3>{{ unfilled_future }}</h3>
+          <small>Unfilled Future Meetings</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search/Filter -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <input type="text" id="searchInput" class="form-control" placeholder="🔍 Search by name or meeting...">
+        </div>
+        <div class="col-md-6 text-end">
+          <span class="text-muted">
+            <strong id="rowCount">{{ user_stats|length }}</strong> chairpersons shown
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if not user_stats %}
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle"></i> No chair assignments found.
+    </div>
+  {% else %}
+    <div class="table-responsive">
+      <table class="table table-hover" id="statsTable">
+        <thead class="table-light">
           <tr>
-            <td>{{ m.event_date.strftime('%Y-%m-%d (%a)') }}</td>
+            <th class="sortable" onclick="sortTable(0)">
+              Name <i class="fas fa-sort"></i>
+            </th>
+            <th class="sortable text-center" onclick="sortTable(1)">
+              Past Chaired <i class="fas fa-sort"></i>
+            </th>
+            <th class="sortable text-center" onclick="sortTable(2)">
+              Future Chairs <i class="fas fa-sort"></i>
+            </th>
+            <th class="sortable text-center" onclick="sortTable(3)">
+              Total <i class="fas fa-sort"></i>
+            </th>
+            <th>Future Meeting Details</th>
+            <th class="sortable text-center" onclick="sortTable(5)">
+              % of Total <i class="fas fa-sort"></i>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          {% for stat in user_stats %}
+          <tr>
             <td>
-              {{ m.start_time.strftime('%I:%M %p') }}
-              {% if m.end_time %}– {{ m.end_time.strftime('%I:%M %p') }}{% endif %}
+              <strong>{{ stat.user.display_name }}</strong>
+              <br><small class="text-muted">{{ stat.user.email }}</small>
+            </td>
+            <td class="text-center">
+              <span class="badge bg-success">{{ stat.past_chaired }}</span>
+            </td>
+            <td class="text-center">
+              <span class="badge bg-info">{{ stat.future_chaired }}</span>
+            </td>
+            <td class="text-center">
+              <strong>{{ stat.total_chaired }}</strong>
             </td>
             <td>
-              {% if m.chair_signup %}
-                {{ m.chair_signup.display_name_snapshot }} ({{ m.chair_signup.user.bp_id }})
+              {% if stat.future_meetings %}
+                <ul class="list-unstyled mb-0">
+                  {% for meeting in stat.future_meetings %}
+                    <li class="mb-1">
+                      <i class="fas fa-calendar text-primary"></i>
+                      <strong>{{ meeting.title }}</strong>
+                      <br>
+                      <small class="text-muted ms-3">{{ meeting.event_date.strftime('%b %d, %Y') }}</small>
+                    </li>
+                  {% endfor %}
+                </ul>
               {% else %}
-                <span class="text-muted">No chair yet</span>
+                <span class="text-muted">No future meetings</span>
               {% endif %}
             </td>
-            <td>{{ m.title }}</td>
+            <td class="text-center">
+              {% set percentage = ((stat.total_chaired / total_all) * 100) | round(1) %}
+              <div class="progress" style="height: 25px;">
+                <div class="progress-bar bg-primary" 
+                     role="progressbar" 
+                     style="width: {{ percentage }}%;" 
+                     aria-valuenow="{{ percentage }}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                  {{ percentage }}%
+                </div>
+              </div>
+            </td>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-{% endif %}
+          {% endfor %}
+        </tbody>
+        <tfoot class="table-light fw-bold">
+          <tr>
+            <td>TOTALS</td>
+            <td class="text-center">{{ total_past }}</td>
+            <td class="text-center">{{ total_future }}</td>
+            <td class="text-center">{{ total_all }}</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+// Search functionality
+document.getElementById('searchInput').addEventListener('keyup', function() {
+  const searchValue = this.value.toLowerCase();
+  const table = document.getElementById('statsTable');
+  const tbody = document.getElementById('tableBody');
+  const rows = tbody.getElementsByTagName('tr');
+  let visibleCount = 0;
+
+  for (let row of rows) {
+    const text = row.textContent.toLowerCase();
+    if (text.includes(searchValue)) {
+      row.style.display = '';
+      visibleCount++;
+    } else {
+      row.style.display = 'none';
+    }
+  }
+
+  document.getElementById('rowCount').textContent = visibleCount;
+});
+
+// Sort functionality
+let sortDirection = {};
+
+function sortTable(columnIndex) {
+  const table = document.getElementById('statsTable');
+  const tbody = document.getElementById('tableBody');
+  const rows = Array.from(tbody.getElementsByTagName('tr'));
+  
+  // Toggle sort direction
+  sortDirection[columnIndex] = !sortDirection[columnIndex];
+  const isAscending = sortDirection[columnIndex];
+  
+  rows.sort((a, b) => {
+    let aValue = a.cells[columnIndex].textContent.trim();
+    let bValue = b.cells[columnIndex].textContent.trim();
+    
+    // Handle numeric columns
+    if (columnIndex >= 1 && columnIndex <= 3) {
+      aValue = parseInt(aValue) || 0;
+      bValue = parseInt(bValue) || 0;
+    }
+    
+    // Handle percentage column
+    if (columnIndex === 5) {
+      aValue = parseFloat(aValue) || 0;
+      bValue = parseFloat(bValue) || 0;
+    }
+    
+    if (aValue < bValue) return isAscending ? -1 : 1;
+    if (aValue > bValue) return isAscending ? 1 : -1;
+    return 0;
+  });
+  
+  // Re-append sorted rows
+  rows.forEach(row => tbody.appendChild(row));
+  
+  // Update sort indicators
+  const headers = table.querySelectorAll('th.sortable i');
+  headers.forEach((icon, index) => {
+    if (index === columnIndex) {
+      icon.className = isAscending ? 'fas fa-sort-up' : 'fas fa-sort-down';
+    } else {
+      icon.className = 'fas fa-sort';
+    }
+  });
+}
+</script>
+
+<style>
+  th.sortable {
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  th.sortable:hover {
+    background-color: #e9ecef;
+  }
+  
+  @media print {
+    .btn, .card-body input {
+      display: none;
+    }
+  }
+</style>
+
 {% endblock %}

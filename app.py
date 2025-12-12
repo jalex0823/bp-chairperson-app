@@ -3763,29 +3763,83 @@ def admin_monthly_pdf():
 @app.route("/admin/reports/monthly")
 @admin_required
 def admin_monthly_html():
-    """Printable HTML monthly report mirroring the PDF contents."""
+    """Admin user statistics report showing chair assignments and completion rates."""
     today = get_eastern_today()
-    year = int(request.args.get("year", today.year))
-    month = int(request.args.get("month", today.month))
-
-    start_date = date(year, month, 1)
-    _, last_day = calendar.monthrange(year, month)
-    end_date = date(year, month, last_day)
-
-    meetings = (
+    
+    # Get all registered users (non-admin)
+    users = User.query.filter_by(is_admin=False).order_by(User.display_name).all()
+    
+    user_stats = []
+    for user in users:
+        # Count past meetings chaired (to date)
+        past_chaired = (
+            db.session.query(Meeting)
+            .join(ChairSignup, Meeting.id == ChairSignup.meeting_id)
+            .filter(
+                ChairSignup.user_id == user.id,
+                Meeting.event_date < today
+            )
+            .count()
+        )
+        
+        # Count future meetings chaired
+        future_chaired = (
+            db.session.query(Meeting)
+            .join(ChairSignup, Meeting.id == ChairSignup.meeting_id)
+            .filter(
+                ChairSignup.user_id == user.id,
+                Meeting.event_date >= today
+            )
+            .count()
+        )
+        
+        # Get future meeting details
+        future_meetings = (
+            db.session.query(Meeting)
+            .join(ChairSignup, Meeting.id == ChairSignup.meeting_id)
+            .filter(
+                ChairSignup.user_id == user.id,
+                Meeting.event_date >= today
+            )
+            .order_by(Meeting.event_date.asc())
+            .all()
+        )
+        
+        # Calculate percentage (past + future)
+        total_chaired = past_chaired + future_chaired
+        
+        # Only include users who have chaired or will chair
+        if total_chaired > 0:
+            user_stats.append({
+                'user': user,
+                'past_chaired': past_chaired,
+                'future_chaired': future_chaired,
+                'total_chaired': total_chaired,
+                'future_meetings': future_meetings
+            })
+    
+    # Calculate totals
+    total_past = sum(s['past_chaired'] for s in user_stats)
+    total_future = sum(s['future_chaired'] for s in user_stats)
+    total_all = total_past + total_future
+    
+    # Count unfilled future meetings
+    unfilled_future = (
         Meeting.query
-        .filter(Meeting.event_date >= start_date, Meeting.event_date <= end_date)
-        .order_by(Meeting.event_date.asc(), Meeting.start_time.asc())
-        .options(db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user))
-        .all()
+        .filter(
+            Meeting.event_date >= today,
+            ~Meeting.chair_signup.has()
+        )
+        .count()
     )
-
+    
     return render_template(
         "admin_monthly.html",
-        year=year,
-        month=month,
-        month_name=calendar.month_name[month],
-        meetings=meetings,
+        user_stats=user_stats,
+        total_past=total_past,
+        total_future=total_future,
+        total_all=total_all,
+        unfilled_future=unfilled_future,
         today=today,
     )
 
