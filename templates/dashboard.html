@@ -184,6 +184,86 @@
       </div>
     </div>
   </div>
+  
+  <!-- Admin Analytics Charts -->
+  {% if admin_charts %}
+  <div class="row mb-4">
+    <!-- Meeting Coverage by Gender -->
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-primary text-white">
+          <h6 class="mb-0"><i class="fas fa-male"></i> Men's Meetings (Last 30 Days)</h6>
+        </div>
+        <div class="card-body text-center">
+          <canvas id="mensChart" height="200"></canvas>
+          <h3 class="mt-3 mb-0">{{ admin_charts.mens_coverage.percent }}%</h3>
+          <small class="text-muted">Coverage Rate</small>
+          <div class="mt-2">
+            <small><strong>{{ admin_charts.mens_coverage.filled }}</strong> filled / <strong>{{ admin_charts.mens_coverage.filled + admin_charts.mens_coverage.unfilled }}</strong> total</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-danger text-white">
+          <h6 class="mb-0"><i class="fas fa-female"></i> Women's Meetings (Last 30 Days)</h6>
+        </div>
+        <div class="card-body text-center">
+          <canvas id="womensChart" height="200"></canvas>
+          <h3 class="mt-3 mb-0">{{ admin_charts.womens_coverage.percent }}%</h3>
+          <small class="text-muted">Coverage Rate</small>
+          <div class="mt-2">
+            <small><strong>{{ admin_charts.womens_coverage.filled }}</strong> filled / <strong>{{ admin_charts.womens_coverage.filled + admin_charts.womens_coverage.unfilled }}</strong> total</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-success text-white">
+          <h6 class="mb-0"><i class="fas fa-chart-pie"></i> Overall Coverage (Last 30 Days)</h6>
+        </div>
+        <div class="card-body text-center">
+          <canvas id="overallChart" height="200"></canvas>
+          <h3 class="mt-3 mb-0">{{ admin_charts.overall_coverage.percent }}%</h3>
+          <small class="text-muted">Coverage Rate</small>
+          <div class="mt-2">
+            <small><strong>{{ admin_charts.overall_coverage.filled }}</strong> filled / <strong>{{ admin_charts.overall_coverage.filled + admin_charts.overall_coverage.unfilled }}</strong> total</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Weekly Trend & User Participation -->
+  <div class="row mb-4">
+    <div class="col-lg-8 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-info text-white">
+          <h6 class="mb-0"><i class="fas fa-chart-line"></i> Weekly Coverage Trend</h6>
+        </div>
+        <div class="card-body">
+          <canvas id="weeklyTrendChart" height="100"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="mb-0"><i class="fas fa-users"></i> Top Contributors</h6>
+        </div>
+        <div class="card-body">
+          <canvas id="userParticipationChart" height="100"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  
   {% else %}
   <!-- Personal Stats Row (for non-admin users) -->
   <div class="row mb-4">
@@ -623,5 +703,233 @@ document.getElementById('install-button').addEventListener('click', async () => 
 if (window.matchMedia('(display-mode: standalone)').matches) {
   document.getElementById('install-banner').style.display = 'none';
 }
+
+{% if admin_charts %}
+// Chart.js Initialization for Admin Analytics
+document.addEventListener('DOMContentLoaded', function() {
+  // Men's Coverage Chart
+  if (document.getElementById('mensChart')) {
+    const mensCtx = document.getElementById('mensChart').getContext('2d');
+    new Chart(mensCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Filled', 'Unfilled'],
+        datasets: [{
+          data: [{{ admin_charts.mens_coverage.filled }}, {{ admin_charts.mens_coverage.unfilled }}],
+          backgroundColor: ['#0d6efd', '#dee2e6'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              font: { size: 12 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = {{ admin_charts.mens_coverage.filled + admin_charts.mens_coverage.unfilled }};
+                const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return label + ': ' + value + ' (' + percent + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Women's Coverage Chart
+  if (document.getElementById('womensChart')) {
+    const womensCtx = document.getElementById('womensChart').getContext('2d');
+    new Chart(womensCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Filled', 'Unfilled'],
+        datasets: [{
+          data: [{{ admin_charts.womens_coverage.filled }}, {{ admin_charts.womens_coverage.unfilled }}],
+          backgroundColor: ['#d63384', '#dee2e6'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              font: { size: 12 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = {{ admin_charts.womens_coverage.filled + admin_charts.womens_coverage.unfilled }};
+                const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return label + ': ' + value + ' (' + percent + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Overall Coverage Chart
+  if (document.getElementById('overallChart')) {
+    const overallCtx = document.getElementById('overallChart').getContext('2d');
+    new Chart(overallCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Filled', 'Unfilled'],
+        datasets: [{
+          data: [{{ admin_charts.overall_coverage.filled }}, {{ admin_charts.overall_coverage.unfilled }}],
+          backgroundColor: ['#198754', '#dee2e6'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              font: { size: 12 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = {{ admin_charts.overall_coverage.filled + admin_charts.overall_coverage.unfilled }};
+                const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return label + ': ' + value + ' (' + percent + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Weekly Trend Chart
+  if (document.getElementById('weeklyTrendChart')) {
+    const weeklyCtx = document.getElementById('weeklyTrendChart').getContext('2d');
+    new Chart(weeklyCtx, {
+      type: 'line',
+      data: {
+        labels: [{% for week in admin_charts.weekly_trend %}'{{ week.week }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+          label: 'Coverage %',
+          data: [{% for week in admin_charts.weekly_trend %}{{ week.percent }}{% if not loop.last %}, {% endif %}{% endfor %}],
+          borderColor: '#0d6efd',
+          backgroundColor: 'rgba(13, 110, 253, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              callback: function(value) {
+                return value + '%';
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const weekIndex = context.dataIndex;
+                const weekData = {{ admin_charts.weekly_trend | tojson }};
+                const week = weekData[weekIndex];
+                return [
+                  'Coverage: ' + week.percent.toFixed(1) + '%',
+                  'Filled: ' + week.filled + ' / ' + week.total
+                ];
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // User Participation Chart
+  if (document.getElementById('userParticipationChart')) {
+    const userCtx = document.getElementById('userParticipationChart').getContext('2d');
+    new Chart(userCtx, {
+      type: 'bar',
+      data: {
+        labels: [{% for user in admin_charts.user_participation %}'{{ user.name }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+          label: 'Meetings Chaired',
+          data: [{% for user in admin_charts.user_participation %}{{ user.count }}{% if not loop.last %}, {% endif %}{% endfor %}],
+          backgroundColor: '#0d6efd',
+          borderColor: '#0a58ca',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const userIndex = context.dataIndex;
+                const userData = {{ admin_charts.user_participation | tojson }};
+                const user = userData[userIndex];
+                return [
+                  'Meetings: ' + user.count,
+                  'Percentage: ' + user.percent.toFixed(1) + '%'
+                ];
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+});
+{% endif %}
 </script>
 {% endblock %}
