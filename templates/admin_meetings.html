@@ -1,6 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
+  /* Light theme - force white background and dark text */
+  body.light-theme .table-responsive,
+  body.light-theme .table,
+  body.light-theme .table tbody,
+  body.light-theme .table tbody tr,
+  body.light-theme .table tbody td {
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+  }
+  
+  body.light-theme .table thead th {
+    background-color: #f8f9fa !important;
+    color: #1a1a1a !important;
+  }
+  
+  body.light-theme .table-striped tbody tr:nth-of-type(odd) {
+    background-color: #f8f9fa !important;
+  }
+  
+  body.light-theme .table-striped tbody tr:nth-of-type(even) {
+    background-color: #ffffff !important;
+  }
+
   /* Mobile responsive adjustments for admin pages */
   @media (max-width: 768px) {
     .admin-header .d-flex {
