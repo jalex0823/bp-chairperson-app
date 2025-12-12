@@ -12,6 +12,7 @@ def reset_password(email, new_password):
             return False
         
         user.password_hash = generate_password_hash(new_password)
+        user.password_reset_required = True  # Force password change on next login
         db.session.commit()
         
         print("="*60)
@@ -19,7 +20,8 @@ def reset_password(email, new_password):
         print("="*60)
         print(f"📧 Email: {user.email}")
         print(f"👤 Display Name: {user.display_name}")
-        print(f"🔑 New Password: {new_password}")
+        print(f"🔑 Temporary Password: {new_password}")
+        print("⚠️  User will be required to change password on next login")
         print("="*60)
         return True
 

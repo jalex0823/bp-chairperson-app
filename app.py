@@ -188,6 +188,7 @@ class User(db.Model):
     locked_until = db.Column(db.DateTime, nullable=True, index=True)  # Index for locked account queries
     profile_image = db.Column(db.Text, nullable=True)  # Store base64 encoded image data
     chair_points = db.Column(db.Integer, default=0, index=True)  # ChairPoints earned by chairing meetings
+    password_reset_required = db.Column(db.Boolean, default=False)  # Force password change on next login
 
     chair_signups = db.relationship("ChairSignup", back_populates="user")
     availability_signups = db.relationship("ChairpersonAvailability", back_populates="user")
@@ -1887,8 +1888,13 @@ def login():
                 db.session.commit()
                 
                 log_audit_event('login_success', user.id, details={'email': email})
-                flash("Logged in successfully.", "success")
                 
+                # Check if password reset is required
+                if user.password_reset_required:
+                    flash("You must change your password before continuing.", "warning")
+                    return redirect(url_for("change_password", required=True))
+                
+                flash("Logged in successfully.", "success")
                 next_url = request.args.get("next") or url_for("index")
                 return redirect(next_url)
             else:
@@ -2032,6 +2038,7 @@ def dashboard():
         
         # Admin statistics (only calculate if user is admin)
         admin_stats = None
+        admin_charts = None
         if user.is_admin:
             try:
                 # Count all registered hosts (non-admin users)
@@ -2067,11 +2074,121 @@ def dashboard():
                     'unfilled_chairs': future_chairs_needed - current_chairs
                 }
                 
+                # Calculate chart data for last 30 days
+                last_30_days = today - timedelta(days=30)
+                
+                # Men's meetings coverage (last 30 days)
+                mens_total = Meeting.query.filter(
+                    Meeting.event_date >= last_30_days,
+                    Meeting.event_date <= today,
+                    Meeting.gender_restriction == 'men'
+                ).count()
+                
+                mens_filled = db.session.query(Meeting).filter(
+                    Meeting.event_date >= last_30_days,
+                    Meeting.event_date <= today,
+                    Meeting.gender_restriction == 'men',
+                    Meeting.chair_signup.has()
+                ).count()
+                
+                # Women's meetings coverage (last 30 days)
+                womens_total = Meeting.query.filter(
+                    Meeting.event_date >= last_30_days,
+                    Meeting.event_date <= today,
+                    Meeting.gender_restriction == 'women'
+                ).count()
+                
+                womens_filled = db.session.query(Meeting).filter(
+                    Meeting.event_date >= last_30_days,
+                    Meeting.event_date <= today,
+                    Meeting.gender_restriction == 'women',
+                    Meeting.chair_signup.has()
+                ).count()
+                
+                # All meetings coverage (last 30 days)
+                all_total = Meeting.query.filter(
+                    Meeting.event_date >= last_30_days,
+                    Meeting.event_date <= today
+                ).count()
+                
+                all_filled = db.session.query(Meeting).filter(
+                    Meeting.event_date >= last_30_days,
+                    Meeting.event_date <= today,
+                    Meeting.chair_signup.has()
+                ).count()
+                
+                # Weekly trend data (last 4 weeks)
+                weekly_data = []
+                for week in range(4):
+                    week_start = today - timedelta(days=(week + 1) * 7)
+                    week_end = today - timedelta(days=week * 7)
+                    
+                    week_total = Meeting.query.filter(
+                        Meeting.event_date >= week_start,
+                        Meeting.event_date < week_end
+                    ).count()
+                    
+                    week_filled = db.session.query(Meeting).filter(
+                        Meeting.event_date >= week_start,
+                        Meeting.event_date < week_end,
+                        Meeting.chair_signup.has()
+                    ).count()
+                    
+                    weekly_data.insert(0, {
+                        'week': f'Week {4-week}',
+                        'total': week_total,
+                        'filled': week_filled,
+                        'percent': round((week_filled / week_total * 100) if week_total > 0 else 0, 1)
+                    })
+                
+                # User participation percentages (top 10)
+                user_participation = []
+                users = User.query.filter_by(is_admin=False).all()
+                
+                for u in users:
+                    user_total = db.session.query(Meeting).join(ChairSignup).filter(
+                        ChairSignup.user_id == u.id
+                    ).count()
+                    
+                    if user_total > 0:
+                        user_participation.append({
+                            'name': u.display_name,
+                            'count': user_total,
+                            'percent': round((user_total / all_total * 100) if all_total > 0 else 0, 1)
+                        })
+                
+                user_participation.sort(key=lambda x: x['count'], reverse=True)
+                user_participation = user_participation[:10]
+                
+                admin_charts = {
+                    'mens_coverage': {
+                        'filled': mens_filled,
+                        'unfilled': mens_total - mens_filled,
+                        'percent': round((mens_filled / mens_total * 100) if mens_total > 0 else 0, 1)
+                    },
+                    'womens_coverage': {
+                        'filled': womens_filled,
+                        'unfilled': womens_total - womens_filled,
+                        'percent': round((womens_filled / womens_total * 100) if womens_total > 0 else 0, 1)
+                    },
+                    'overall_coverage': {
+                        'filled': all_filled,
+                        'unfilled': all_total - all_filled,
+                        'percent': round((all_filled / all_total * 100) if all_total > 0 else 0, 1)
+                    },
+                    'weekly_trend': weekly_data,
+                    'user_participation': user_participation
+                }
+                
                 app.logger.info(f"Admin stats: {admin_stats}")
+                app.logger.info(f"Admin charts: {admin_charts}")
                 
             except Exception as e:
                 app.logger.error(f"Error calculating admin stats: {e}")
+                import traceback
+                traceback.print_exc()
                 admin_stats = None
+                admin_charts = None
         
         return render_template(
             "dashboard.html",
@@ -2088,7 +2205,8 @@ def dashboard():
             volunteer_signups=volunteer_signups,
             recent_meetings_count=recent_meetings_count,
             open_meetings=open_meetings,
-            admin_stats=admin_stats
+            admin_stats=admin_stats,
+            admin_charts=admin_charts
         )
     except Exception as e:
         app.logger.error(f"Dashboard error for user {user.id if user else 'unknown'}: {e}")
@@ -2432,6 +2550,54 @@ def profile_image(user_id):
     else:
         # Return a default placeholder image or 404
         return "", 404
+
+
+@app.route("/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    """Allow user to change their password."""
+    user = get_current_user()
+    if not user:
+        flash("Please log in.", "warning")
+        return redirect(url_for("login"))
+    
+    required = request.args.get('required') == 'True'
+    
+    if request.method == "POST":
+        current_password = request.form.get("current_password")
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
+        
+        # Validation
+        if not all([current_password, new_password, confirm_password]):
+            flash("All fields are required.", "danger")
+            return render_template("change_password.html", required=required)
+        
+        # Check current password (skip if password reset is required)
+        if not user.password_reset_required and not user.check_password(current_password):
+            flash("Current password is incorrect.", "danger")
+            return render_template("change_password.html", required=required)
+        
+        # Check new passwords match
+        if new_password != confirm_password:
+            flash("New passwords do not match.", "danger")
+            return render_template("change_password.html", required=required)
+        
+        # Check password strength
+        if len(new_password) < 8:
+            flash("Password must be at least 8 characters long.", "danger")
+            return render_template("change_password.html", required=required)
+        
+        # Update password
+        user.set_password(new_password)
+        user.password_reset_required = False  # Clear the reset flag
+        db.session.commit()
+        
+        log_audit_event('password_changed', user.id)
+        flash("Password changed successfully!", "success")
+        return redirect(url_for("dashboard"))
+    
+    return render_template("change_password.html", required=required)
 
 
 # ==========================
