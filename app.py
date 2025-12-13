@@ -3145,9 +3145,9 @@ def quiz_certificate(user_id=None):
             # Adjust these percentages to align text with your template's lines
             # Values are percentages of image height from top (0.0 = top, 1.0 = bottom)
             NAME_LINE_POSITION = 0.48   # Where the name line appears on your template
-            DATE_LINE_POSITION = 0.65   # Where the date line appears on your template
+            DATE_LINE_POSITION = 0.78   # Where the date line appears on your template (moved down)
             PROGRAM_TEXT_POSITION = 0.72  # Additional program text position
-            BP_ID_POSITION = 0.82        # BP ID position
+            BP_ID_POSITION = 0.88        # BP ID position (moved down to avoid overlap)
             # =================================================
             
             # Try to load a nice font, fallback to default
