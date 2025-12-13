@@ -1954,12 +1954,21 @@ def api_validate_registration_key():
 # USER PAGES (secured)
 # ==========================
 
-@app.route("/dashboard")
+@app.route("/dashboard", methods=["GET", "POST"])
 @login_required
 def dashboard():
     try:
         user = get_current_user()
         today = date.today()
+        
+        # Handle profile form submission
+        form = ProfileForm(obj=user)
+        if form.validate_on_submit():
+            user.display_name = form.display_name.data.strip()
+            user.gender = form.gender.data or None
+            db.session.commit()
+            flash("Profile updated successfully!", "success")
+            return redirect(url_for("dashboard"))
         
         # Get user's meetings - use explicit SELECT with proper joins
         # Only get meetings where ChairSignup.user_id matches current user
@@ -2193,6 +2202,7 @@ def dashboard():
         return render_template(
             "dashboard.html",
             user=user,
+            form=form,
             today=today,
             todays_meetings=todays_meetings,
             upcoming_meetings=upcoming_meetings[:5],
