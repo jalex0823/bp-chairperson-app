@@ -267,6 +267,17 @@
   {% else %}
   <!-- Personal Stats Row (for non-admin users) -->
   <div class="row mb-4">
+    <div class="col-md-3 mb-3">
+      <div class="card text-white h-100" style="background: linear-gradient(135deg, #0f6f75 0%, #0b5257 100%);">
+        <div class="card-body text-center p-2">
+          <div class="mb-2">
+            <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 60px; height: 60px;" alt="ChairPoints">
+          </div>
+          <h3 class="mb-0"><strong>{{ user.chair_points or 0 }}</strong></h3>
+          <small><strong>ChairPoints™</strong></small>
+        </div>
+      </div>
+    </div>
     <div class="col-md-2 mb-3">
       <div class="card bg-primary text-white h-100">
         <div class="card-body text-center p-2">
@@ -282,17 +293,6 @@
           <i class="fas fa-trophy fa-2x mb-1"></i>
           <h4 class="mb-0">{{ total_meetings_chaired }}</h4>
           <small>Total Chaired</small>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3 mb-3">
-      <div class="card text-white h-100" style="background: linear-gradient(135deg, #0f6f75 0%, #0b5257 100%);">
-        <div class="card-body text-center p-2">
-          <div class="mb-2">
-            <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 60px; height: 60px;" alt="ChairPoints">
-          </div>
-          <h3 class="mb-0"><strong>{{ user.chair_points or 0 }}</strong></h3>
-          <small><strong>ChairPoints™</strong></small>
         </div>
       </div>
     </div>

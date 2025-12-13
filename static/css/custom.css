@@ -385,7 +385,7 @@ a:hover { color: var(--color-secondary); }
 }
 
 .table-hover tbody tr:hover {
-    background-color: var(--color-primary-light);
+    background-color: rgba(15, 111, 117, 0.15);
 }
 
 /* Forms */
