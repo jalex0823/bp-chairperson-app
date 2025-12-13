@@ -1,50 +1,92 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container my-4">
-  <div class="d-flex justify-content-between align-items-center">
+  <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="mb-0">Your Dashboard</h1>
     <div>
-      <a class="btn btn-outline-primary" href="{{ url_for('profile') }}">Edit Profile</a>
       <a class="btn btn-outline-secondary" href="{{ url_for('calendar_view') }}">Interactive Calendar</a>
       <a class="btn btn-outline-secondary" href="{{ url_for('calendar_display') }}">Display Calendar</a>
     </div>
   </div>
 
-  <div class="mt-4">
-    <h5>Profile</h5>
-    <p>
-      <strong>Name:</strong> {{ user.display_name }}<br>
-      <strong>Email:</strong> {{ user.email }}<br>
-      <strong>Gender:</strong> {{ user.gender or '—' }}
-    </p>
+  <!-- Profile Section with Edit Form -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+      <h5 class="mb-0"><i class="fas fa-user"></i> Your Profile</h5>
+    </div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for('profile') }}">
+        {{ form.hidden_tag() }}
+        
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            {{ form.display_name.label(class="form-label fw-bold") }}
+            {{ form.display_name(class="form-control") }}
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Email</label>
+            <input type="text" class="form-control" value="{{ user.email }}" disabled>
+            <div class="form-text">Email cannot be changed</div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          {{ form.gender.label(class="form-label fw-bold") }}
+          <div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="gender" id="genderMale" value="male" {% if form.gender.data == 'male' %}checked{% endif %}>
+              <label class="form-check-label" for="genderMale">Male</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="gender" id="genderFemale" value="female" {% if form.gender.data == 'female' %}checked{% endif %}>
+              <label class="form-check-label" for="genderFemale">Female</label>
+            </div>
+          </div>
+          <div class="form-text">Used to determine eligibility for Men-only or Women-only meetings.</div>
+        </div>
+
+        {{ form.submit(class="btn btn-primary", value="Save Profile Changes") }}
+      </form>
+    </div>
   </div>
 
-  <div class="mt-4">
-    <h5>Your Upcoming Meetings (as Chair)</h5>
-    {% if my_meetings %}
-      <ul class="list-group">
-        {% for m in my_meetings %}
-          <li class="list-group-item d-flex justify-content-between align-items-start">
-            <div>
-              <div class="fw-bold">{{ m.event_date.strftime('%A, %B %d, %Y') }} • {{ m.start_time.strftime('%I:%M %p') }}</div>
-              <div>{{ m.title }}</div>
-            </div>
-            <div class="text-nowrap">
-              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('meeting_detail', meeting_id=m.id) }}">Details</a>
-            </div>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <div class="alert alert-info">You haven't claimed any meetings yet.</div>
-    {% endif %}
+  <!-- Upcoming Meetings Section -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+      <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Your Upcoming Meetings (as Chair)</h5>
+    </div>
+    <div class="card-body">
+      {% if my_meetings %}
+        <ul class="list-group list-group-flush">
+          {% for m in my_meetings %}
+            <li class="list-group-item d-flex justify-content-between align-items-start px-0">
+              <div>
+                <div class="fw-bold">{{ m.event_date.strftime('%A, %B %d, %Y') }} • {{ m.start_time.strftime('%I:%M %p') }}</div>
+                <div>{{ m.title }}</div>
+              </div>
+              <div class="text-nowrap">
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('meeting_detail', meeting_id=m.id) }}">Details</a>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="alert alert-info mb-0">You haven't claimed any meetings yet. Visit the calendar to volunteer for upcoming meetings!</div>
+      {% endif %}
+    </div>
   </div>
 
+  <!-- Admin Shortcuts -->
   {% if current_user and current_user.is_admin %}
-  <div class="mt-4">
-    <h5>Admin Shortcuts</h5>
-    <a class="btn btn-sm btn-outline-danger" href="{{ url_for('admin_meetings') }}">Manage Meetings</a>
-    <a class="btn btn-sm btn-outline-danger" href="{{ url_for('admin_monthly_html') }}">Monthly Report</a>
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-danger text-white">
+      <h5 class="mb-0"><i class="fas fa-user-shield"></i> Admin Shortcuts</h5>
+    </div>
+    <div class="card-body">
+      <a class="btn btn-sm btn-outline-danger me-2" href="{{ url_for('admin_meetings') }}">Manage Meetings</a>
+      <a class="btn btn-sm btn-outline-danger" href="{{ url_for('admin_monthly_html') }}">Monthly Report</a>
+    </div>
   </div>
   {% endif %}
 </div>

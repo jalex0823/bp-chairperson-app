@@ -1118,10 +1118,20 @@ def api_validate_registration_key():
 # USER PAGES (secured)
 # ==========================
 
-@app.route("/dashboard")
+@app.route("/dashboard", methods=["GET", "POST"])
 @login_required
 def dashboard():
     user = get_current_user()
+    form = ProfileForm(obj=user)
+    
+    # Handle profile updates from dashboard
+    if form.validate_on_submit():
+        user.display_name = form.display_name.data.strip()
+        user.gender = form.gender.data or None
+        db.session.commit()
+        flash("Profile updated successfully!", "success")
+        return redirect(url_for("dashboard"))
+    
     # Meetings user has claimed
     my_meetings = (
         Meeting.query
@@ -1130,7 +1140,7 @@ def dashboard():
         .order_by(Meeting.event_date.asc(), Meeting.start_time.asc())
         .all()
     )
-    return render_template("dashboard.html", user=user, my_meetings=my_meetings)
+    return render_template("dashboard.html", user=user, my_meetings=my_meetings, form=form)
 
 
 class ProfileForm(FlaskForm):

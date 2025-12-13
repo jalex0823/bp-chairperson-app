@@ -56,9 +56,9 @@
       </ul>
       <div class="d-flex align-items-center">
         {% if current_user %}
-          <span class="navbar-text text-light me-2">
-            {{ current_user.display_name }}
-          </span>
+          <a href="{{ url_for('dashboard') }}" class="navbar-text text-light me-2 text-decoration-none" title="View Dashboard & Profile">
+            <i class="fas fa-user-circle"></i> {{ current_user.display_name }}
+          </a>
           <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
             Logout
           </a>

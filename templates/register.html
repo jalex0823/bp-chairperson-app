@@ -22,12 +22,25 @@
       {{ form.hidden_tag() }}
 
       {% if access_codes_configured %}
-      <div class="mb-3">
-        <label for="access_code" class="form-label">Registration Unlock Key:</label>
-        <div class="input-group input-group-sm">
-          <input type="text" class="form-control form-control-sm" id="access_code" name="access_code" placeholder="Enter unlock key" autocomplete="off">
-          <button type="button" id="unlockSubmit" class="btn btn-success btn-sm">Submit</button>
-          <button type="button" id="unlockClear" class="btn btn-outline-secondary btn-sm">Delete</button>
+      <div class="mb-4 p-3 border rounded" style="background-color: #fff3cd; border-color: #ffc107 !important;">
+        <div class="d-flex align-items-center mb-2">
+          <i class="fas fa-key text-warning me-2" style="font-size: 1.5rem;"></i>
+          <h5 class="mb-0 text-dark">Registration Unlock Key Required</h5>
+        </div>
+        
+        <div class="alert alert-info mb-3" role="alert" style="color: white;">
+          <i class="fas fa-info-circle"></i> <strong>Registration is locked.</strong> You must enter a valid unlock key to access the registration form fields.
+        </div>
+        
+        <label for="access_code" class="form-label fw-bold">Enter Your Unlock Key:</label>
+        <div class="input-group mb-2">
+          <input type="text" class="form-control" id="access_code" name="access_code" placeholder="Enter unlock key" autocomplete="off">
+          <button type="button" id="unlockSubmit" class="btn btn-success">
+            <i class="fas fa-unlock"></i> Submit
+          </button>
+          <button type="button" id="unlockClear" class="btn btn-outline-secondary">
+            <i class="fas fa-times"></i> Clear
+          </button>
         </div>
         <div class="form-text">Enter the unlock key to enable the registration form fields.</div>
       </div>
