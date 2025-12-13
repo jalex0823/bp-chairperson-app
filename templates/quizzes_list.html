@@ -63,7 +63,7 @@
               </a>
               
               {% if attempts[quiz_id] %}
-              <a href="{{ url_for('quiz_certificate', quiz_id=quiz_id, attempt_id=attempts[quiz_id].id) }}" 
+              <a href="{{ url_for('quiz_certificate', user_id=current_user.id) }}" 
                  class="btn btn-outline-success" target="_blank">
                 <i class="fas fa-certificate"></i> Download Certificate
               </a>
@@ -79,10 +79,10 @@
   <!-- Instructions -->
   <div class="row mt-4">
     <div class="col-12">
-      <div class="card bg-light">
+      <div class="card" style="background-color: #f8f9fa !important; border: 1px solid #dee2e6;">
         <div class="card-body">
-          <h5><i class="fas fa-info-circle text-info"></i> How It Works</h5>
-          <ol class="mb-0">
+          <h5 style="color: #0f6f75;"><i class="fas fa-info-circle text-info"></i> How It Works</h5>
+          <ol class="mb-0" style="color: #212529;">
             <li>Watch the instructional video carefully</li>
             <li>Complete the quiz (you need 70% or higher to pass)</li>
             <li>Earn 50 ChairPoints upon passing each quiz</li>
