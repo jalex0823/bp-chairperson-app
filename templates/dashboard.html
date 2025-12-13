@@ -438,9 +438,9 @@
               <small class="text-muted">{{ next_meeting.description or 'No description' }}</small>
             </div>
             <div class="col-md-4 text-center">
-              <div class="bg-light rounded p-3">
-                <h4 class="mb-0 text-primary">{% if days_until_next == 0 %}TODAY{% elif days_until_next == 1 %}TOMORROW{% else %}{{ days_until_next }} DAYS{% endif %}</h4>
-                <small class="text-muted">{% if days_until_next == 0 %}It's today!{% elif days_until_next == 1 %}Almost here{% else %}to go{% endif %}</small>
+              <div class="rounded p-3" style="background: linear-gradient(135deg, #e0f2f7 0%, #b3e5fc 100%); border: 2px solid #0f6f75;">
+                <h4 class="mb-0" style="color: #0f6f75; font-weight: bold;">{% if days_until_next == 0 %}TODAY{% elif days_until_next == 1 %}TOMORROW{% else %}{{ days_until_next }} DAYS{% endif %}</h4>
+                <small style="color: #0b5257;">{% if days_until_next == 0 %}It's today!{% elif days_until_next == 1 %}Almost here{% else %}to go{% endif %}</small>
               </div>
             </div>
           </div>
