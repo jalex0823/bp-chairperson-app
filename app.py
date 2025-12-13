@@ -3002,7 +3002,7 @@ def generate_standard_certificate(user, attempt):
     
     # Subtitle
     c.setFont("Helvetica", 16)
-    c.setFillColorRGB(0.3, 0.3, 0.3)
+    c.setFillColorRGB(0, 0, 0)  # Pure black for readability
     c.drawCentredString(width / 2, height - 150, "Back Porch Online AA Meetings")
     
     # Decorative line
@@ -3012,7 +3012,7 @@ def generate_standard_certificate(user, attempt):
     
     # "This certifies that"
     c.setFont("Helvetica", 14)
-    c.setFillColorRGB(0.2, 0.2, 0.2)
+    c.setFillColorRGB(0, 0, 0)  # Pure black for readability
     c.drawCentredString(width / 2, height - 220, "This certifies that")
     
     # User name
@@ -3022,7 +3022,7 @@ def generate_standard_certificate(user, attempt):
     
     # Achievement text
     c.setFont("Helvetica", 14)
-    c.setFillColorRGB(0.2, 0.2, 0.2)
+    c.setFillColorRGB(0, 0, 0)  # Pure black for readability
     c.drawCentredString(width / 2, height - 300, "has successfully completed")
     
     # Training program title
@@ -3032,14 +3032,14 @@ def generate_standard_certificate(user, attempt):
     
     # Both videos completed
     c.setFont("Helvetica", 13)
-    c.setFillColorRGB(0.2, 0.2, 0.2)
+    c.setFillColorRGB(0, 0, 0)  # Pure black for readability
     c.drawCentredString(width / 2, height - 365, "Registration & Hosting Video Training")
     
     y_offset = 365
     
     # Score and details
     c.setFont("Helvetica", 12)
-    c.setFillColorRGB(0.3, 0.3, 0.3)
+    c.setFillColorRGB(0, 0, 0)  # Pure black for readability
     c.drawCentredString(width / 2, height - y_offset - 40, 
                        f"Score: {attempt.score}% ({attempt.correct_answers}/{attempt.total_questions} correct)")
     c.drawCentredString(width / 2, height - y_offset - 60, 
@@ -3052,7 +3052,7 @@ def generate_standard_certificate(user, attempt):
     
     # Bottom section - BP ID and signature line
     c.setFont("Helvetica", 10)
-    c.setFillColorRGB(0.4, 0.4, 0.4)
+    c.setFillColorRGB(0, 0, 0)  # Pure black for readability
     
     # Left side - BP ID
     c.drawString(100, 120, f"Back Porch ID: {user.bp_id}")
@@ -3063,13 +3063,13 @@ def generate_standard_certificate(user, attempt):
     
     # Footer
     c.setFont("Helvetica-Oblique", 9)
-    c.setFillColorRGB(0.5, 0.5, 0.5)
+    c.setFillColorRGB(0.2, 0.2, 0.2)  # Dark gray (more readable than light gray)
     c.drawCentredString(width / 2, 80, "The Real Back Porch - therealbackporch.com")
     c.drawCentredString(width / 2, 65, "Alcoholics Anonymous Online Meetings")
     
     # Certificate ID for verification
     c.setFont("Helvetica", 8)
-    c.setFillColorRGB(0.6, 0.6, 0.6)
+    c.setFillColorRGB(0.3, 0.3, 0.3)  # Medium gray for verification ID
     c.drawString(50, 50, f"Certificate ID: {attempt.id}-{user.id}-BP")
     
     c.save()
