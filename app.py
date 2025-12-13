@@ -43,10 +43,16 @@ from reportlab.lib.units import inch
 from urllib.request import urlopen
 from urllib.error import URLError, HTTPError
 
-# Try to import Redis for caching
+# Try to import Redis and Caching
+try:
+    from flask_caching import Cache
+    CACHE_AVAILABLE = True
+except ImportError:
+    CACHE_AVAILABLE = False
+    Cache = None
+
 try:
     import redis
-    from flask_caching import Cache
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
@@ -62,28 +68,48 @@ db = SQLAlchemy(app)
 mail = Mail(app)
 
 # Configure caching
-if REDIS_AVAILABLE and os.getenv('REDIS_URL'):
-    # Use Redis for caching in production when REDIS_URL is set
-    try:
-        cache = Cache(app, config={
-            'CACHE_TYPE': 'RedisCache',
-            'CACHE_REDIS_URL': os.getenv('REDIS_URL'),
-            'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutes default
-        })
-        print("✓ Using Redis cache")
-    except Exception as e:
-        print(f"⚠ Redis connection failed, falling back to SimpleCache: {e}")
+if CACHE_AVAILABLE:
+    if REDIS_AVAILABLE and os.getenv('REDIS_URL'):
+        # Use Redis for caching in production when REDIS_URL is set
+        try:
+            cache = Cache(app, config={
+                'CACHE_TYPE': 'RedisCache',
+                'CACHE_REDIS_URL': os.getenv('REDIS_URL'),
+                'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutes default
+            })
+            print("✓ Using Redis cache")
+        except Exception as e:
+            print(f"⚠ Redis connection failed, falling back to SimpleCache: {e}")
+            cache = Cache(app, config={
+                'CACHE_TYPE': 'SimpleCache',
+                'CACHE_DEFAULT_TIMEOUT': 300
+            })
+    else:
+        # Fallback to simple cache (no Redis available or configured)
         cache = Cache(app, config={
             'CACHE_TYPE': 'SimpleCache',
             'CACHE_DEFAULT_TIMEOUT': 300
         })
 else:
-    # Fallback to simple cache (no Redis available or configured)
-    cache = Cache(app, config={
-        'CACHE_TYPE': 'SimpleCache',
-        'CACHE_DEFAULT_TIMEOUT': 300
-    })
-    print("✓ Using SimpleCache (Redis not configured)")
+    # No caching available - create a dummy cache object
+    class DummyCache:
+        def memoize(self, timeout=None):
+            """Pass-through decorator when cache is not available"""
+            def decorator(f):
+                return f
+            return decorator
+        
+        def cached(self, timeout=None):
+            """Pass-through decorator when cache is not available"""
+            def decorator(f):
+                return f
+            return decorator
+        
+        def clear(self):
+            pass
+    
+    cache = DummyCache()
+    print("⚠ Flask-Caching not available, caching disabled")
 
 # Performance monitoring
 @app.before_request
