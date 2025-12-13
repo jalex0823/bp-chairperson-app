@@ -3077,6 +3077,7 @@ def generate_standard_certificate(user, attempt):
     return buffer
 
 
+@app.route("/certificate")
 @app.route("/certificate/<int:user_id>")
 @login_required
 def quiz_certificate(user_id=None):
