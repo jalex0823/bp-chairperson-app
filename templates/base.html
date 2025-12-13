@@ -118,7 +118,7 @@
           <div class="d-flex align-items-center me-3">
             <!-- Profile Picture Column -->
             <div class="me-2">
-              <a href="{{ url_for('profile') }}" class="text-decoration-none">
+              <a href="{{ url_for('dashboard') }}" class="text-decoration-none" title="View Dashboard">
                 {% if current_user.profile_image %}
                   <img src="{{ url_for('profile_image', user_id=current_user.id) }}" 
                        alt="{{ current_user.display_name }}" 
