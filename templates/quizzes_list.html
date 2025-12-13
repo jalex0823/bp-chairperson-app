@@ -63,7 +63,7 @@
               </a>
               
               {% if attempts[quiz_id] %}
-              <a href="{{ url_for('quiz_certificate', quiz_id=quiz_id, attempt_id=attempts[quiz_id].id) }}" 
+              <a href="{{ url_for('quiz_certificate', user_id=current_user.id) }}" 
                  class="btn btn-outline-success" target="_blank">
                 <i class="fas fa-certificate"></i> Download Certificate
               </a>

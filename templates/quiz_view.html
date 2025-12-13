@@ -16,7 +16,7 @@
             Score: {{ passed_attempt.score }}% | Earned: {{ passed_attempt.points_awarded }} ChairPoints
           </div>
           <div>
-            <a href="{{ url_for('quiz_certificate', quiz_id=quiz.id, attempt_id=passed_attempt.id) }}" 
+            <a href="{{ url_for('quiz_certificate', user_id=current_user.id) }}" 
                class="btn btn-primary" target="_blank">
               <i class="fas fa-certificate"></i> Download Certificate
             </a>

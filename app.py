@@ -2949,7 +2949,7 @@ def quiz_submit(quiz_id):
     return redirect(url_for("quiz_view", quiz_id=quiz_id))
 
 
-def generate_standard_certificate(user, quiz, attempt):
+def generate_standard_certificate(user, attempt):
     """Generate a standard programmatic PDF certificate (fallback)"""
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import letter
@@ -3044,33 +3044,37 @@ def generate_standard_certificate(user, quiz, attempt):
     # Certificate ID for verification
     c.setFont("Helvetica", 8)
     c.setFillColorRGB(0.6, 0.6, 0.6)
-    c.drawString(50, 50, f"Certificate ID: {attempt.id}-{user.id}-{quiz['id']}")
+    c.drawString(50, 50, f"Certificate ID: {attempt.id}-{user.id}-BP")
     
     c.save()
     buffer.seek(0)
     return buffer
 
 
-@app.route("/quiz/<quiz_id>/certificate/<int:attempt_id>")
+@app.route("/certificate/<int:user_id>")
 @login_required
-def quiz_certificate(quiz_id, attempt_id):
-    """Generate a printable PDF certificate for a passed quiz - requires both quizzes to be completed."""
-    user = User.query.get(session["user_id"])
+def quiz_certificate(user_id=None):
+    """Generate a printable PDF certificate for a user - requires both quizzes to be completed.
+    Admins can view any user's certificate. Regular users can only view their own."""
     
-    # Verify the attempt belongs to the user and they passed
-    attempt = QuizAttempt.query.filter_by(
-        id=attempt_id,
-        user_id=user.id,
-        quiz_id=quiz_id,
-        passed=True
-    ).first()
+    # Determine which user's certificate to show
+    if user_id is None:
+        # No user_id provided, show current user's certificate
+        user = User.query.get(session["user_id"])
+    else:
+        # user_id provided - check if current user is admin or viewing their own cert
+        current_user_obj = User.query.get(session["user_id"])
+        if not current_user_obj.is_admin and user_id != current_user_obj.id:
+            flash("You can only view your own certificate.", "error")
+            return redirect(url_for("dashboard"))
+        
+        user = User.query.get(user_id)
+        if not user:
+            flash("User not found.", "error")
+            return redirect(url_for("admin_certificates") if current_user_obj.is_admin else url_for("dashboard"))
     
-    if not attempt:
-        flash("Certificate not found or quiz not passed.", "error")
-        return redirect(url_for("quizzes_list"))
-    
-    # Check if user has completed BOTH quizzes before awarding certificate
-    all_quiz_ids = list(QUIZZES.keys())  # ['registration', 'hosting']
+    # Check if user has completed BOTH quizzes
+    all_quiz_ids = list(QUIZZES.keys())  # ['registration_quiz', 'hosting_quiz']
     passed_quizzes = QuizAttempt.query.filter_by(
         user_id=user.id,
         passed=True
@@ -3081,13 +3085,18 @@ def quiz_certificate(quiz_id, attempt_id):
     
     if not required_quiz_ids.issubset(passed_quiz_ids):
         missing_quizzes = required_quiz_ids - passed_quiz_ids
-        missing_titles = [QUIZZES[qid]['title'] for qid in missing_quizzes]
-        flash(f"You must complete all video quizzes before receiving your certificate. Still needed: {', '.join(missing_titles)}", "warning")
+        missing_titles = [QUIZZES.get(qid, {}).get('title', qid) for qid in missing_quizzes]
+        flash(f"Certificate not available. All video quizzes must be completed. Still needed: {', '.join(missing_titles)}", "warning")
         return redirect(url_for("quizzes_list"))
     
-    quiz = QUIZZES.get(quiz_id)
-    if not quiz:
-        flash("Quiz not found.", "error")
+    # Get the most recent passed attempt for certificate details
+    attempt = QuizAttempt.query.filter_by(
+        user_id=user.id,
+        passed=True
+    ).order_by(QuizAttempt.completed_at.desc()).first()
+    
+    if not attempt:
+        flash("No certificate data found.", "error")
         return redirect(url_for("quizzes_list"))
     
     # Try to use custom certificate image if available
@@ -3105,6 +3114,15 @@ def quiz_certificate(quiz_id, attempt_id):
             # Get image dimensions
             img_width, img_height = img.size
             
+            # ===== CERTIFICATE POSITIONING CONFIGURATION =====
+            # Adjust these percentages to align text with your template's lines
+            # Values are percentages of image height from top (0.0 = top, 1.0 = bottom)
+            NAME_LINE_POSITION = 0.48   # Where the name line appears on your template
+            DATE_LINE_POSITION = 0.65   # Where the date line appears on your template
+            PROGRAM_TEXT_POSITION = 0.72  # Additional program text position
+            BP_ID_POSITION = 0.82        # BP ID position
+            # =================================================
+            
             # Try to load a nice font, fallback to default
             try:
                 # Try different font sizes for name and date
@@ -3120,37 +3138,40 @@ def quiz_certificate(quiz_id, attempt_id):
             # Text color (dark, will work on light backgrounds)
             text_color = (0, 0, 0)  # Black - adjust if needed
             
-            # Calculate text positions (centered horizontally)
-            # NAME - Position at approximately 45% from top
-            name_text = user.display_name.upper()  # Uppercase for emphasis
+            # NAME LINE - Align text baseline with template line
+            name_text = user.display_name
             name_bbox = draw.textbbox((0, 0), name_text, font=name_font)
             name_width = name_bbox[2] - name_bbox[0]
+            name_height = name_bbox[3] - name_bbox[1]
             name_x = (img_width - name_width) // 2
-            name_y = int(img_height * 0.45)  # Adjust this percentage as needed
+            # Position text so bottom of text sits ON the line at NAME_LINE_POSITION
+            name_y = int(img_height * NAME_LINE_POSITION) - name_height
             draw.text((name_x, name_y), name_text, fill=text_color, font=name_font)
             
-            # DATE - Position at approximately 60% from top
-            date_text = f"Completed on {attempt.completed_at.strftime('%B %d, %Y')}"
+            # DATE LINE - Align text baseline with template line
+            date_text = attempt.completed_at.strftime('%B %d, %Y')
             date_bbox = draw.textbbox((0, 0), date_text, font=date_font)
             date_width = date_bbox[2] - date_bbox[0]
+            date_height = date_bbox[3] - date_bbox[1]
             date_x = (img_width - date_width) // 2
-            date_y = int(img_height * 0.60)  # Adjust this percentage as needed
+            # Position text so bottom of text sits ON the line at DATE_LINE_POSITION
+            date_y = int(img_height * DATE_LINE_POSITION) - date_height
             draw.text((date_x, date_y), date_text, fill=text_color, font=date_font)
             
-            # COMPLETION TEXT - Position at approximately 70% from top
+            # ADDITIONAL INFO - Program name
             completion_text = "Back Porch Chairperson Training Program"
             completion_bbox = draw.textbbox((0, 0), completion_text, font=detail_font)
             completion_width = completion_bbox[2] - completion_bbox[0]
             completion_x = (img_width - completion_width) // 2
-            completion_y = int(img_height * 0.70)  # Adjust this percentage as needed
+            completion_y = int(img_height * PROGRAM_TEXT_POSITION)
             draw.text((completion_x, completion_y), completion_text, fill=text_color, font=detail_font)
             
-            # BP ID - Position at approximately 80% from top
+            # BP ID - Bottom area
             bp_id_text = f"BP ID: {user.bp_id}"
             bp_id_bbox = draw.textbbox((0, 0), bp_id_text, font=detail_font)
             bp_id_width = bp_id_bbox[2] - bp_id_bbox[0]
             bp_id_x = (img_width - bp_id_width) // 2
-            bp_id_y = int(img_height * 0.80)  # Adjust this percentage as needed
+            bp_id_y = int(img_height * BP_ID_POSITION)
             draw.text((bp_id_x, bp_id_y), bp_id_text, fill=text_color, font=detail_font)
             
             # Convert PIL image to PDF
@@ -3187,15 +3208,16 @@ def quiz_certificate(quiz_id, attempt_id):
         except Exception as e:
             app.logger.error(f"Error using custom certificate: {e}")
             # Fall back to generating standard certificate
-            buffer = generate_standard_certificate(user, quiz, attempt)
+            buffer = generate_standard_certificate(user, attempt)
     else:
         # No custom image, use standard certificate
-        buffer = generate_standard_certificate(user, quiz, attempt)
+        buffer = generate_standard_certificate(user, attempt)
     
     # Return PDF as downloadable file
     response = make_response(buffer.getvalue())
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'inline; filename=BP_Certificate_{user.display_name.replace(" ", "_")}_{quiz_id}.pdf'
+    filename = f'BP_Certificate_{user.display_name.replace(" ", "_")}.pdf'
+    response.headers['Content-Disposition'] = f'inline; filename={filename}'
     
     return response
 
@@ -3590,6 +3612,56 @@ def award_chair_points_for_completed_meetings():
 # ==========================
 # ADMIN ROUTES
 # ==========================
+
+@app.route("/admin/certificates")
+@admin_required
+def admin_certificates():
+    """Admin page to view all certificate recipients"""
+    # Get all passed quiz attempts with user info
+    certificate_recipients = db.session.query(
+        User.id,
+        User.username,
+        User.display_name,
+        User.bp_id,
+        User.email,
+        db.func.count(QuizAttempt.id).label('quizzes_passed'),
+        db.func.max(QuizAttempt.completed_at).label('latest_completion')
+    ).join(
+        QuizAttempt, User.id == QuizAttempt.user_id
+    ).filter(
+        QuizAttempt.passed == True
+    ).group_by(
+        User.id
+    ).having(
+        db.func.count(QuizAttempt.id) >= 2  # Both quizzes passed
+    ).order_by(
+        db.desc('latest_completion')
+    ).all()
+    
+    # Get detailed quiz attempts for each recipient
+    recipients_with_details = []
+    for recipient in certificate_recipients:
+        user_attempts = QuizAttempt.query.filter_by(
+            user_id=recipient.id,
+            passed=True
+        ).order_by(QuizAttempt.completed_at.desc()).all()
+        
+        recipients_with_details.append({
+            'user_id': recipient.id,
+            'username': recipient.username,
+            'display_name': recipient.display_name or recipient.username,
+            'bp_id': recipient.bp_id,
+            'email': recipient.email,
+            'quizzes_passed': recipient.quizzes_passed,
+            'latest_completion': recipient.latest_completion,
+            'attempts': user_attempts
+        })
+    
+    return render_template(
+        'admin_certificates.html',
+        recipients=recipients_with_details,
+        total_recipients=len(recipients_with_details)
+    )
 
 @app.route("/admin/meetings")
 @admin_required
