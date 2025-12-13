@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>
+                <i class="fas fa-certificate me-2"></i>
+                Certificate Recipients
+            </h2>
+            <p class="text-muted">
+                View all members who have completed the training program and earned certificates
+            </p>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="display-4">{{ total_recipients }}</h3>
+                    <p class="text-muted mb-0">Total Recipients</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recipients Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-users me-2"></i>
+                Certificate Recipients
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if recipients %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>BP ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Quizzes Passed</th>
+                            <th>Latest Completion</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for recipient in recipients %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-info">{{ recipient.bp_id }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ recipient.display_name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ recipient.email }}</small>
+                            </td>
+                            <td>{{ recipient.email or 'N/A' }}</td>
+                            <td>
+                                <span class="badge bg-success">
+                                    {{ recipient.quizzes_passed }} / 2
+                                </span>
+                            </td>
+                            <td>
+                                {{ recipient.latest_completion.strftime('%b %d, %Y at %I:%M %p') if recipient.latest_completion else 'N/A' }}
+                            </td>
+                            <td>
+                                <!-- View Certificate Button -->
+                                <a href="{{ url_for('quiz_certificate', user_id=recipient.user_id) }}" 
+                                   class="btn btn-sm btn-primary" 
+                                   target="_blank"
+                                   title="View Certificate">
+                                    <i class="fas fa-file-pdf me-1"></i>
+                                    View Certificate
+                                </a>
+                                
+                                <!-- Dropdown for quiz details -->
+                                <button class="btn btn-sm btn-secondary" 
+                                        type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#details-{{ recipient.user_id }}"
+                                        title="Show Quiz Details">
+                                    <i class="fas fa-info-circle"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- Collapsible Quiz Details Row -->
+                        <tr class="collapse" id="details-{{ recipient.user_id }}">
+                            <td colspan="6" class="bg-light">
+                                <div class="p-3">
+                                    <h6 class="mb-3">Quiz Completion Details</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Quiz</th>
+                                                    <th>Score</th>
+                                                    <th>Correct Answers</th>
+                                                    <th>ChairPoints</th>
+                                                    <th>Completed</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for attempt in recipient.attempts %}
+                                                <tr>
+                                                    <td>
+                                                        {% if attempt.quiz_id == 'registration_quiz' %}
+                                                            <i class="fas fa-clipboard-list me-1"></i> Registration Quiz
+                                                        {% elif attempt.quiz_id == 'hosting_quiz' %}
+                                                            <i class="fas fa-video me-1"></i> Hosting Quiz
+                                                        {% else %}
+                                                            {{ attempt.quiz_id }}
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-success">{{ attempt.score }}%</span>
+                                                    </td>
+                                                    <td>{{ attempt.correct_answers }} / {{ attempt.total_questions }}</td>
+                                                    <td>
+                                                        <span class="badge bg-warning">
+                                                            <i class="fas fa-coins"></i> {{ attempt.points_awarded }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ attempt.completed_at.strftime('%b %d, %Y at %I:%M %p') }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-light border">
+                <i class="fas fa-info-circle me-2 text-muted"></i>
+                <span class="text-muted">No certificate recipients yet. Members must pass both the Registration and Hosting quizzes to earn a certificate.</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h6>Certificate Requirements</h6>
+            <ul class="mb-0">
+                <li>Complete and pass the <strong>Registration Quiz</strong> with 70% or higher</li>
+                <li>Complete and pass the <strong>Hosting Quiz</strong> with 70% or higher</li>
+                <li>Earn <strong>50 ChairPoints</strong> for each quiz passed</li>
+                <li>Certificate is automatically generated after passing both quizzes</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
