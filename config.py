@@ -13,9 +13,9 @@ class Config:
         elif raw_url.startswith("postgresql://"):
             raw_url = raw_url.replace("postgresql://", "postgresql+psycopg2://", 1)
         SQLALCHEMY_DATABASE_URI = raw_url
-    else:
+    elif os.environ.get("DB_HOST"):
         # MySQL (DreamHost) connection details
-        DB_HOST = os.environ.get("DB_HOST", "mysql.therealbackporch.com")
+        DB_HOST = os.environ.get("DB_HOST")
         DB_PORT = os.environ.get("DB_PORT", "3306")
         DB_NAME = os.environ.get("DB_NAME", "chairameeting")
         DB_USER = os.environ.get("DB_USER", "chairperson")
@@ -30,6 +30,11 @@ class Config:
         SQLALCHEMY_DATABASE_URI = (
             f"mysql+pymysql://{enc_user}:{enc_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
         )
+    else:
+        # Local SQLite database for testing
+        import os
+        basedir = os.path.abspath(os.path.dirname(__file__))
+        SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(basedir, 'instance', 'bp_chair.sqlite3')}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Email configuration for DreamHost
@@ -43,6 +48,18 @@ class Config:
 
     # Scheduler configuration
     SCHEDULER_API_ENABLED = True
+
+    # Video hosting configuration
+    # For production (Heroku), use external video hosting
+    # For local development, use local files in static/videos/
+    VIDEO_BASE_URL = os.environ.get(
+        'VIDEO_BASE_URL',
+        'https://therealbackporch.com/Videos/'
+    )
+    
+    # CSRF configuration
+    WTF_CSRF_ENABLED = os.environ.get("WTF_CSRF_ENABLED", "True").lower() == "true"
+    WTF_CSRF_TIME_LIMIT = int(os.environ.get("WTF_CSRF_TIME_LIMIT", 3600))  # 1 hour
 
     # Registration gating
     REGISTRATION_ENABLED = os.environ.get("REGISTRATION_ENABLED", "True").lower() == "true"

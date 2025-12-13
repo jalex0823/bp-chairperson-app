@@ -4,8 +4,18 @@
     <div class="row justify-content-center">
       <div class="col-12 col-md-10 col-lg-8 col-xl-6">
         <h2 class="mb-4 text-center">Create Back Porch Chairperson Account</h2>
-        <div class="card shadow-sm">
-          <div class="card-body p-4">
+        
+        <!-- Registration Instructions Alert -->
+        <div class="alert alert-light border mb-4" role="alert" style="background-color: white; color: black;">
+          <h6><i class="fas fa-info-circle"></i> New to Chairing Back Porch Meetings?</h6>
+          <p class="mb-2">Learn about the registration process, requirements, and what to expect as a chairperson.</p>
+          <a href="{{ url_for('registration_instructions') }}" class="btn btn-sm btn-outline-dark">
+            <i class="fas fa-book-open"></i> View Registration Instructions
+          </a>
+        </div>
+        
+        <div class="card shadow-sm" style="background-color: white;">
+          <div class="card-body p-4" style="color: black;">
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -22,19 +32,20 @@
       {{ form.hidden_tag() }}
 
       {% if access_codes_configured %}
+      <!-- Registration Unlock Key Section - PROMINENT -->
       <div class="mb-4 p-3 border rounded" style="background-color: #fff3cd; border-color: #ffc107 !important;">
         <div class="d-flex align-items-center mb-2">
           <i class="fas fa-key text-warning me-2" style="font-size: 1.5rem;"></i>
           <h5 class="mb-0 text-dark">Registration Unlock Key Required</h5>
         </div>
         
-        <div class="alert alert-info mb-3" role="alert" style="color: white;">
+        <div class="alert alert-info mb-3" role="alert">
           <i class="fas fa-info-circle"></i> <strong>Registration is locked.</strong> You must enter a valid unlock key to access the registration form fields.
         </div>
         
         <label for="access_code" class="form-label fw-bold">Enter Your Unlock Key:</label>
         <div class="input-group mb-2">
-          <input type="text" class="form-control" id="access_code" name="access_code" placeholder="Enter unlock key" autocomplete="off">
+          {{ form.access_code(class='form-control', id='access_code', placeholder='Enter unlock key', autocomplete='off') }}
           <button type="button" id="unlockSubmit" class="btn btn-success">
             <i class="fas fa-unlock"></i> Submit
           </button>
@@ -42,7 +53,28 @@
             <i class="fas fa-times"></i> Clear
           </button>
         </div>
-        <div class="form-text">Enter the unlock key to enable the registration form fields.</div>
+        
+        <!-- Request Key Section - PROMINENT -->
+        <div class="card mt-3" style="border: 2px solid #0a6ebd; background-color: #e7f3ff;">
+          <div class="card-body p-3">
+            <h6 class="card-title mb-2 text-primary">
+              <i class="fas fa-envelope"></i> Don't Have an Unlock Key?
+            </h6>
+            <p class="card-text small mb-2">
+              You need a BP Chair Key to register as a chairperson. Request one now and you'll receive it via email.
+            </p>
+            <a href="mailto:backporchmeetings@outlook.com?subject=Request BP Chair Key&body=Hello,%0D%0A%0D%0AI would like to request a BP Chair Key to register as a chairperson.%0D%0A%0D%0AThank you!" 
+               class="btn btn-primary btn-sm w-100">
+              <i class="fas fa-paper-plane"></i> Request a BP Chair Key Now
+            </a>
+          </div>
+        </div>
+        
+        <div id="unlockStatus" class="mt-3" style="display: none;">
+          <div class="alert alert-success mb-0" role="alert">
+            <i class="fas fa-check-circle"></i> <strong>Form Unlocked!</strong> You may now complete your registration below.
+          </div>
+        </div>
       </div>
       {% endif %}
 
@@ -86,17 +118,20 @@
 
       {{ form.submit(class_='btn btn-primary btn-sm w-100', id='submitBtn') }}
 
-    <!-- Modal for incorrect key / lockout -->
+    <!-- Modal for incorrect key warning -->
     <div class="modal fade" id="keyModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Registration Locked</h5>
+          <div class="modal-header bg-warning">
+            <h5 class="modal-title text-dark"><i class="fas fa-exclamation-triangle"></i> Incorrect Unlock Key</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body" id="keyModalBody">Incorrect key. You are locked out.</div>
+          <div class="modal-body" id="keyModalBody" style="color: black;">
+            <p class="mb-2"><strong>The unlock key you entered is incorrect.</strong></p>
+            <p class="mb-0">Remaining attempts: <span id="remainingAttempts" class="fw-bold text-danger">2</span></p>
+          </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Try Again</button>
           </div>
         </div>
       </div>
@@ -110,7 +145,12 @@
             <h5 class="modal-title">Registration Unlocked</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body">Your unlock key is valid. You may complete the registration form now.</div>
+          <div class="modal-body">
+            <div class="text-success mb-3">
+              <i class="fas fa-check-circle fa-2x"></i>
+            </div>
+            <p class="mb-0">Your unlock key is valid! The registration form fields are now unlocked and you may complete your registration.</p>
+          </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
           </div>
@@ -120,7 +160,7 @@
     </form>
 
     <script>
-      (function() {
+      document.addEventListener('DOMContentLoaded', function() {
         const accessConfigured = {{ 'true' if access_codes_configured else 'false' }};
         const accessInput = document.getElementById('access_code');
         const regFields = document.getElementById('regFields');
@@ -128,6 +168,10 @@
         const sobDate = document.getElementById('sobriety_date');
         const daysVal = document.getElementById('daysSoberVal');
         const yearsVal = document.getElementById('yearsSoberVal');
+        const unlockStatus = document.getElementById('unlockStatus');
+        let failedAttempts = 0;
+        
+        console.log('Registration page loaded. Access configured:', accessConfigured);
 
         function setLockedState(locked) {
           if (!regFields) return;
@@ -143,13 +187,43 @@
           const clearBtn = document.getElementById('unlockClear');
           const modalEl = document.getElementById('keyModal');
           const modalBody = document.getElementById('keyModalBody');
-          const bsModal = modalEl ? new bootstrap.Modal(modalEl) : null;
           const successModalEl = document.getElementById('keySuccessModal');
-          const bsSuccessModal = successModalEl ? new bootstrap.Modal(successModalEl) : null;
+          
+          // Initialize Bootstrap modals only if Bootstrap is loaded
+          let bsModal = null;
+          let bsSuccessModal = null;
+          
+          if (typeof bootstrap !== 'undefined') {
+            if (modalEl) bsModal = new bootstrap.Modal(modalEl);
+            if (successModalEl) bsSuccessModal = new bootstrap.Modal(successModalEl);
+          }
+
+          // Add manual close handler for success modal fallback
+          if (successModalEl) {
+            const closeButtons = successModalEl.querySelectorAll('[data-bs-dismiss="modal"], .btn-close');
+            closeButtons.forEach(btn => {
+              btn.addEventListener('click', () => {
+                if (bsSuccessModal) {
+                  bsSuccessModal.hide();
+                } else {
+                  // Manual hide
+                  successModalEl.style.display = 'none';
+                  successModalEl.classList.remove('show');
+                  successModalEl.setAttribute('aria-hidden', 'true');
+                  successModalEl.removeAttribute('aria-modal');
+                }
+              });
+            });
+          }
 
           async function tryUnlock() {
+            console.log('tryUnlock called');
             const key = (accessInput && accessInput.value ? accessInput.value.trim() : '');
-            if (!key) { return; }
+            console.log('Key entered:', key ? '(hidden)' : '(empty)');
+            if (!key) { 
+              console.log('No key entered, returning');
+              return; 
+            }
             try {
               const resp = await fetch('/api/registration/validate-key', {
                 method: 'POST',
@@ -163,45 +237,97 @@
                 // Visual feedback
                 accessInput.classList.remove('is-invalid');
                 accessInput.classList.add('is-valid');
-                if (bsSuccessModal) { bsSuccessModal.show(); }
-              } else {
-                if (bsModal && modalBody) {
-                  modalBody.textContent = 'Incorrect key. You are locked out.';
-                  bsModal.show();
-                  // After the modal is hidden, redirect away
-                  modalEl.addEventListener('hidden.bs.modal', () => {
-                    window.location.href = 'https://www.google.com/';
-                  }, { once: true });
-                } else {
-                  window.location.href = 'https://www.google.com/';
+                
+                // Show unlock status
+                if (unlockStatus) {
+                  unlockStatus.style.display = 'block';
                 }
+                
+                // Show success modal
+                if (bsSuccessModal) { 
+                  bsSuccessModal.show(); 
+                } else if (successModalEl) {
+                  // Fallback: try to show modal without Bootstrap if it's not loaded
+                  successModalEl.style.display = 'block';
+                  successModalEl.classList.add('show');
+                  successModalEl.setAttribute('aria-modal', 'true');
+                  successModalEl.removeAttribute('aria-hidden');
+                  
+                  // Auto-hide after 3 seconds
+                  setTimeout(() => {
+                    successModalEl.style.display = 'none';
+                    successModalEl.classList.remove('show');
+                    successModalEl.setAttribute('aria-hidden', 'true');
+                    successModalEl.removeAttribute('aria-modal');
+                  }, 3000);
+                } else {
+                  // Final fallback: simple alert
+                  alert('Registration form unlocked! You may now complete the form.');
+                }
+              } else {
+                // Incorrect key - increment attempts
+                failedAttempts++;
                 accessInput.classList.remove('is-valid');
                 accessInput.classList.add('is-invalid');
+                
+                if (failedAttempts >= 3) {
+                  // 3rd wrong attempt - redirect to google
+                  window.location.href = 'https://www.google.com/';
+                } else {
+                  // Show warning modal with remaining attempts
+                  const remainingSpan = document.getElementById('remainingAttempts');
+                  if (remainingSpan) {
+                    remainingSpan.textContent = (3 - failedAttempts).toString();
+                  }
+                  if (bsModal) {
+                    bsModal.show();
+                  }
+                }
               }
             } catch (e) {
-              // Fail closed
-              if (bsModal && modalBody) {
-                modalBody.textContent = 'Unable to validate key. You are locked out.';
-                bsModal.show();
-                modalEl.addEventListener('hidden.bs.modal', () => {
-                  window.location.href = 'https://www.google.com/';
-                }, { once: true });
-              } else {
-                window.location.href = 'https://www.google.com/';
-              }
+              // Fail closed - count as failed attempt
+              failedAttempts++;
               accessInput.classList.remove('is-valid');
               accessInput.classList.add('is-invalid');
+              
+              if (failedAttempts >= 3) {
+                window.location.href = 'https://www.google.com/';
+              } else {
+                const remainingSpan = document.getElementById('remainingAttempts');
+                if (remainingSpan) {
+                  remainingSpan.textContent = (3 - failedAttempts).toString();
+                }
+                if (bsModal) {
+                  bsModal.show();
+                }
+              }
             }
           }
 
-          if (unlockBtn) unlockBtn.addEventListener('click', tryUnlock);
-          if (clearBtn) clearBtn.addEventListener('click', function() {
+          if (unlockBtn) {
+            console.log('Attaching click handler to Submit button');
+            unlockBtn.addEventListener('click', tryUnlock);
+          } else {
+            console.error('Submit button not found!');
+          }
+          
+          if (clearBtn) {
+            console.log('Attaching click handler to Delete button');
+            clearBtn.addEventListener('click', function() {
             localStorage.removeItem('bp_access_code');
             if (accessInput) accessInput.value = '';
             setLockedState(true);
             accessInput.classList.remove('is-valid');
             accessInput.classList.remove('is-invalid');
+            // Hide unlock status
+            if (unlockStatus) {
+              unlockStatus.style.display = 'none';
+            }
+            console.log('Cleared unlock key');
           });
+          } else {
+            console.error('Delete button not found!');
+          }
 
           // If a saved key exists, attempt auto-unlock
           const saved = localStorage.getItem('bp_access_code');
@@ -245,7 +371,7 @@
           sobDate.addEventListener('input', calcDays);
           calcDays();
         }
-      })();
+      });
     </script>
 
     <div class="mt-4">

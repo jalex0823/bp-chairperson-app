@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-calendar-download"></i> Calendar Export</h2>
+    <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left"></i> Back to Profile
+    </a>
+  </div>
+
+  <!-- Export Options -->
+  <div class="row">
+    <div class="col-lg-8">
+      <!-- ICS Download -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-download"></i> Download Calendar File</h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-3">Download your chairperson meetings as an ICS file that you can import into any calendar application.</p>
+          <div class="d-grid gap-2 d-md-flex">
+            <a href="{{ ics_url }}" class="btn btn-primary">
+              <i class="fas fa-file-download"></i> Download ICS File
+            </a>
+          </div>
+          <small class="text-muted mt-2 d-block">
+            <i class="fas fa-info-circle"></i> Compatible with Outlook, Apple Calendar, Google Calendar, and most calendar apps.
+          </small>
+        </div>
+      </div>
+
+      <!-- Calendar Subscription -->
+      <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="fas fa-sync"></i> Calendar Subscription (Recommended)</h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-3">Subscribe to your meetings calendar for automatic updates. When you sign up for new meetings, they'll appear automatically in your calendar.</p>
+          
+          <div class="alert alert-light border">
+            <h6><i class="fas fa-lightbulb"></i> How to Subscribe:</h6>
+            <ol class="mb-0">
+              <li>Copy the subscription URL below</li>
+              <li>Open your calendar app (Outlook, Apple Calendar, Google Calendar, etc.)</li>
+              <li>Look for "Add Calendar" or "Subscribe to Calendar"</li>
+              <li>Paste the URL and save</li>
+            </ol>
+          </div>
+
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" id="subscriptionUrl" value="{{ webcal_url }}" readonly>
+            <button class="btn btn-outline-secondary" onclick="copyToClipboard('subscriptionUrl')">
+              <i class="fas fa-copy"></i> Copy
+            </button>
+          </div>
+
+          <div class="d-grid gap-2 d-md-flex">
+            <a href="{{ webcal_url }}" class="btn btn-success">
+              <i class="fas fa-calendar-plus"></i> Open in Default Calendar
+            </a>
+            <button class="btn btn-outline-primary" onclick="showInstructions()">
+              <i class="fas fa-question-circle"></i> Setup Instructions
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Calendar Quick Add -->
+      {% if upcoming_meetings %}
+      <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0"><i class="fab fa-google"></i> Quick Add to Google Calendar</h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-3">Quickly add individual meetings to your Google Calendar:</p>
+          <div class="list-group">
+            {% for meeting in upcoming_meetings %}
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ meeting.title }}</strong><br>
+                <small class="text-muted">{{ meeting.event_date.strftime('%A, %B %d, %Y') }} at {{ meeting.start_time.strftime('%I:%M %p') if meeting.start_time }}</small>
+              </div>
+              <a href="{{ url_for('google_calendar_add', meeting_id=meeting.id) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                <i class="fab fa-google"></i> Add to Google
+              </a>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Sidebar with Help -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h6 class="mb-0"><i class="fas fa-question-circle"></i> Need Help?</h6>
+        </div>
+        <div class="card-body">
+          <div class="accordion" id="helpAccordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#outlookHelp">
+                  <i class="fas fa-envelope me-2"></i> Outlook
+                </button>
+              </h2>
+              <div id="outlookHelp" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                <div class="accordion-body">
+                  <small>
+                    1. Copy the subscription URL<br>
+                    2. In Outlook, go to File > Account Settings > Internet Calendars<br>
+                    3. Click "New..." and paste the URL<br>
+                    4. Click "Add" and "OK"
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#appleHelp">
+                  <i class="fab fa-apple me-2"></i> Apple Calendar
+                </button>
+              </h2>
+              <div id="appleHelp" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                <div class="accordion-body">
+                  <small>
+                    1. Copy the subscription URL<br>
+                    2. Open Calendar app<br>
+                    3. Go to File > New Calendar Subscription<br>
+                    4. Paste the URL and click "Subscribe"
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#googleHelp">
+                  <i class="fab fa-google me-2"></i> Google Calendar
+                </button>
+              </h2>
+              <div id="googleHelp" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                <div class="accordion-body">
+                  <small>
+                    1. Copy the subscription URL<br>
+                    2. Open Google Calendar<br>
+                    3. Click "+" next to "Other calendars"<br>
+                    4. Select "From URL" and paste the link
+                  </small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="text-center">
+            <h6 class="mb-2">Calendar Features</h6>
+            <div class="d-flex flex-column gap-1">
+              <small><i class="fas fa-check text-success"></i> Automatic updates</small>
+              <small><i class="fas fa-check text-success"></i> Meeting reminders</small>
+              <small><i class="fas fa-check text-success"></i> Zoom links included</small>
+              <small><i class="fas fa-check text-success"></i> Meeting descriptions</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Instructions Modal -->
+<div class="modal fade" id="instructionsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-calendar-plus"></i> Calendar Subscription Setup</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6><i class="fas fa-desktop"></i> Desktop Applications</h6>
+            <ul class="list-unstyled">
+              <li class="mb-2">
+                <strong>Outlook:</strong><br>
+                <small>File > Account Settings > Internet Calendars > New</small>
+              </li>
+              <li class="mb-2">
+                <strong>Apple Calendar:</strong><br>
+                <small>File > New Calendar Subscription</small>
+              </li>
+              <li class="mb-2">
+                <strong>Thunderbird:</strong><br>
+                <small>Calendar > New Calendar > On the Network</small>
+              </li>
+            </ul>
+          </div>
+          <div class="col-md-6">
+            <h6><i class="fas fa-cloud"></i> Online Calendars</h6>
+            <ul class="list-unstyled">
+              <li class="mb-2">
+                <strong>Google Calendar:</strong><br>
+                <small>Settings > Add calendar > From URL</small>
+              </li>
+              <li class="mb-2">
+                <strong>Outlook.com:</strong><br>
+                <small>Import calendar > Subscribe to a calendar</small>
+              </li>
+              <li class="mb-2">
+                <strong>iCloud:</strong><br>
+                <small>Calendar settings > Add calendar</small>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-triangle"></i> 
+          <strong>Note:</strong> It may take a few minutes for your calendar to sync after subscribing.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+  const element = document.getElementById(elementId);
+  element.select();
+  element.setSelectionRange(0, 99999); // For mobile devices
+  document.execCommand('copy');
+  
+  // Show feedback
+  const button = element.nextElementSibling;
+  const originalText = button.innerHTML;
+  button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+  button.classList.remove('btn-outline-secondary');
+  button.classList.add('btn-success');
+  
+  setTimeout(() => {
+    button.innerHTML = originalText;
+    button.classList.remove('btn-success');
+    button.classList.add('btn-outline-secondary');
+  }, 2000);
+}
+
+function showInstructions() {
+  const modal = new bootstrap.Modal(document.getElementById('instructionsModal'));
+  modal.show();
+}
+</script>
+{% endblock %}

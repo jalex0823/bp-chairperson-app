@@ -1,93 +1,935 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container my-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="mb-0">Your Dashboard</h1>
-    <div>
-      <a class="btn btn-outline-secondary" href="{{ url_for('calendar_view') }}">Interactive Calendar</a>
-      <a class="btn btn-outline-secondary" href="{{ url_for('calendar_display') }}">Display Calendar</a>
+<div class="container-fluid py-4">
+  
+  <!-- PWA Install Banner -->
+  <div id="install-banner" class="alert alert-info alert-dismissible fade show d-none" role="alert">
+    <div class="d-flex align-items-center">
+      <i class="fas fa-mobile-alt me-2"></i>
+      <div class="flex-grow-1">
+        <strong>Install App:</strong> Add this to your home screen for quick access!
+      </div>
+      <button id="install-button" class="btn btn-outline-primary btn-sm me-2">Install</button>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
   </div>
 
-  <!-- Profile Section with Edit Form -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-header bg-light">
-      <h5 class="mb-0"><i class="fas fa-user"></i> Your Profile</h5>
-    </div>
-    <div class="card-body">
-      <form method="post" action="{{ url_for('profile') }}">
-        {{ form.hidden_tag() }}
-        
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            {{ form.display_name.label(class="form-label fw-bold") }}
-            {{ form.display_name(class="form-control") }}
-          </div>
-          
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Email</label>
-            <input type="text" class="form-control" value="{{ user.email }}" disabled>
-            <div class="form-text">Email cannot be changed</div>
-          </div>
+  <!-- Header Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="mb-1">Welcome back, {{ user.display_name }}!</h1>
+          <p class="text-muted mb-0">{{ "Saturday" if today.weekday() == 5 else "Sunday" if today.weekday() == 6 else "Monday" if today.weekday() == 0 else "Tuesday" if today.weekday() == 1 else "Wednesday" if today.weekday() == 2 else "Thursday" if today.weekday() == 3 else "Friday" }}, {{ today.strftime('%B %d, %Y') }}</p>
         </div>
+        <div class="d-flex gap-2">
+          <a class="btn btn-success" href="{{ url_for('dashboard_refresh') }}" title="Refresh dashboard data">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </a>
+          <a class="btn btn-outline-primary" href="{{ url_for('calendar_view') }}">
+            <i class="fas fa-calendar"></i> Calendar
+          </a>
+          <a class="btn btn-outline-secondary" href="{{ url_for('profile') }}">
+            <i class="fas fa-user"></i> Profile
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        <div class="mb-3">
-          {{ form.gender.label(class="form-label fw-bold") }}
+  <!-- Admin Statistics Section (replaces personal stats for admins) -->
+  {% if user.is_admin and admin_stats %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <h5 class="mb-3"><i class="fas fa-chart-bar text-danger"></i> Admin Statistics</h5>
+    </div>
+  </div>
+  <div class="row mb-4">
+          <div class="row g-3">
+            <!-- Registered Hosts -->
+            <div class="col-md-3 col-sm-6">
+              <div class="card bg-primary text-white h-100 shadow">
+                <div class="card-body text-center p-3">
+                  <i class="fas fa-users fa-3x mb-2"></i>
+                  <h2 class="mb-1">{{ admin_stats.total_hosts }}</h2>
+                  <p class="mb-0"><small>Registered Hosts</small></p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Current Chairs -->
+            <div class="col-md-3 col-sm-6">
+              <div class="card bg-success text-white h-100 shadow">
+                <div class="card-body text-center p-3">
+                  <i class="fas fa-check-circle fa-3x mb-2"></i>
+                  <h2 class="mb-1">{{ admin_stats.current_chairs }}</h2>
+                  <p class="mb-0"><small>Assigned Chairs</small></p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Future Chairs Needed -->
+            <div class="col-md-3 col-sm-6">
+              <div class="card bg-info text-white h-100 shadow">
+                <div class="card-body text-center p-3">
+                  <i class="fas fa-calendar-alt fa-3x mb-2"></i>
+                  <h2 class="mb-1">{{ admin_stats.future_chairs_needed }}</h2>
+                  <p class="mb-0"><small>Total Future Meetings</small></p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Completion Percentage -->
+            <div class="col-md-3 col-sm-6">
+              <div class="card h-100 shadow" style="background: {% if admin_stats.chair_completion_percent >= 75 %}#28a745{% elif admin_stats.chair_completion_percent >= 50 %}#ffc107{% else %}#dc3545{% endif %};">
+                <div class="card-body text-center p-3 text-white">
+                  <i class="fas fa-percentage fa-3x mb-2"></i>
+                  <h2 class="mb-1">{{ admin_stats.chair_completion_percent }}%</h2>
+                  <p class="mb-0"><small>Completion Rate</small></p>
+                  <div class="progress mt-2" style="height: 8px; background: rgba(255,255,255,0.3);">
+                    <div class="progress-bar bg-white" 
+                         role="progressbar" 
+                         style="width: {{ admin_stats.chair_completion_percent }}%;" 
+                         aria-valuenow="{{ admin_stats.chair_completion_percent }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+  </div>
+  
+  <!-- Admin Alert -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="alert alert-{% if admin_stats.unfilled_chairs == 0 %}success{% elif admin_stats.unfilled_chairs <= 5 %}warning{% else %}danger{% endif %}">
+        <div class="d-flex justify-content-between align-items-center">
           <div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="gender" id="genderMale" value="male" {% if form.gender.data == 'male' %}checked{% endif %}>
-              <label class="form-check-label" for="genderMale">Male</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="gender" id="genderFemale" value="female" {% if form.gender.data == 'female' %}checked{% endif %}>
-              <label class="form-check-label" for="genderFemale">Female</label>
-            </div>
+            <i class="fas fa-info-circle"></i>
+            <strong>
+              {% if admin_stats.unfilled_chairs == 0 %}
+                All meetings are covered! Great job!
+              {% elif admin_stats.unfilled_chairs == 1 %}
+                1 meeting still needs a chair.
+              {% else %}
+                {{ admin_stats.unfilled_chairs }} meetings still need chairs.
+              {% endif %}
+            </strong>
           </div>
-          <div class="form-text">Used to determine eligibility for Men-only or Women-only meetings.</div>
+          <a href="{{ url_for('admin_meetings') }}" class="btn btn-sm btn-outline-dark">
+            <i class="fas fa-cog"></i> Manage Meetings
+          </a>
         </div>
-
-        {{ form.submit(class="btn btn-primary", value="Save Profile Changes") }}
-      </form>
+      </div>
     </div>
   </div>
-
-  <!-- Upcoming Meetings Section -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-header bg-light">
-      <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Your Upcoming Meetings (as Chair)</h5>
+  
+  <!-- Quick Actions and Admin Tools Row for Admin -->
+  <div class="row mb-4">
+    <!-- Quick Actions Column -->
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header bg-dark text-white">
+          <h6 class="mb-0"><i class="fas fa-bolt"></i> Quick Actions</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <a href="{{ url_for('calendar_view') }}" class="btn btn-outline-primary">
+              <i class="fas fa-calendar-plus"></i> Sign Up for Meeting
+            </a>
+            <a href="{{ url_for('volunteer_bulk_upload') }}" class="btn btn-warning">
+              <i class="fas fa-file-upload"></i> Bulk Volunteer Upload
+            </a>
+            <a href="{{ url_for('quizzes_list') }}" class="btn btn-danger" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); border: none;">
+              <i class="fas fa-graduation-cap"></i> Training Quizzes
+            </a>
+            <a href="{{ url_for('chair_resources') }}" class="btn btn-outline-info">
+              <i class="fas fa-book"></i> Chairperson Resources
+            </a>
+            <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary">
+              <i class="fas fa-user-edit"></i> Edit Profile
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card-body">
-      {% if my_meetings %}
-        <ul class="list-group list-group-flush">
-          {% for m in my_meetings %}
-            <li class="list-group-item d-flex justify-content-between align-items-start px-0">
-              <div>
-                <div class="fw-bold">{{ m.event_date.strftime('%A, %B %d, %Y') }} • {{ m.start_time.strftime('%I:%M %p') }}</div>
-                <div>{{ m.title }}</div>
-              </div>
-              <div class="text-nowrap">
-                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('meeting_detail', meeting_id=m.id) }}">Details</a>
-              </div>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="alert alert-info mb-0">You haven't claimed any meetings yet. Visit the calendar to volunteer for upcoming meetings!</div>
-      {% endif %}
+    
+    <!-- Admin Tools Column -->
+    <div class="col-lg-6">
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+          <h6 class="mb-0"><i class="fas fa-shield-alt"></i> Admin Tools</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <a class="btn btn-outline-danger" href="{{ url_for('admin_meetings') }}">
+              <i class="fas fa-cogs"></i> Manage Meetings
+            </a>
+            <a class="btn btn-outline-danger" href="{{ url_for('admin_monthly_html') }}">
+              <i class="fas fa-chart-bar"></i> Monthly Report (HTML)
+            </a>
+            <a class="btn btn-outline-danger" href="{{ url_for('admin_monthly_pdf') }}">
+              <i class="fas fa-file-pdf"></i> Monthly PDF Report
+            </a>
+            <a class="btn btn-outline-danger" href="{{ url_for('admin_diagnostics') }}">
+              <i class="fas fa-tools"></i> Diagnostics
+            </a>
+            <a class="btn btn-outline-danger" href="{{ url_for('admin_security') }}">
+              <i class="fas fa-shield-alt"></i> Security Settings
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-
-  <!-- Admin Shortcuts -->
-  {% if current_user and current_user.is_admin %}
-  <div class="card shadow-sm mb-4">
-    <div class="card-header bg-danger text-white">
-      <h5 class="mb-0"><i class="fas fa-user-shield"></i> Admin Shortcuts</h5>
+  
+  <!-- Admin Analytics Charts -->
+  {% if admin_charts %}
+  <div class="row mb-4">
+    <!-- Meeting Coverage by Gender -->
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-primary text-white">
+          <h6 class="mb-0"><i class="fas fa-male"></i> Men's Meetings (Last 30 Days)</h6>
+        </div>
+        <div class="card-body text-center">
+          <canvas id="mensChart" height="200"></canvas>
+          <h3 class="mt-3 mb-0">{{ admin_charts.mens_coverage.percent }}%</h3>
+          <small class="text-muted">Coverage Rate</small>
+          <div class="mt-2">
+            <small><strong>{{ admin_charts.mens_coverage.filled }}</strong> filled / <strong>{{ admin_charts.mens_coverage.filled + admin_charts.mens_coverage.unfilled }}</strong> total</small>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card-body">
-      <a class="btn btn-sm btn-outline-danger me-2" href="{{ url_for('admin_meetings') }}">Manage Meetings</a>
-      <a class="btn btn-sm btn-outline-danger" href="{{ url_for('admin_monthly_html') }}">Monthly Report</a>
+    
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-danger text-white">
+          <h6 class="mb-0"><i class="fas fa-female"></i> Women's Meetings (Last 30 Days)</h6>
+        </div>
+        <div class="card-body text-center">
+          <canvas id="womensChart" height="200"></canvas>
+          <h3 class="mt-3 mb-0">{{ admin_charts.womens_coverage.percent }}%</h3>
+          <small class="text-muted">Coverage Rate</small>
+          <div class="mt-2">
+            <small><strong>{{ admin_charts.womens_coverage.filled }}</strong> filled / <strong>{{ admin_charts.womens_coverage.filled + admin_charts.womens_coverage.unfilled }}</strong> total</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-success text-white">
+          <h6 class="mb-0"><i class="fas fa-chart-pie"></i> Overall Coverage (Last 30 Days)</h6>
+        </div>
+        <div class="card-body text-center">
+          <canvas id="overallChart" height="200"></canvas>
+          <h3 class="mt-3 mb-0">{{ admin_charts.overall_coverage.percent }}%</h3>
+          <small class="text-muted">Coverage Rate</small>
+          <div class="mt-2">
+            <small><strong>{{ admin_charts.overall_coverage.filled }}</strong> filled / <strong>{{ admin_charts.overall_coverage.filled + admin_charts.overall_coverage.unfilled }}</strong> total</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Weekly Trend & User Participation -->
+  <div class="row mb-4">
+    <div class="col-lg-8 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-info text-white">
+          <h6 class="mb-0"><i class="fas fa-chart-line"></i> Weekly Coverage Trend</h6>
+        </div>
+        <div class="card-body">
+          <canvas id="weeklyTrendChart" height="100"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="mb-0"><i class="fas fa-users"></i> Top Contributors</h6>
+        </div>
+        <div class="card-body">
+          <canvas id="userParticipationChart" height="100"></canvas>
+        </div>
+      </div>
     </div>
   </div>
   {% endif %}
+  
+  {% else %}
+  <!-- Personal Stats Row (for non-admin users) -->
+  <div class="row mb-4">
+    <div class="col-md-2 mb-3">
+      <div class="card bg-primary text-white h-100">
+        <div class="card-body text-center p-2">
+          <i class="fas fa-calendar-check fa-2x mb-1"></i>
+          <h4 class="mb-0">{{ upcoming_commitments }}</h4>
+          <small>Upcoming</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2 mb-3">
+      <div class="card bg-success text-white h-100">
+        <div class="card-body text-center p-2">
+          <i class="fas fa-trophy fa-2x mb-1"></i>
+          <h4 class="mb-0">{{ total_meetings_chaired }}</h4>
+          <small>Total Chaired</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card text-white h-100" style="background: linear-gradient(135deg, #0f6f75 0%, #0b5257 100%);">
+        <div class="card-body text-center p-2">
+          <div class="mb-2">
+            <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 60px; height: 60px;" alt="ChairPoints">
+          </div>
+          <h3 class="mb-0"><strong>{{ user.chair_points or 0 }}</strong></h3>
+          <small><strong>ChairPoints™</strong></small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2 mb-3">
+      <div class="card bg-warning text-white h-100">
+        <div class="card-body text-center p-2">
+          <i class="fas fa-hand fa-2x mb-1"></i>
+          <h4 class="mb-0">{{ volunteer_signups }}</h4>
+          <small>Volunteers</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card bg-info text-white h-100">
+        <div class="card-body text-center p-2">
+          <i class="fas fa-chart-line fa-2x mb-1"></i>
+          <h4 class="mb-0">{{ recent_meetings_count }}</h4>
+          <small>Last 30 Days</small>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Keyboard Shortcuts Info -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="text-center text-muted">
+        <small>
+          <i class="fas fa-keyboard"></i> 
+          <strong>Shortcuts:</strong> Ctrl+C (Calendar), Ctrl+P (Profile), Ctrl+H (Home)
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Row (hidden for admins) -->
+  {% if not (user.is_admin and admin_stats) %}
+  <div class="row">
+    
+    <!-- Left Column -->
+    <div class="col-lg-8">
+      
+      <!-- Today's Meetings -->
+      {% if todays_meetings %}
+      <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0"><i class="fas fa-star"></i> Today's Meetings</h5>
+        </div>
+        <div class="card-body">
+          {% for meeting in todays_meetings %}
+          <div class="alert alert-warning d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h6 class="mb-1">
+                <i class="fas fa-clock"></i> {{ meeting.start_time.strftime('%I:%M %p') }} - {{ meeting.title }}
+                <span class="badge {{ meeting.type_badge_class }} ms-2">
+                  <i class="{{ meeting.type_icon }}"></i> {{ meeting.meeting_type }}
+                </span>
+              </h6>
+              <p class="mb-1">{{ meeting.description or 'No description' }}</p>
+              <small class="text-muted">Duration: {% if meeting.end_time %}{{ ((meeting.end_time.hour * 60 + meeting.end_time.minute) - (meeting.start_time.hour * 60 + meeting.start_time.minute)) // 60 }}h {{ ((meeting.end_time.hour * 60 + meeting.end_time.minute) - (meeting.start_time.hour * 60 + meeting.start_time.minute)) % 60 }}m{% else %}Not specified{% endif %}</small>
+            </div>
+            <div class="text-nowrap">
+              <a href="https://therealbackporch.com/meetings.html" target="_blank" class="btn btn-success btn-sm me-2">
+                <i class="fas fa-video"></i> Join Now
+              </a>
+              <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" class="btn btn-outline-primary btn-sm me-2">
+                Details
+              </a>
+              <form method="POST" action="{{ url_for('cancel_chair_signup', meeting_id=meeting.id) }}" style="display: inline;" 
+                    onsubmit="return confirm('Are you sure you want to withdraw from chairing this meeting?');">
+                <button type="submit" class="btn btn-outline-danger btn-sm" title="Withdraw from Meeting">
+                  <i class="fas fa-times"></i> Withdraw
+                </button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Next Meeting Countdown -->
+      {% if next_meeting and days_until_next is not none %}
+      <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-clock"></i> Next Meeting</h5>
+        </div>
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h6 class="mb-1">
+                {{ next_meeting.title }}
+                <span class="badge {{ next_meeting.type_badge_class }} ms-2">
+                  <i class="{{ next_meeting.type_icon }}"></i> {{ next_meeting.meeting_type }}
+                </span>
+              </h6>
+              <p class="mb-1">{{ next_meeting.event_date.strftime('%A, %B %d, %Y') }} at {{ next_meeting.start_time.strftime('%I:%M %p') }}</p>
+              <small class="text-muted">{{ next_meeting.description or 'No description' }}</small>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="bg-light rounded p-3">
+                <h4 class="mb-0 text-primary">{% if days_until_next == 0 %}TODAY{% elif days_until_next == 1 %}TOMORROW{% else %}{{ days_until_next }} DAYS{% endif %}</h4>
+                <small class="text-muted">{% if days_until_next == 0 %}It's today!{% elif days_until_next == 1 %}Almost here{% else %}to go{% endif %}</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Upcoming Meetings -->
+      <div class="card mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Upcoming Commitments</h5>
+          {% if upcoming_commitments > 5 %}
+            <span class="badge bg-light text-dark">Showing 5 of {{ upcoming_commitments }}</span>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          {% if upcoming_meetings %}
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Meeting</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for meeting in upcoming_meetings %}
+                  <tr>
+                    <td>
+                      <strong>{{ meeting.event_date.strftime('%a, %b %d') }}</strong><br>
+                      <small class="text-muted">{{ meeting.event_date.strftime('%Y') }}</small>
+                    </td>
+                    <td>
+                      <strong>{{ meeting.start_time.strftime('%I:%M %p') }}</strong>
+                      {% if meeting.end_time %}
+                        <br><small class="text-muted">{{ meeting.end_time.strftime('%I:%M %p') }}</small>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <strong>{{ meeting.title }}</strong>
+                      {% if meeting.description %}
+                        <br><small class="text-muted">{{ meeting.description }}</small>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <span class="badge {{ meeting.type_badge_class }}">
+                        <i class="{{ meeting.type_icon }}"></i> {{ meeting.meeting_type }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm">
+                        <a href="https://therealbackporch.com/meetings.html" target="_blank" class="btn btn-outline-success" title="Join Meeting">
+                          <i class="fas fa-video"></i>
+                        </a>
+                        <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" class="btn btn-outline-primary" title="View Details">
+                          <i class="fas fa-eye"></i>
+                        </a>
+                        <form method="POST" action="{{ url_for('cancel_chair_signup', meeting_id=meeting.id) }}" style="display: inline;" 
+                              onsubmit="return confirm('Are you sure you want to withdraw from chairing this meeting?');">
+                          <button type="submit" class="btn btn-outline-danger" title="Withdraw from Meeting">
+                            <i class="fas fa-times"></i>
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% if upcoming_commitments > 5 %}
+              <div class="text-center mt-3">
+                <a href="{{ url_for('profile') }}" class="btn btn-outline-primary btn-sm">
+                  View All Commitments
+                </a>
+              </div>
+            {% endif %}
+          {% else %}
+            <div class="text-center py-4">
+              <i class="fas fa-calendar-plus fa-3x text-muted mb-3"></i>
+              <h6>No upcoming meetings</h6>
+              <p class="text-muted mb-3">Ready to serve? Sign up for meetings or volunteer for dates.</p>
+              <a href="{{ url_for('calendar_view') }}" class="btn btn-primary">
+                <i class="fas fa-calendar"></i> Browse Calendar
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+      
+      <!-- Quick Actions -->
+      <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+          <h6 class="mb-0"><i class="fas fa-bolt"></i> Quick Actions</h6>
+        </div>
+        <div class="card-body">
+          <!-- Profile Photo Section -->
+          <div class="text-center mb-3 pb-3 border-bottom">
+            {% if current_user.profile_image %}
+              <img src="{{ url_for('profile_image', user_id=current_user.id) }}" 
+                   alt="{{ current_user.display_name }}" 
+                   class="rounded-circle mb-2" 
+                   style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #007bff;">
+            {% else %}
+              <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-2" 
+                   style="width: 80px; height: 80px; border: 3px solid #6c757d;">
+                <i class="fas fa-user fa-2x text-white"></i>
+              </div>
+            {% endif %}
+            <div class="mt-2">
+              <small class="text-muted d-block">{{ current_user.display_name }}</small>
+              <a href="{{ url_for('profile') }}" class="btn btn-sm btn-outline-primary mt-1">
+                <i class="fas fa-camera"></i> {% if current_user.profile_image %}Change Photo{% else %}Upload Photo{% endif %}
+              </a>
+            </div>
+          </div>
+          
+          <div class="d-grid gap-2">
+            <a href="{{ url_for('calendar_view') }}" class="btn btn-outline-primary">
+              <i class="fas fa-calendar-plus"></i> Sign Up for Meeting
+            </a>
+            <a href="{{ url_for('volunteer_bulk_upload') }}" class="btn btn-warning">
+              <i class="fas fa-file-upload"></i> Bulk Volunteer Upload
+            </a>
+            <a href="{{ url_for('quizzes_list') }}" class="btn btn-danger" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); border: none; box-shadow: 0 4px 6px rgba(238, 90, 111, 0.3);">
+              <i class="fas fa-graduation-cap"></i> Training Quizzes
+            </a>
+            <a href="{{ url_for('chair_resources') }}" class="btn btn-outline-info">
+              <i class="fas fa-book"></i> Chairperson Resources
+            </a>
+            <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary">
+              <i class="fas fa-user-edit"></i> Edit Profile
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Volunteer Availability -->
+      {% if upcoming_availability %}
+      <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="mb-0"><i class="fas fa-hand"></i> Your Volunteer Dates</h6>
+        </div>
+        <div class="card-body">
+          {% for availability in upcoming_availability %}
+          <div class="mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+            <h6 class="mb-1">{{ availability.volunteer_date.strftime('%a, %b %d') }}</h6>
+            <small class="text-muted">
+              <i class="fas fa-clock"></i> {{ availability.time_preference.title() }}
+              {% if availability.notes %}
+              <br><i class="fas fa-sticky-note"></i> {{ availability.notes }}
+              {% endif %}
+            </small>
+          </div>
+          {% endfor %}
+          {% if volunteer_signups > 3 %}
+            <a href="{{ url_for('profile') }}" class="btn btn-sm btn-outline-warning">
+              View All {{ volunteer_signups }} Signups
+            </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Recent Activity -->
+      {% if past_meetings %}
+      <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+          <h6 class="mb-0"><i class="fas fa-history"></i> Recent Service</h6>
+        </div>
+        <div class="card-body">
+          {% for meeting in past_meetings %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <small class="fw-bold">{{ meeting.title }}</small><br>
+              <small class="text-muted">{{ meeting.event_date.strftime('%b %d') }}</small>
+            </div>
+            <span class="badge bg-success">✓</span>
+          </div>
+          {% endfor %}
+          <div class="text-center mt-3">
+            <a href="{{ url_for('profile') }}" class="btn btn-sm btn-outline-secondary">
+              View Full History
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+  </div>
+  {% endif %}
+
 </div>
+
+<!-- Add some custom styles -->
+<style>
+.card {
+  transition: transform 0.2s ease-in-out;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.bg-primary { background-color: #0f6f75 !important; }
+.bg-success { background-color: #28a745 !important; }
+.bg-warning { background-color: #f7b733 !important; }
+.bg-info { background-color: #17a2b8 !important; }
+.bg-danger { background-color: #dc3545 !important; }
+
+.btn-group-sm > .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Darken text for light mode */
+body.light-theme .card-body h6,
+body.light-theme .card-body h5,
+body.light-theme .card-body h4,
+body.light-theme .card-body p,
+body.light-theme .card-body small,
+body.light-theme .card-body .text-muted {
+  color: #1a1a1a !important;
+}
+
+body.light-theme .card-body .text-muted.d-block,
+body.light-theme .card-body .text-muted small {
+  color: #4a4a4a !important;
+}
+
+@media (max-width: 768px) {
+  .container-fluid {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  
+  .d-flex.gap-2 {
+    flex-direction: column;
+  }
+  
+  .d-flex.gap-2 .btn {
+    margin-bottom: 0.5rem;
+  }
+}
+</style>
+
+<!-- Add keyboard shortcuts -->
+<script>
+document.addEventListener('keydown', function(e) {
+  // Ctrl+C for Calendar
+  if (e.ctrlKey && e.key === 'c' && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    window.location.href = "{{ url_for('calendar_view') }}";
+  }
+  
+  // Ctrl+P for Profile
+  if (e.ctrlKey && e.key === 'p' && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    window.location.href = "{{ url_for('profile') }}";
+  }
+  
+  // Ctrl+H for Home/Dashboard
+  if (e.ctrlKey && e.key === 'h' && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    window.location.href = "{{ url_for('dashboard') }}";
+  }
+});
+
+// PWA Install Prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').classList.remove('d-none');
+});
+
+document.getElementById('install-button').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  
+  if (outcome === 'accepted') {
+    document.getElementById('install-banner').style.display = 'none';
+  }
+  
+  deferredPrompt = null;
+});
+
+// Hide banner if already installed
+if (window.matchMedia('(display-mode: standalone)').matches) {
+  document.getElementById('install-banner').style.display = 'none';
+}
+
+{% if admin_charts %}
+// Chart.js Initialization for Admin Analytics
+document.addEventListener('DOMContentLoaded', function() {
+  // Men's Coverage Chart
+  if (document.getElementById('mensChart')) {
+    const mensCtx = document.getElementById('mensChart').getContext('2d');
+    new Chart(mensCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Filled', 'Unfilled'],
+        datasets: [{
+          data: [{{ admin_charts.mens_coverage.filled }}, {{ admin_charts.mens_coverage.unfilled }}],
+          backgroundColor: ['#0d6efd', '#dee2e6'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              font: { size: 12 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = {{ admin_charts.mens_coverage.filled + admin_charts.mens_coverage.unfilled }};
+                const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return label + ': ' + value + ' (' + percent + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Women's Coverage Chart
+  if (document.getElementById('womensChart')) {
+    const womensCtx = document.getElementById('womensChart').getContext('2d');
+    new Chart(womensCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Filled', 'Unfilled'],
+        datasets: [{
+          data: [{{ admin_charts.womens_coverage.filled }}, {{ admin_charts.womens_coverage.unfilled }}],
+          backgroundColor: ['#d63384', '#dee2e6'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              font: { size: 12 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = {{ admin_charts.womens_coverage.filled + admin_charts.womens_coverage.unfilled }};
+                const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return label + ': ' + value + ' (' + percent + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Overall Coverage Chart
+  if (document.getElementById('overallChart')) {
+    const overallCtx = document.getElementById('overallChart').getContext('2d');
+    new Chart(overallCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Filled', 'Unfilled'],
+        datasets: [{
+          data: [{{ admin_charts.overall_coverage.filled }}, {{ admin_charts.overall_coverage.unfilled }}],
+          backgroundColor: ['#198754', '#dee2e6'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              font: { size: 12 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                const total = {{ admin_charts.overall_coverage.filled + admin_charts.overall_coverage.unfilled }};
+                const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return label + ': ' + value + ' (' + percent + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Weekly Trend Chart
+  if (document.getElementById('weeklyTrendChart')) {
+    const weeklyCtx = document.getElementById('weeklyTrendChart').getContext('2d');
+    new Chart(weeklyCtx, {
+      type: 'line',
+      data: {
+        labels: [{% for week in admin_charts.weekly_trend %}'{{ week.week }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+          label: 'Coverage %',
+          data: [{% for week in admin_charts.weekly_trend %}{{ week.percent }}{% if not loop.last %}, {% endif %}{% endfor %}],
+          borderColor: '#0d6efd',
+          backgroundColor: 'rgba(13, 110, 253, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              callback: function(value) {
+                return value + '%';
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const weekIndex = context.dataIndex;
+                const weekData = {{ admin_charts.weekly_trend | tojson }};
+                const week = weekData[weekIndex];
+                return [
+                  'Coverage: ' + week.percent.toFixed(1) + '%',
+                  'Filled: ' + week.filled + ' / ' + week.total
+                ];
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // User Participation Chart
+  if (document.getElementById('userParticipationChart')) {
+    const userCtx = document.getElementById('userParticipationChart').getContext('2d');
+    new Chart(userCtx, {
+      type: 'bar',
+      data: {
+        labels: [{% for user in admin_charts.user_participation %}'{{ user.name }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+          label: 'Meetings Chaired',
+          data: [{% for user in admin_charts.user_participation %}{{ user.count }}{% if not loop.last %}, {% endif %}{% endfor %}],
+          backgroundColor: '#0d6efd',
+          borderColor: '#0a58ca',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const userIndex = context.dataIndex;
+                const userData = {{ admin_charts.user_participation | tojson }};
+                const user = userData[userIndex];
+                return [
+                  'Meetings: ' + user.count,
+                  'Percentage: ' + user.percent.toFixed(1) + '%'
+                ];
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+});
+{% endif %}
+</script>
 {% endblock %}

@@ -1,0 +1,397 @@
+/* Dark Theme Styles */
+body.dark-theme {
+    background-color: #2b2b2b;
+    color: #e8e8e8;
+}
+
+.dark-theme .card {
+    background-color: #353535;
+    color: #e8e8e8;
+    border-color: #4a4a4a;
+}
+
+.dark-theme .card-header {
+    background-color: #404040;
+    color: #ffffff;
+    border-bottom-color: #4a4a4a;
+}
+
+.dark-theme .card-body {
+    background-color: #353535;
+}
+
+.dark-theme .list-group-item {
+    background-color: #353535;
+    color: #e8e8e8;
+    border-color: #4a4a4a;
+}
+
+.dark-theme .table {
+    color: #e8e8e8;
+}
+
+.dark-theme .table-striped tbody tr:nth-of-type(odd) {
+    background-color: #353535;
+}
+
+.dark-theme .table-striped tbody tr:nth-of-type(even) {
+    background-color: #2b2b2b;
+}
+
+.dark-theme .table th {
+    background-color: #404040;
+    color: #ffffff;
+    border-color: #4a4a4a;
+}
+
+.dark-theme .table td {
+    border-color: #4a4a4a;
+}
+
+.dark-theme .alert {
+    background-color: #404040;
+    border-color: #555555;
+    color: #ffffff;
+}
+
+.dark-theme .alert-success {
+    background-color: #2d4a2d;
+    border-color: #3d6a3d;
+    color: #b3e6b3;
+}
+
+.dark-theme .alert-info {
+    background-color: #2d3a4a;
+    border-color: #3d5a6a;
+    color: #b3d6e6;
+}
+
+.dark-theme .alert-warning {
+    background-color: #4a4a2d;
+    border-color: #6a6a3d;
+    color: #e6e6b3;
+}
+
+.dark-theme .alert-danger {
+    background-color: #4a2d2d;
+    border-color: #6a3d3d;
+    color: #e6b3b3;
+}
+
+.dark-theme .text-muted {
+    color: #b8b8b8 !important;
+}
+
+.dark-theme .text-dark,
+.dark-theme .text-black {
+    color: #e8e8e8 !important;
+}
+
+.dark-theme .bg-light {
+    background-color: #404040 !important;
+}
+
+.dark-theme .border {
+    border-color: #333333 !important;
+}
+
+.dark-theme .form-control,
+.dark-theme .form-select {
+    background-color: #353535;
+    color: #ffffff;
+    border-color: #333333;
+}
+
+.dark-theme .form-control:focus,
+.dark-theme .form-select:focus {
+    background-color: #2a2a2a;
+    color: #ffffff;
+    border-color: #555555;
+    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.1);
+}
+
+.dark-theme .form-label {
+    color: #ffffff;
+}
+
+.dark-theme .modal-content {
+    background-color: #1a1a1a;
+    color: #ffffff;
+    border-color: #333333;
+}
+
+.dark-theme .modal-header {
+    background-color: #2a2a2a;
+    border-bottom-color: #333333;
+}
+
+.dark-theme .modal-footer {
+    background-color: #2a2a2a;
+    border-top-color: #333333;
+}
+
+.dark-theme .calendar-date {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+.dark-theme .calendar-date.today {
+    background-color: #2a4a2a;
+}
+
+.dark-theme .badge {
+    border: 1px solid #333333;
+}
+
+.dark-theme h1, .dark-theme h2, .dark-theme h3, 
+.dark-theme h4, .dark-theme h5, .dark-theme h6 {
+    color: #ffffff;
+}
+
+.dark-theme a:not(.btn) {
+    color: #4da6ff;
+}
+
+.dark-theme a:not(.btn):hover {
+    color: #80bfff;
+}
+
+/* Keep navbar as-is in dark mode (it's already dark) */
+.dark-theme .navbar {
+    background-color: #2c3e50 !important;
+}
+
+/* Sidebar in calendar */
+.dark-theme .calendar-sidebar {
+    background-color: #1a1a1a;
+    border-right-color: #333333;
+}
+
+.dark-theme .calendar-sidebar h5,
+.dark-theme .calendar-sidebar h6 {
+    color: #ffffff;
+}
+
+.dark-theme .calendar-day {
+    border-color: #333333;
+}
+
+.dark-theme .calendar-day:hover {
+    background-color: #2a2a2a;
+}
+
+/* Dropdown menus */
+.dark-theme .dropdown-menu {
+    background-color: #1a1a1a;
+    border-color: #333333;
+}
+
+.dark-theme .dropdown-item {
+    color: #ffffff;
+}
+
+.dark-theme .dropdown-item:hover {
+    background-color: #2a2a2a;
+    color: #ffffff;
+}
+
+.dark-theme .dropdown-divider {
+    border-top-color: #333333;
+}
+
+/* Pagination */
+.dark-theme .pagination .page-link {
+    background-color: #1a1a1a;
+    border-color: #333333;
+    color: #ffffff;
+}
+
+.dark-theme .pagination .page-link:hover {
+    background-color: #2a2a2a;
+    color: #ffffff;
+}
+
+.dark-theme .pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.dark-theme .pagination .page-item.disabled .page-link {
+    background-color: #0a0a0a;
+    border-color: #222222;
+    color: #666666;
+}
+
+/* Footer in dark mode */
+.dark-theme .footer-bp {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+    border-top-color: #333333 !important;
+}
+
+.dark-theme .footer-bp strong {
+    color: #ffffff;
+}
+
+.dark-theme .footer-bp div {
+    color: #ffffff;
+}
+
+/* Calendar pills/badges - change blue to white text */
+.dark-theme .calendar-cell .day-number {
+    color: #ffffff;
+}
+
+.dark-theme .calendar-cell.today .day-number {
+    background: #ffffff;
+    color: #000000;
+}
+
+.dark-theme .meeting-badge {
+    color: #ffffff !important;
+}
+
+/* Calendar sidebar */
+.dark-theme .calendar-sidebar .time {
+    color: #ffffff !important;
+}
+
+/* Calendar table headers (days of the week) */
+.dark-theme .calendar-table thead th {
+    background: #2a2a2a !important;
+    color: #ffffff !important;
+}
+
+/* Calendar main grid */
+.dark-theme .calendar-main {
+    background: #1a1a1a !important;
+}
+
+/* Calendar cells */
+.dark-theme .calendar-cell {
+    background: #1a1a1a;
+    border-color: #333333 !important;
+}
+
+.dark-theme .calendar-cell:hover {
+    background: #2a2a2a !important;
+}
+
+.dark-theme .calendar-cell.today {
+    background: #2a3a2a !important;
+}
+
+.dark-theme .calendar-out-month {
+    background-color: #0a0a0a !important;
+}
+
+.dark-theme .calendar-out-month:hover {
+    background-color: #1a1a1a !important;
+}
+
+/* Override ALL inline black text styles */
+.dark-theme [style*="color: black"],
+.dark-theme [style*="color:black"],
+.dark-theme [style*="color:#000"],
+.dark-theme [style*="color: #000"] {
+    color: #ffffff !important;
+}
+
+/* Ensure all text elements are white in dark mode */
+.dark-theme p,
+.dark-theme span,
+.dark-theme div,
+.dark-theme label,
+.dark-theme small,
+.dark-theme strong,
+.dark-theme em,
+.dark-theme li {
+    color: inherit;
+}
+
+/* Override Bootstrap text utilities */
+.dark-theme .text-body,
+.dark-theme .text-dark,
+.dark-theme .text-black {
+    color: #ffffff !important;
+}
+
+/* Form text and help text */
+.dark-theme .form-text,
+.dark-theme .form-help {
+    color: #aaaaaa !important;
+}
+
+/* Meeting detail page specific overrides */
+.dark-theme .card-body p,
+.dark-theme .card-body div,
+.dark-theme .card-body span {
+    color: #ffffff !important;
+}
+
+/* Alert boxes text */
+.dark-theme .alert p,
+.dark-theme .alert div,
+.dark-theme .alert span,
+.dark-theme .alert strong {
+    color: inherit !important;
+}
+
+/* Modal content text */
+.dark-theme .modal-body,
+.dark-theme .modal-body p,
+.dark-theme .modal-body div,
+.dark-theme .modal-body span {
+    color: #ffffff !important;
+}
+
+/* List items */
+.dark-theme .list-group-item p,
+.dark-theme .list-group-item div,
+.dark-theme .list-group-item span {
+    color: #ffffff !important;
+}
+
+/* Calendar specific text */
+.dark-theme .calendar-date,
+.dark-theme .day-number,
+.dark-theme .meeting-time,
+.dark-theme .meeting-title {
+    color: #ffffff !important;
+}
+
+/* Accordion button styling in dark mode */
+.dark-theme .accordion-button {
+    background-color: #2a2a2a;
+    color: #ffffff !important;
+    border-color: #333333;
+}
+
+.dark-theme .accordion-button:not(.collapsed) {
+    background-color: #2a2a2a;
+    color: #ffffff !important;
+    border-color: #333333;
+}
+
+.dark-theme .accordion-button:focus {
+    background-color: #333333;
+    border-color: #555555;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.1);
+}
+
+.dark-theme .accordion-button:hover {
+    background-color: #333333;
+    color: #ffffff !important;
+}
+
+.dark-theme .accordion-body {
+    background-color: #1a1a1a;
+    color: #ffffff !important;
+    border-color: #333333;
+}
+
+/* Accordion button icon color in dark mode */
+.dark-theme .accordion-button::after {
+    filter: brightness(1.5);
+}

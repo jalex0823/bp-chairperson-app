@@ -4,17 +4,64 @@
     <meta charset="utf-8">
     <title>Back Porch Chairperson Portal</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() if csrf_token }}">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Manage your Back Porch meeting chairperson commitments">
+    <meta name="theme-color" content="#007bff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="BP Chair">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    
     <!-- Favicon & app icons -->
     <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}?v={{ asset_version }}" type="image/x-icon">
     <link rel="icon" href="{{ url_for('static', filename='img/favicon-32x32.png') }}?v={{ asset_version }}" type="image/png" sizes="32x32">
     <link rel="icon" href="{{ url_for('static', filename='img/favicon-16x16.png') }}?v={{ asset_version }}" type="image/png" sizes="16x16">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}?v={{ asset_version }}" sizes="180x180">
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet">
+    
+    <!-- Self-hosted Bootstrap CSS (avoids tracking prevention) -->
+    <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}?v={{ asset_version }}" rel="stylesheet">
+    
+    <!-- Self-hosted Font Awesome (avoids tracking prevention) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome-local.css') }}?v={{ asset_version }}">
+    
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    
+    <!-- Dark Theme CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-theme.css') }}">
+    
+    <!-- ChairPoints Celebration CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chairpoints-celebration.css') }}">
+    
+    <!-- Coin Page Transition CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/coin-transition.css') }}">
+    
+    <!-- Chart.js for Admin Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <!-- Force light theme as default BEFORE page renders -->
+    <script>
+      (function() {
+        const theme = localStorage.getItem('theme') || 'light';
+        if (theme === 'light') {
+          document.documentElement.classList.add('light-theme');
+        } else {
+          document.documentElement.classList.add('dark-theme');
+        }
+      })();
+    </script>
 </head>
-<body>
+<body class="light-theme">
+<!-- Hidden element to track current ChairPoints for celebration -->
+{% if current_user %}
+<div id="currentChairPoints" data-points="{{ current_user.chair_points or 0 }}" style="display: none;"></div>
+{% endif %}
+
 <nav class="navbar navbar-expand-lg navbar-dark bg-bp-green mb-4">
   <div class="container">
     <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
@@ -26,11 +73,17 @@
             aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
+    
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        {% if not (current_user and current_user.is_admin) %}
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('chair_resources') }}">How to Chair / Resources</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('registration_instructions') }}">Instructions</a>
+        </li>
+        {% endif %}
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('calendar_view') }}">Calendar</a>
         </li>
@@ -56,9 +109,44 @@
       </ul>
       <div class="d-flex align-items-center">
         {% if current_user %}
-          <a href="{{ url_for('dashboard') }}" class="navbar-text text-light me-2 text-decoration-none" title="View Dashboard & Profile">
-            <i class="fas fa-user-circle"></i> {{ current_user.display_name }}
-          </a>
+          <!-- Theme Toggle -->
+          <button id="themeToggle" class="btn btn-sm me-2" title="Toggle Dark/Light Theme" style="font-size: 1.2rem; border: none;">
+            <span id="themeIcon">🏮</span>
+          </button>
+          
+          <!-- User Profile Section - Reorganized -->
+          <div class="d-flex align-items-center me-3">
+            <!-- Profile Picture Column -->
+            <div class="me-2">
+              <a href="{{ url_for('profile') }}" class="text-decoration-none">
+                {% if current_user.profile_image %}
+                  <img src="{{ url_for('profile_image', user_id=current_user.id) }}" 
+                       alt="{{ current_user.display_name }}" 
+                       class="rounded-circle" 
+                       style="width: 48px; height: 48px; object-fit: cover; border: 2px solid white;">
+                {% else %}
+                  <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                       style="width: 48px; height: 48px; background-color: rgba(255,255,255,0.2); border: 2px solid white;">
+                    <i class="fas fa-user text-light"></i>
+                  </div>
+                {% endif %}
+              </a>
+            </div>
+            
+            <!-- User Info Column - Left Aligned -->
+            <div class="d-flex flex-column justify-content-start">
+              <span class="navbar-text text-light" style="line-height: 1; font-size: 0.95rem; font-weight: 500;">
+                {{ current_user.display_name }}
+              </span>
+              <small class="text-light" style="opacity: 0.9; font-size: 0.75rem; line-height: 1;">
+                <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 16px; height: 16px; vertical-align: middle;" alt="ChairPoints"> {{ current_user.chair_points or 0 }} Chair Points
+              </small>
+              <small class="text-light" style="opacity: 0.8; font-size: 0.75rem; line-height: 1; margin-left: 1.5em;">
+                {{ current_user.bp_id }}
+              </small>
+            </div>
+          </div>
+          
           <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
             Logout
           </a>
@@ -92,7 +180,15 @@
   {% block content %}{% endblock %}
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Full-width container for calendar page -->
+{% if request.endpoint == 'calendar_view' %}
+<style>
+  .container { max-width: 100% !important; padding-left: 1rem; padding-right: 1rem; }
+</style>
+{% endif %}
+
+<!-- Self-hosted Bootstrap JS Bundle (includes Popper) -->
+<script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v={{ asset_version }}"></script>
 <script>
 // Base-level JS (no registration key UX in the navbar)
 document.addEventListener('DOMContentLoaded', function() {
@@ -100,8 +196,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<footer class="mt-5 py-4 footer-bp bg-bp-green text-light">
-  <div class="container text-center small">
+<footer class="mt-5 py-4 footer-bp bg-white text-dark border-top">
+  <div class="container-fluid text-center small">
     <div class="mb-2">
       <strong>Alcoholics Anonymous</strong> — Unity • Service • Recovery
     </div>
@@ -111,5 +207,33 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
   
 </footer>
+
+<!-- PWA Service Worker Registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/static/sw.js')
+        .then(function(registration) {
+          console.log('ServiceWorker registration successful');
+        })
+        .catch(function(err) {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+    });
+  }
+</script>
+
+<!-- Theme Toggle Script -->
+<script src="{{ url_for('static', filename='js/theme-toggle.js') }}"></script>
+
+<!-- ChairPoints Celebration Script -->
+<script src="{{ url_for('static', filename='js/chairpoints-celebration.js') }}"></script>
+
+<!-- Sound Effects Script -->
+<script src="{{ url_for('static', filename='js/sound-effects.js') }}"></script>
+
+<!-- Coin Page Transition Script -->
+<script src="{{ url_for('static', filename='js/coin-page-transition.js') }}"></script>
+
 </body>
 </html>

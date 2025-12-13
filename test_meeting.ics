@@ -1,0 +1,26 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Back Porch Meetings//Chairperson Scheduler//EN
+METHOD:REQUEST
+BEGIN:VEVENT
+SUMMARY:CHAIR: Daily Literature-based Meeting
+DTSTART:20251206T173000
+DTEND:20251206T183000
+DESCRIPTION:You are scheduled to chair this meeting.\n\nMeeting: Daily Lit
+ erature-based Meeting\nType: Regular\nDescription: AA-approved literature 
+ only\nZoom Link: Online\n\nPlease join 10-15 minutes early to set up.
+LOCATION:Online
+ORGANIZER:jalex0823
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Reminder: You are chairing Daily Literature-based Meeting tomo
+ rrow
+TRIGGER:-P1D
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Starting soon: Daily Literature-based Meeting in 1 hour
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+END:VCALENDAR

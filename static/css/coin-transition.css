@@ -1,0 +1,104 @@
+/**
+ * Coin Page Transition Styles
+ * Spinning, bouncing, fading coin animation
+ */
+
+#coin-transition-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 111, 117, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#coin-transition-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.coin-container {
+    position: relative;
+    width: 150px;
+    height: 150px;
+}
+
+.transition-coin {
+    width: 150px;
+    height: 150px;
+    animation: coinSpin 0.8s ease-in-out, coinBounce 0.8s ease-in-out;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+}
+
+/* Spinning animation */
+@keyframes coinSpin {
+    0% {
+        transform: rotateY(0deg) scale(0.3);
+        opacity: 0;
+    }
+    50% {
+        transform: rotateY(720deg) scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: rotateY(1440deg) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Bouncing animation */
+@keyframes coinBounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    25% {
+        transform: translateY(-30px);
+    }
+    50% {
+        transform: translateY(0);
+    }
+    75% {
+        transform: translateY(-15px);
+    }
+}
+
+/* Fade out when leaving */
+#coin-transition-overlay:not(.active) .transition-coin {
+    animation: coinFadeOut 0.3s ease-out forwards;
+}
+
+@keyframes coinFadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+}
+
+/* Dark mode variant */
+body.dark-theme #coin-transition-overlay {
+    background: rgba(26, 26, 26, 0.95);
+}
+
+/* Responsive sizing */
+@media (max-width: 768px) {
+    .coin-container {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .transition-coin {
+        width: 100px;
+        height: 100px;
+    }
+}

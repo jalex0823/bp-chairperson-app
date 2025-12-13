@@ -13,17 +13,36 @@
     <p>{{ meeting.description }}</p>
   {% endif %}
 
-  {% if meeting.zoom_link %}
-    <p>
-      <strong>Zoom / Online Link:</strong>
-      <a href="{{ meeting.zoom_link }}" target="_blank" rel="noopener">
-        Join Meeting
-      </a><br>
-      <small class="text-muted">
-        Link is provided for chairpersons and group members only.
-      </small>
-    </p>
-  {% endif %}
+  <p>
+    <strong>Online Meeting:</strong>
+    <a href="https://therealbackporch.com/meetings.html" target="_blank" rel="noopener">
+      Join Meeting
+    </a><br>
+    <small class="text-muted">
+      Visit the Back Porch meetings page to join.
+    </small>
+  </p>
+  
+  <!-- Calendar Download Section -->
+  <div class="mb-3">
+    <strong>📅 Add to Calendar:</strong>
+    <div class="btn-group btn-group-sm mt-2" role="group">
+      <a href="{{ url_for('calendar_day_ics', date=meeting.event_date.strftime('%Y-%m-%d')) }}" class="btn btn-outline-primary" title="Download this day's meetings for Outlook/iCal">
+        <i class="fas fa-download"></i> Download Day (.ics)
+      </a>
+      <a href="{{ url_for('calendar_month_ics', year=meeting.event_date.year, month=meeting.event_date.month) }}" class="btn btn-outline-primary" title="Download full month for Outlook/iCal">
+        <i class="fas fa-calendar-alt"></i> Download Month (.ics)
+      </a>
+      {% if user and meeting.chair_signup and meeting.chair_signup.user and meeting.chair_signup.user_id == user.id %}
+      <a href="{{ url_for('google_calendar_add', meeting_id=meeting.id) }}" class="btn btn-outline-success" target="_blank" title="Add to Google Calendar">
+        <i class="fab fa-google"></i> Google Calendar
+      </a>
+      {% endif %}
+    </div>
+    <div class="form-text mt-1">
+      Download .ics files to import into Outlook, Apple Calendar, or any iCal-compatible calendar app
+    </div>
+  </div>
 
   <hr>
 
@@ -33,9 +52,16 @@
       {% if meeting.chair_signup %}
         <p>
           This meeting is currently chaired by:
-          <strong>{{ meeting.chair_signup.display_name_snapshot }} ({{ meeting.chair_signup.user.bp_id }})</strong><br>
+          <strong>{{ meeting.chair_signup.display_name_snapshot }}{% if meeting.chair_signup.user %} ({{ meeting.chair_signup.user.bp_id }}){% endif %}</strong><br>
           <small class="text-muted">Thank you for your service!</small>
         </p>
+        
+        {% if user and meeting.chair_signup.user_id == user.id %}
+          <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>You are chairing this meeting!</strong>
+          </div>
+        {% endif %}
       {% else %}
         <p>No one has signed up to chair this meeting yet.</p>
       {% endif %}
@@ -66,6 +92,21 @@
             {{ form.submit(class="btn btn-success") }}
           </form>
         {% endif %}
+      {% elif meeting.chair_signup and user and meeting.chair_signup.user_id == user.id %}
+        <hr>
+        <div class="alert alert-success">
+          <h5 class="alert-heading"><i class="fas fa-check-circle"></i> You're Signed Up!</h5>
+          <p>You are scheduled to chair this meeting.</p>
+          {% if meeting.chair_signup.notes %}
+            <p class="mb-0"><strong>Your notes:</strong> {{ meeting.chair_signup.notes }}</p>
+          {% endif %}
+        </div>
+        <form method="post" action="{{ url_for('cancel_chair_signup', meeting_id=meeting.id) }}" onsubmit="return confirm('Are you sure you want to cancel your chair signup for this meeting?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-warning">
+            <i class="fas fa-times-circle"></i> Cancel My Signup
+          </button>
+        </form>
       {% else %}
         <hr>
         {% if not meeting.is_open %}

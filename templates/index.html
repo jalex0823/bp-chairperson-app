@@ -1,22 +1,131 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  /* Glass morphism cards for light mode */
+  body.light-theme .index-card-1 {
+    background: linear-gradient(135deg, rgba(15, 111, 117, 0.1) 0%, rgba(15, 111, 117, 0.05) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(15, 111, 117, 0.2);
+    box-shadow: 0 8px 32px rgba(15, 111, 117, 0.1);
+  }
+  
+  body.light-theme .index-card-1 .card-title,
+  body.light-theme .index-card-1 .card-text {
+    color: #1a1a1a !important;
+  }
+  
+  body.light-theme .index-card-2 {
+    background: linear-gradient(135deg, rgba(247, 183, 51, 0.1) 0%, rgba(247, 183, 51, 0.05) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(247, 183, 51, 0.2);
+    box-shadow: 0 8px 32px rgba(247, 183, 51, 0.1);
+  }
+  
+  body.light-theme .index-card-2 .card-title,
+  body.light-theme .index-card-2 .card-text {
+    color: #1a1a1a !important;
+  }
+  
+  body.light-theme .index-card-3 {
+    background: linear-gradient(135deg, rgba(15, 111, 117, 0.1) 0%, rgba(15, 111, 117, 0.05) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(15, 111, 117, 0.2);
+    box-shadow: 0 8px 32px rgba(15, 111, 117, 0.1);
+  }
+  
+  body.light-theme .index-card-3 .card-title,
+  body.light-theme .index-card-3 .card-text {
+    color: #1a1a1a !important;
+  }
+  
+  body.light-theme .index-card-4 {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.1);
+  }
+  
+  body.light-theme .index-card-4 .card-title,
+  body.light-theme .index-card-4 .card-text {
+    color: #1a1a1a !important;
+  }
+  
+  body.light-theme .index-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+  }
+  
+  body.light-theme .schedule-card-1 {
+    background: linear-gradient(135deg, rgba(15, 111, 117, 0.15) 0%, rgba(15, 111, 117, 0.08) 100%);
+    border: 1px solid rgba(15, 111, 117, 0.3);
+  }
+  
+  body.light-theme .schedule-card-1 .fw-semibold,
+  body.light-theme .schedule-card-1 .small {
+    color: #1a1a1a !important;
+  }
+  
+  body.light-theme .schedule-card-1 .text-muted {
+    color: #4a4a4a !important;
+  }
+  
+  body.light-theme .schedule-card-2 {
+    background: linear-gradient(135deg, rgba(247, 183, 51, 0.15) 0%, rgba(247, 183, 51, 0.08) 100%);
+    border: 1px solid rgba(247, 183, 51, 0.3);
+  }
+  
+  body.light-theme .schedule-card-2 .fw-semibold,
+  body.light-theme .schedule-card-2 .small {
+    color: #1a1a1a !important;
+  }
+  
+  body.light-theme .schedule-card-2 .text-muted {
+    color: #4a4a4a !important;
+  }
+  
+  body.light-theme .schedule-card-3 {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  
+  body.light-theme .schedule-card-3 .fw-semibold,
+  body.light-theme .schedule-card-3 .small {
+    color: #1a1a1a !important;
+  }
+  
+  body.light-theme .schedule-card-3 .text-muted {
+    color: #4a4a4a !important;
+  }
+  
+  body.light-theme .schedule-card-4 {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.08) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+  }
+  
+  body.light-theme .schedule-card-4 .fw-semibold,
+  body.light-theme .schedule-card-4 .small {
+    color: #1a1a1a !important;
+  }
+  
+  body.light-theme .schedule-card-4 .text-muted {
+    color: #4a4a4a !important;
+  }
+</style>
   <!-- Hero Section -->
   <section class="py-5 mb-4 hero-gradient">
     <div class="container">
-      <div class="row align-items-center">
-        <div class="col-lg-8">
+      <div class="row align-items-center justify-content-center text-center">
+        <div class="col-lg-10">
           <h1 class="display-6 fw-bold mb-2">Welcome to The Back Porch</h1>
           <p class="lead mb-3">— where fellowship meets service… on Zoom.</p>
-          <div class="d-flex flex-wrap gap-2">
+          <div class="d-flex flex-wrap gap-2 justify-content-center">
             <a href="{{ url_for('calendar_view') }}" class="btn btn-light">View Calendar</a>
-            <a href="{{ url_for('meetings_today') }}" class="btn btn-secondary">Today’s Meetings</a>
-            <a href="{{ url_for('chair_resources') }}" class="btn btn-outline-light">Chair Resources</a>
-            <a href="https://therealbackporch.com/meetings.html" target="_blank" rel="noopener" class="btn btn-outline-secondary">Website Meetings Page</a>
-            <a href="https://backporch-chair-app-35851db28c9c.herokuapp.com/" target="_blank" rel="noopener" class="btn btn-outline-light">New Chair Sign-Up App</a>
+            <a href="{{ url_for('meetings_today') }}" class="btn btn-warning">Today's Meetings</a>
+            <a href="{{ url_for('chair_resources') }}" class="btn btn-success">Chair Resources</a>
+            <a href="https://therealbackporch.com/meetings.html" target="_blank" rel="noopener" class="btn btn-info">Website Meetings Page</a>
           </div>
-          </div>
-          <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
-          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -24,7 +133,7 @@
   <!-- Quick Actions -->
   <div class="row g-3 mb-4">
     <div class="col-md-4">
-      <div class="card h-100">
+      <div class="card h-100 index-card index-card-1">
         <div class="card-body">
           <h5 class="card-title">Sign Up to Chair</h5>
           <a href="{{ url_for('calendar_view') }}" class="btn btn-primary align-self-start mb-2">Go to Calendar</a>
@@ -33,20 +142,33 @@
       </div>
     </div>
     <div class="col-md-4">
-      <div class="card h-100">
+      <div class="card h-100 index-card index-card-2">
         <div class="card-body">
-          <h5 class="card-title">Today’s Meetings</h5>
-          <a href="{{ url_for('meetings_today') }}" class="btn btn-secondary align-self-start mb-2">View Today</a>
+          <h5 class="card-title">Today's Meetings</h5>
+          <a href="{{ url_for('meetings_today') }}" class="btn btn-warning align-self-start mb-2">View Today</a>
           <p class="card-text text-muted">See what’s on today and who’s hosting right now.</p>
         </div>
       </div>
     </div>
     <div class="col-md-4">
-      <div class="card h-100">
+      <div class="card h-100 index-card index-card-3">
         <div class="card-body">
           <h5 class="card-title">Chair Resources</h5>
           <a href="{{ url_for('chair_resources') }}" class="btn btn-outline-gold align-self-start mb-2">Open Resources</a>
           <p class="card-text text-muted">Guidelines and downloadable PDFs for chairing with confidence.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Instructions -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card border-info index-card index-card-4">
+        <div class="card-body">
+          <h5 class="card-title"><i class="fas fa-book-open"></i> App Instructions & ChairPoints™</h5>
+          <a href="{{ url_for('registration_instructions') }}" class="btn btn-info align-self-start mb-2">View Full Instructions</a>
+          <p class="card-text text-muted">Learn how to use the app, earn ChairPoints™ <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 20px; height: 20px; vertical-align: middle;" alt="ChairPoints"> for your service, and see celebration animations when you chair meetings!</p>
         </div>
       </div>
     </div>
@@ -61,31 +183,31 @@
       <div class="card-body">
         <div class="row g-3">
           <div class="col-12 col-md-3">
-            <div class="p-3 bg-light rounded h-100">
+            <div class="p-3 rounded h-100 schedule-card-1">
               <div class="fw-semibold">Daily</div>
               <div class="text-muted">5:30 PM MT</div>
               <div class="small">Literature-based Meeting</div>
             </div>
           </div>
           <div class="col-12 col-md-3">
-            <div class="p-3 bg-light rounded h-100">
+            <div class="p-3 rounded h-100 schedule-card-2">
               <div class="fw-semibold">Saturday</div>
               <div class="text-muted">8:30 AM MT</div>
               <div class="small">Women’s Meeting</div>
             </div>
           </div>
           <div class="col-12 col-md-3">
-            <div class="p-3 bg-light rounded h-100">
+            <div class="p-3 rounded h-100 schedule-card-3">
               <div class="fw-semibold">Sunday</div>
               <div class="text-muted">8:30 AM MT</div>
               <div class="small">Co-ed Meeting</div>
             </div>
           </div>
           <div class="col-12 col-md-3">
-            <div class="p-3 bg-light rounded h-100">
+            <div class="p-3 rounded h-100 schedule-card-4">
               <div class="fw-semibold">Sunday</div>
               <div class="text-muted">3:30 PM MT</div>
-              <div class="small">Men’s Meeting</div>
+              <div class="small">Men's Meeting</div>
             </div>
           </div>
         </div>
@@ -100,13 +222,15 @@
         <span class="d-block mt-1">Run locally: <code>flask --app app.py seed-schedule</code> (set WEEKS=52 for a full year), or configure a source and run <code>flask --app app.py import-web</code>/<code>import-ics</code>.</span>
       </div>
       {% endif %}
-  {% endif %}
-    {% for date_str, meetings in meetings_by_date.items() %}
-      <h3 class="mt-4 mb-3">{{ meetings[0].event_date.strftime('%A, %B %d, %Y') }}</h3>
-      <div class="row">
+  {% else %}
+    <div class="row mt-4">
+      {% for date_str, meetings in meetings_by_date.items() %}
         {% for m in meetings %}
           <div class="col-md-6 mb-3">
             <div class="card h-100">
+              <div class="card-header bg-light">
+                <strong>{{ m.event_date.strftime('%A, %B %d, %Y') }}</strong>
+              </div>
               <div class="card-body">
                 <h5 class="card-title">{{ m.title }}</h5>
                 <h6 class="card-subtitle mb-2 text-muted">
@@ -147,6 +271,7 @@
             </div>
           </div>
         {% endfor %}
-      </div>
-    {% endfor %}
+      {% endfor %}
+    </div>
+  {% endif %}
 {% endblock %}

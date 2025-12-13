@@ -53,4 +53,43 @@
     <a href="{{ url_for('chair_resources') }}" class="btn btn-secondary">Back to Chair Resources</a>
     <a href="{{ url_for('calendar_view') }}" class="btn btn-primary ms-2">Go to Calendar</a>
   </p>
+
+<style>
+  /* Logo color palette styling */
+  body.light-theme .card-header {
+    background: linear-gradient(135deg, #0f6f75, #0a5a5e);
+    color: white;
+  }
+  
+  body.light-theme .card-body {
+    color: #1a1a1a;
+  }
+  
+  body.light-theme .card-body li,
+  body.light-theme .card-body p {
+    color: #2a2a2a;
+  }
+  
+  body.light-theme h2,
+  body.light-theme .text-muted {
+    color: #2a2a2a !important;
+  }
+  
+  body.light-theme .alert-info {
+    background-color: rgba(15, 111, 117, 0.1);
+    color: #0a5a5e;
+    border-color: rgba(15, 111, 117, 0.3);
+  }
+  
+  body.light-theme .btn-primary {
+    background-color: #0f6f75;
+    border-color: #0f6f75;
+  }
+  
+  body.light-theme .btn-primary:hover {
+    background-color: #0a5a5e;
+    border-color: #0a5a5e;
+  }
+</style>
+
 {% endblock %}

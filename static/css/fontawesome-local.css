@@ -1,0 +1,17 @@
+/* Font Awesome 6.5.1 - Self-hosted to avoid tracking prevention */
+@font-face {
+  font-family: "Font Awesome 6 Free";
+  font-style: normal;
+  font-weight: 900;
+  font-display: block;
+  src: url("../vendor/fontawesome/fa-solid-900.woff2") format("woff2");
+}
+
+.fas,
+.fa-solid {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+}
+
+/* Import the rest from the main CSS */
+@import url("../vendor/fontawesome/all.min.css");

@@ -1,20 +1,28 @@
-# Python / Flask / Heroku
-# Ignore local virtual environments and Python artifacts
+﻿# Python / Flask / Heroku
 .venv/
 venv/
 ENV/
+env/
+env.bak/
+venv.bak/
 
 # Byte-compiled / cache
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyc
+*.pyd
+.Python
 
 # Environment variables
 .env
 .env.*
+.env.local
+.env.production
 
 # Logs and runtime
 *.log
+logs/
 
 # Unit test / coverage reports
 .pytest_cache/
@@ -22,9 +30,20 @@ __pycache__/
 coverage.xml
 htmlcov/
 
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Flask
+instance/
+.webassets-cache
+
 # IDE/editor settings
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS files
 .DS_Store
@@ -36,47 +55,8 @@ dist/
 build/
 
 # Heroku
-# Heroku recommends not committing local venvs
-.profile.d/
-# Environment variables
-.env
-.env.local
-.env.production
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Flask
-instance/
-.webassets-cache
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Heroku
 .heroku/
+.profile.d/
+
+# Large video files (hosted externally)
+static/videos/*.mp4

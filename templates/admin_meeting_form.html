@@ -54,6 +54,12 @@
       <div class="form-text">Set to Men-only or Women-only to restrict who can chair.</div>
     </div>
 
+    <div class="mb-3">
+      {{ form.meeting_type.label(class="form-label") }}
+      {{ form.meeting_type(class="form-select") }}
+      <div class="form-text">Choose the meeting type for proper categorization and styling.</div>
+    </div>
+
     {{ form.submit(class="btn btn-primary") }}
     <a href="{{ url_for('admin_meetings') }}" class="btn btn-secondary ms-2">Cancel</a>
   </form>
