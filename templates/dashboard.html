@@ -58,13 +58,13 @@
             <!-- ChairPoints Tile -->
             <div class="col-md-3 col-6">
               <div class="text-center p-4 rounded shadow-sm h-100 d-flex flex-column justify-content-start" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); min-height: 180px;">
+                <small class="text-white fw-bold mb-2">ChairPoints™</small>
                 <div class="display-3 mb-2 text-white fw-bold">
                   {{ user.chair_points or 0 }}
                 </div>
-                <div class="mb-2">
+                <div>
                   <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 60px; height: 60px;" alt="ChairPoints">
                 </div>
-                <small class="text-white fw-bold">ChairPoints™</small>
               </div>
             </div>
             <!-- Volunteer Signups Tile -->
