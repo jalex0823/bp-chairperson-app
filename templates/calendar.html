@@ -371,7 +371,7 @@
   <div class="table-responsive" {% if view!='month' %}style="display:none"{% endif %}>
 {% if not current_user %}
   <div class="alert alert-info d-flex align-items-center" role="alert">
-    <div>
+    <div class="text-white">
       Log in to browse other months and claim an open meeting to chair.
     </div>
     <a class="btn btn-sm btn-warning fw-bold ms-3" href="{{ url_for('login', next=request.full_path) }}">Log In</a>
