@@ -3175,23 +3175,18 @@ def quiz_certificate(user_id=None):
             name_y = int(img_height * NAME_LINE_POSITION) - name_height
             draw.text((name_x, name_y), name_text, fill=text_color, font=name_font)
             
-            # DATE LINE - Align text baseline with template line (left-aligned near "Date" label)
+            # DATE LINE - Align text baseline with template line (positioned on Date line)
             date_text = attempt.completed_at.strftime('%B %d, %Y')
             date_bbox = draw.textbbox((0, 0), date_text, font=date_font)
             date_width = date_bbox[2] - date_bbox[0]
             date_height = date_bbox[3] - date_bbox[1]
-            date_x = int(img_width * 0.12)  # Left-align at 12% from left edge (near "Date" label)
+            date_x = int(img_width * 0.20)  # Position at 20% from left edge (centered on Date line)
             # Position text so bottom of text sits ON the line at DATE_LINE_POSITION
             date_y = int(img_height * DATE_LINE_POSITION) - date_height
             draw.text((date_x, date_y), date_text, fill=text_color, font=date_font)
             
-            # ADDITIONAL INFO - Program name
-            completion_text = "Back Porch Chairperson Training Program"
-            completion_bbox = draw.textbbox((0, 0), completion_text, font=detail_font)
-            completion_width = completion_bbox[2] - completion_bbox[0]
-            completion_x = (img_width - completion_width) // 2
-            completion_y = int(img_height * PROGRAM_TEXT_POSITION)
-            draw.text((completion_x, completion_y), completion_text, fill=text_color, font=detail_font)
+            # ADDITIONAL INFO - Program name (removed to avoid overlapping emblem)
+            # The certificate template already has the program information
             
             # BP ID - Bottom area
             bp_id_text = f"BP ID: {user.bp_id}"
