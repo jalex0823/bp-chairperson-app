@@ -31,6 +31,53 @@
     </div>
   </div>
 
+  <!-- Service Stats Tiles (for non-admin users) -->
+  {% if not (user.is_admin and admin_stats) %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header text-white" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+          <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Your Service Stats</h6>
+        </div>
+        <div class="card-body p-3">
+          <!-- Top Row: Upcoming and Completed -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-3 col-6">
+              <div class="text-center p-4 bg-light rounded shadow-sm">
+                <div class="display-4 mb-2">{{ upcoming_commitments }}</div>
+                <small class="text-muted fw-bold">Upcoming<br>Meetings</small>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="text-center p-4 bg-light rounded shadow-sm">
+                <div class="display-4 mb-2">{{ total_meetings_chaired }}</div>
+                <small class="text-muted fw-bold">Completed<br>Meetings</small>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="text-center p-4 bg-light rounded shadow-sm">
+                <div class="mb-3">
+                  <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 70px; height: 70px;" alt="ChairPoints">
+                </div>
+                <div class="display-4 mb-2" style="color: #0f6f75; font-weight: bold;">
+                  {{ user.chair_points or 0 }}
+                </div>
+                <small class="text-muted fw-bold">ChairPoints™</small>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="text-center p-4 bg-light rounded shadow-sm">
+                <div class="display-4 mb-2">{{ volunteer_signups }}</div>
+                <small class="text-muted fw-bold">Volunteer<br>Signups</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Admin Statistics Section (replaces personal stats for admins) -->
   {% if user.is_admin and admin_stats %}
   <div class="row mb-4">
@@ -321,51 +368,6 @@
               {{ form.submit(class="btn btn-primary") }}
             </div>
           </form>
-        </div>
-      </div>
-
-      <!-- Service Stats Tiles -->
-      <div class="card mt-3">
-        <div class="card-header text-white" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
-          <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Your Service Stats</h6>
-        </div>
-        <div class="card-body p-2">
-          <!-- Top Row: Upcoming and Completed -->
-          <div class="row g-2 mb-2">
-            <div class="col-6">
-              <div class="text-center p-3 bg-light rounded">
-                <div class="h2 mb-1">{{ upcoming_commitments }}</div>
-                <small class="text-muted">Upcoming<br>Meetings</small>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="text-center p-3 bg-light rounded">
-                <div class="h2 mb-1">{{ total_meetings_chaired }}</div>
-                <small class="text-muted">Completed<br>Meetings</small>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Bottom Row: ChairPoints and Volunteer Signups -->
-          <div class="row g-2">
-            <div class="col-6">
-              <div class="text-center p-3 bg-light rounded">
-                <div class="mb-2">
-                  <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 60px; height: 60px;" alt="ChairPoints">
-                </div>
-                <div class="h2 mb-1" style="color: #0f6f75; font-weight: bold;">
-                  {{ user.chair_points or 0 }}
-                </div>
-                <small class="text-muted">ChairPoints™</small>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="text-center p-3 bg-light rounded">
-                <div class="h2 mb-1">{{ volunteer_signups }}</div>
-                <small class="text-muted">Volunteer<br>Signups</small>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
