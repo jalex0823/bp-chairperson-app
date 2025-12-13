@@ -3646,9 +3646,7 @@ def admin_certificates():
     # Get all passed quiz attempts with user info
     certificate_recipients = db.session.query(
         User.id,
-        User.username,
         User.display_name,
-        User.bp_id,
         User.email,
         db.func.count(QuizAttempt.id).label('quizzes_passed'),
         db.func.max(QuizAttempt.completed_at).label('latest_completion')
@@ -3672,11 +3670,13 @@ def admin_certificates():
             passed=True
         ).order_by(QuizAttempt.completed_at.desc()).all()
         
+        # Get the user object to access bp_id property
+        user_obj = User.query.get(recipient.id)
+        
         recipients_with_details.append({
             'user_id': recipient.id,
-            'username': recipient.username,
-            'display_name': recipient.display_name or recipient.username,
-            'bp_id': recipient.bp_id,
+            'display_name': recipient.display_name,
+            'bp_id': user_obj.bp_id if user_obj else 'N/A',
             'email': recipient.email,
             'quizzes_passed': recipient.quizzes_passed,
             'latest_completion': recipient.latest_completion,

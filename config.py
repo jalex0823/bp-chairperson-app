@@ -65,6 +65,7 @@ class Config:
     REGISTRATION_ENABLED = os.environ.get("REGISTRATION_ENABLED", "True").lower() == "true"
     # Default a placeholder unlock key so the registration form is gated by default.
     # Override in environment for production.
-    REGISTRATION_ACCESS_CODE = os.environ.get("REGISTRATION_ACCESS_CODE", "BACKPORCH-KEY")
+    # If no access code is set in env, registration will be open (for local dev)
+    REGISTRATION_ACCESS_CODE = os.environ.get("REGISTRATION_ACCESS_CODE", "")
     # Optional: comma-separated list of codes (overrides single code if provided)
     REGISTRATION_ACCESS_CODES = os.environ.get("REGISTRATION_ACCESS_CODES")
