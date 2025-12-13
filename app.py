@@ -3154,7 +3154,7 @@ def quiz_certificate(user_id=None):
             try:
                 # Try different font sizes for name and date
                 name_font = ImageFont.truetype("arial.ttf", 48)
-                date_font = ImageFont.truetype("arial.ttf", 24)
+                date_font = ImageFont.truetype("arial.ttf", 36)
                 detail_font = ImageFont.truetype("arial.ttf", 18)
             except:
                 # Fallback to default font
@@ -3175,12 +3175,12 @@ def quiz_certificate(user_id=None):
             name_y = int(img_height * NAME_LINE_POSITION) - name_height
             draw.text((name_x, name_y), name_text, fill=text_color, font=name_font)
             
-            # DATE LINE - Align text baseline with template line
+            # DATE LINE - Align text baseline with template line (left-aligned near "Date" label)
             date_text = attempt.completed_at.strftime('%B %d, %Y')
             date_bbox = draw.textbbox((0, 0), date_text, font=date_font)
             date_width = date_bbox[2] - date_bbox[0]
             date_height = date_bbox[3] - date_bbox[1]
-            date_x = (img_width - date_width) // 2
+            date_x = int(img_width * 0.12)  # Left-align at 12% from left edge (near "Date" label)
             # Position text so bottom of text sits ON the line at DATE_LINE_POSITION
             date_y = int(img_height * DATE_LINE_POSITION) - date_height
             draw.text((date_x, date_y), date_text, fill=text_color, font=date_font)
