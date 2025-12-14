@@ -4175,6 +4175,7 @@ def admin_monthly_html():
     total_past = sum(s['past_chaired'] for s in user_stats)
     total_future = sum(s['future_chaired'] for s in user_stats)
     total_all = total_past + total_future
+    total_chairpoints = sum(s['user'].chair_points or 0 for s in user_stats)
     
     # Count unfilled future meetings
     unfilled_future = (
@@ -4192,6 +4193,7 @@ def admin_monthly_html():
         total_past=total_past,
         total_future=total_future,
         total_all=total_all,
+        total_chairpoints=total_chairpoints,
         unfilled_future=unfilled_future,
         today=today,
     )

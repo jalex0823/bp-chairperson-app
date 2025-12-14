@@ -83,8 +83,11 @@
             <th class="sortable text-center" onclick="sortTable(3)">
               Total <i class="fas fa-sort"></i>
             </th>
+            <th class="sortable text-center" onclick="sortTable(4)">
+              <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 20px; height: 20px; vertical-align: middle;" alt="ChairPoints"> ChairPoints <i class="fas fa-sort"></i>
+            </th>
             <th>Future Meeting Details</th>
-            <th class="sortable text-center" onclick="sortTable(5)">
+            <th class="sortable text-center" onclick="sortTable(6)">
               % of Total <i class="fas fa-sort"></i>
             </th>
           </tr>
@@ -104,6 +107,12 @@
             </td>
             <td class="text-center">
               <strong>{{ stat.total_chaired }}</strong>
+            </td>
+            <td class="text-center">
+              <span class="badge bg-warning text-dark fs-6">
+                <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 18px; height: 18px; vertical-align: middle;" alt="ChairPoints">
+                {{ stat.user.chair_points or 0 }}
+              </span>
             </td>
             <td>
               {% if stat.future_meetings %}
@@ -143,6 +152,12 @@
             <td class="text-center">{{ total_past }}</td>
             <td class="text-center">{{ total_future }}</td>
             <td class="text-center">{{ total_all }}</td>
+            <td class="text-center">
+              <span class="badge bg-warning text-dark fs-6">
+                <img src="{{ url_for('static', filename='img/chairpoint-coin.png') }}" style="width: 18px; height: 18px; vertical-align: middle;" alt="ChairPoints">
+                {{ total_chairpoints }}
+              </span>
+            </td>
             <td colspan="2"></td>
           </tr>
         </tfoot>
