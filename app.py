@@ -3155,19 +3155,16 @@ def quiz_certificate(user_id=None):
                 # Try different font sizes for name and date - SIGNIFICANTLY INCREASED FOR LEGIBILITY
                 # Try bold fonts first for better visibility
                 try:
-                    name_font = ImageFont.truetype("arialbd.ttf", 96)  # Arial Bold, size 96 (was 72)
-                    date_font = ImageFont.truetype("arialbd.ttf", 72)  # Arial Bold, size 72 (was 56)
-                    detail_font = ImageFont.truetype("arialbd.ttf", 24)  # Arial Bold, size 24
+                    name_font = ImageFont.truetype("arialbd.ttf", 96)  # Arial Bold, size 96
+                    date_font = ImageFont.truetype("arialbd.ttf", 72)  # Arial Bold, size 72
                 except:
                     # Fallback to regular Arial with larger sizes
                     name_font = ImageFont.truetype("arial.ttf", 96)
                     date_font = ImageFont.truetype("arial.ttf", 72)
-                    detail_font = ImageFont.truetype("arial.ttf", 24)
             except:
                 # Fallback to default font
                 name_font = ImageFont.load_default()
                 date_font = ImageFont.load_default()
-                detail_font = ImageFont.load_default()
             
             # Text color (dark, will work on light backgrounds)
             text_color = (0, 0, 0)  # Black - adjust if needed
@@ -3192,16 +3189,7 @@ def quiz_certificate(user_id=None):
             date_y = int(img_height * DATE_LINE_POSITION) - date_height
             draw.text((date_x, date_y), date_text, fill=text_color, font=date_font)
             
-            # ADDITIONAL INFO - Program name (removed to avoid overlapping emblem)
-            # The certificate template already has the program information
-            
-            # BP ID - Bottom area
-            bp_id_text = f"BP ID: {user.bp_id}"
-            bp_id_bbox = draw.textbbox((0, 0), bp_id_text, font=detail_font)
-            bp_id_width = bp_id_bbox[2] - bp_id_bbox[0]
-            bp_id_x = (img_width - bp_id_width) // 2
-            bp_id_y = int(img_height * BP_ID_POSITION)
-            draw.text((bp_id_x, bp_id_y), bp_id_text, fill=text_color, font=detail_font)
+            # ADDITIONAL INFO - Not needed, template already has the program information
             
             # Convert PIL image to PDF
             img_buffer = BytesIO()
