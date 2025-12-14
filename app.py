@@ -3157,12 +3157,12 @@ def quiz_certificate(user_id=None):
                 try:
                     name_font = ImageFont.truetype("arialbd.ttf", 96)  # Arial Bold, size 96 (was 72)
                     date_font = ImageFont.truetype("arialbd.ttf", 72)  # Arial Bold, size 72 (was 56)
-                    detail_font = ImageFont.truetype("arialbd.ttf", 28)  # Arial Bold, size 28 (was 24)
+                    detail_font = ImageFont.truetype("arialbd.ttf", 24)  # Arial Bold, size 24
                 except:
                     # Fallback to regular Arial with larger sizes
                     name_font = ImageFont.truetype("arial.ttf", 96)
                     date_font = ImageFont.truetype("arial.ttf", 72)
-                    detail_font = ImageFont.truetype("arial.ttf", 28)
+                    detail_font = ImageFont.truetype("arial.ttf", 24)
             except:
                 # Fallback to default font
                 name_font = ImageFont.load_default()
