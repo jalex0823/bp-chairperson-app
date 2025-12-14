@@ -3870,6 +3870,65 @@ def admin_diagnostics():
     )
 
 
+@app.route("/admin/reports/all-users")
+@admin_required
+def admin_all_users_report():
+    """Complete report of all registered users with chair points and meeting counts.
+    Shows users who earned points from quizzes even if they haven't chaired yet.
+    Optional CSV export with ?format=csv
+    """
+    fmt = request.args.get("format", "html").lower()
+    
+    # Get all users with their chair points and meeting counts
+    all_users = db.session.query(
+        User.id,
+        User.display_name,
+        User.email,
+        User.chair_points,
+        User.profile_image,
+        User.created_at,
+        func.count(ChairSignup.id).label('total_meetings')
+    ).outerjoin(ChairSignup).group_by(User.id).order_by(User.chair_points.desc(), User.display_name).all()
+    
+    # Calculate totals
+    total_users = len(all_users)
+    total_points = sum(user.chair_points for user in all_users)
+    total_meetings = sum(user.total_meetings for user in all_users)
+    users_with_points = sum(1 for user in all_users if user.chair_points > 0)
+    users_with_meetings = sum(1 for user in all_users if user.total_meetings > 0)
+    
+    if fmt == "csv":
+        import csv
+        from io import StringIO
+        si = StringIO()
+        writer = csv.DictWriter(si, fieldnames=[
+            "bp_id", "display_name", "email", "chair_points", "total_meetings", "joined_date"
+        ])
+        writer.writeheader()
+        for user in all_users:
+            writer.writerow({
+                "bp_id": f"BP-{1000 + user.id}",
+                "display_name": user.display_name,
+                "email": user.email,
+                "chair_points": user.chair_points,
+                "total_meetings": user.total_meetings,
+                "joined_date": user.created_at.strftime('%Y-%m-%d') if user.created_at else ''
+            })
+        resp = make_response(si.getvalue())
+        resp.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        resp.headers['Content-Disposition'] = 'attachment; filename=all_users_report.csv'
+        return resp
+    
+    # HTML view
+    return render_template("admin_all_users_report.html", 
+                         all_users=all_users,
+                         total_users=total_users,
+                         total_points=total_points,
+                         total_meetings=total_meetings,
+                         users_with_points=users_with_points,
+                         users_with_meetings=users_with_meetings)
+
+
 @app.route("/admin/reports/chairpoints-leaderboard")
 @admin_required
 def admin_chairpoints_leaderboard():

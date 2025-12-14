@@ -115,9 +115,14 @@
               </h4>
               <small class="d-block mt-1" style="opacity: 0.9;">Top 20 Chairpersons - Earn 1 ChairPoint for every meeting you chair!</small>
             </div>
-            <a href="{{ url_for('admin_chairpoints_leaderboard') }}" class="btn btn-light btn-sm">
-              <i class="fas fa-list"></i> View Full Report
-            </a>
+            <div class="d-flex gap-2">
+              <a href="{{ url_for('admin_all_users_report') }}" class="btn btn-light btn-sm">
+                <i class="fas fa-users"></i> All Users Report
+              </a>
+              <a href="{{ url_for('admin_chairpoints_leaderboard') }}" class="btn btn-light btn-sm">
+                <i class="fas fa-list"></i> Full Leaderboard
+              </a>
+            </div>
           </div>
         </div>
         <div class="card-body p-0">
