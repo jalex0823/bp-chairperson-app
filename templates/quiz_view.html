@@ -171,15 +171,83 @@ function unlockQuiz() {
     overlayDiv.remove();
   }
   
-  // Show success notification
-  const container = document.querySelector('.container.py-4');
-  const firstRow = document.querySelector('.row.mb-4:nth-of-type(3)');
-  if (container && firstRow) {
-    const notification = document.createElement('div');
-    notification.className = 'alert alert-success alert-dismissible fade show';
-    notification.innerHTML = '<i class="fas fa-check-circle"></i> <strong>Quiz unlocked!</strong> You can now take the quiz. <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
-    container.insertBefore(notification, firstRow);
+  // Show animated 80% unlock modal
+  showUnlockModal();
+}
+
+// Show 80% Video Unlocked Animation Modal
+function showUnlockModal() {
+  // Create modal backdrop
+  const modalBackdrop = document.createElement('div');
+  modalBackdrop.className = 'modal-backdrop fade show';
+  modalBackdrop.style.zIndex = '1055';
+  document.body.appendChild(modalBackdrop);
+  
+  // Create modal
+  const modal = document.createElement('div');
+  modal.className = 'modal fade show d-block';
+  modal.style.zIndex = '1056';
+  modal.setAttribute('tabindex', '-1');
+  modal.innerHTML = `
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content unlock-modal-content">
+        <div class="modal-body text-center p-5">
+          <div class="unlock-animation mb-4">
+            <div class="unlock-circle">
+              <i class="fas fa-unlock-alt fa-4x text-success unlock-icon"></i>
+            </div>
+            <div class="unlock-progress-ring">
+              <svg width="120" height="120">
+                <circle cx="60" cy="60" r="54" stroke="#28a745" stroke-width="6" fill="none" 
+                        stroke-dasharray="339.292" stroke-dashoffset="67.8584"
+                        stroke-linecap="round" class="progress-circle"/>
+              </svg>
+              <div class="unlock-percentage">80%</div>
+            </div>
+          </div>
+          <h3 class="text-success mb-3">
+            <i class="fas fa-check-circle"></i> Video Unlocked!
+          </h3>
+          <h5 class="mb-3">You are now able to take the quiz</h5>
+          <p class="text-muted mb-4">
+            You've watched 80% of the video and unlocked the quiz. 
+            Good luck! You need 70% or better to pass.
+          </p>
+          <button type="button" class="btn btn-success btn-lg px-5" onclick="closeUnlockModal()">
+            <i class="fas fa-graduation-cap"></i> Start Quiz
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.body.classList.add('modal-open');
+  
+  // Trigger animation
+  setTimeout(() => {
+    modal.classList.add('show');
+  }, 10);
+}
+
+// Close unlock modal
+function closeUnlockModal() {
+  const modal = document.querySelector('.modal.show');
+  const backdrop = document.querySelector('.modal-backdrop');
+  
+  if (modal) {
+    modal.classList.remove('show');
+    setTimeout(() => modal.remove(), 300);
   }
+  if (backdrop) {
+    backdrop.classList.remove('show');
+    setTimeout(() => backdrop.remove(), 300);
+  }
+  document.body.classList.remove('modal-open');
+  
+  // Scroll to quiz
+  setTimeout(() => {
+    document.querySelector('.card.shadow:nth-of-type(2)').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 400);
 }
 
 // Track video progress with multiple methods
@@ -243,6 +311,172 @@ video.addEventListener('ended', function() {
 
 .card:hover {
   box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
+}
+
+/* 80% Video Unlock Modal Animations */
+.unlock-modal-content {
+  border: none;
+  border-radius: 1rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: modalSlideIn 0.5s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.unlock-animation {
+  position: relative;
+  display: inline-block;
+}
+
+.unlock-circle {
+  position: relative;
+  z-index: 2;
+  animation: unlockPulse 0.8s ease-out;
+}
+
+@keyframes unlockPulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.unlock-icon {
+  animation: unlockRotate 0.6s ease-out 0.2s backwards;
+}
+
+@keyframes unlockRotate {
+  0% {
+    transform: rotate(-180deg) scale(0.5);
+    opacity: 0;
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.unlock-progress-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.unlock-progress-ring svg {
+  transform: rotate(-90deg);
+  filter: drop-shadow(0 0 8px rgba(40, 167, 69, 0.5));
+}
+
+.progress-circle {
+  animation: drawCircle 1s ease-out forwards;
+}
+
+@keyframes drawCircle {
+  from {
+    stroke-dashoffset: 339.292;
+  }
+  to {
+    stroke-dashoffset: 67.8584; /* 80% of 339.292 */
+  }
+}
+
+.unlock-percentage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #28a745;
+  animation: fadeInScale 0.5s ease-out 0.5s backwards;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.unlock-modal-content h3 {
+  animation: fadeInUp 0.5s ease-out 0.6s backwards;
+}
+
+.unlock-modal-content h5 {
+  animation: fadeInUp 0.5s ease-out 0.7s backwards;
+}
+
+.unlock-modal-content p {
+  animation: fadeInUp 0.5s ease-out 0.8s backwards;
+}
+
+.unlock-modal-content .btn {
+  animation: fadeInUp 0.5s ease-out 0.9s backwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Confetti effect for celebration */
+.unlock-modal-content::before {
+  content: '🎉';
+  position: absolute;
+  top: -30px;
+  left: 20%;
+  font-size: 2rem;
+  animation: confettiFall 1s ease-out;
+  opacity: 0;
+}
+
+.unlock-modal-content::after {
+  content: '✨';
+  position: absolute;
+  top: -20px;
+  right: 20%;
+  font-size: 2rem;
+  animation: confettiFall 1s ease-out 0.2s;
+  opacity: 0;
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100px) rotate(360deg);
+    opacity: 0;
+  }
 }
 </style>
 {% endblock %}
