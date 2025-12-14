@@ -3152,10 +3152,17 @@ def quiz_certificate(user_id=None):
             
             # Try to load a nice font, fallback to default
             try:
-                # Try different font sizes for name and date
-                name_font = ImageFont.truetype("arial.ttf", 56)
-                date_font = ImageFont.truetype("arial.ttf", 40)
-                detail_font = ImageFont.truetype("arial.ttf", 18)
+                # Try different font sizes for name and date - INCREASED FOR LEGIBILITY
+                # Try bold fonts first for better visibility
+                try:
+                    name_font = ImageFont.truetype("arialbd.ttf", 72)  # Arial Bold, size 72
+                    date_font = ImageFont.truetype("arialbd.ttf", 56)  # Arial Bold, size 56
+                    detail_font = ImageFont.truetype("arialbd.ttf", 24)  # Arial Bold, size 24
+                except:
+                    # Fallback to regular Arial with larger sizes
+                    name_font = ImageFont.truetype("arial.ttf", 72)
+                    date_font = ImageFont.truetype("arial.ttf", 56)
+                    detail_font = ImageFont.truetype("arial.ttf", 24)
             except:
                 # Fallback to default font
                 name_font = ImageFont.load_default()
