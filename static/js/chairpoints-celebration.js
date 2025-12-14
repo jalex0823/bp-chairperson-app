@@ -93,12 +93,21 @@
   function createFloatingCoins(container, count) {
     const maxCoins = Math.min(count, 5); // Show up to 5 coins
     
+    // Position coins in a swarm pattern with varied horizontal and vertical positions
+    const positions = [
+      { left: 15, top: 50 },
+      { left: 35, top: 65 },
+      { left: 55, top: 55 },
+      { left: 75, top: 70 },
+      { left: 45, top: 75 }
+    ];
+    
     for (let i = 0; i < maxCoins; i++) {
       const coin = document.createElement('div');
       coin.className = 'gold-coin';
       coin.innerHTML = '<img src="/static/img/chairpoint-coin.png" style="width: 100%; height: 100%; object-fit: contain;">';
-      coin.style.left = `${20 + (i * 15)}%`;
-      coin.style.top = '60%';
+      coin.style.left = `${positions[i].left}%`;
+      coin.style.top = `${positions[i].top}%`;
       coin.style.animationDelay = `${i * 0.2}s`;
       container.appendChild(coin);
     }
