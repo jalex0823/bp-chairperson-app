@@ -178,6 +178,53 @@
     </div>
   </div>
 
+  <!-- Charts -->
+  <div class="row mt-4">
+    <div class="col-md-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Top 10 Users by ChairPoints</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="chairpointsChart" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Top 10 Users by Meetings Chaired</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="meetingsChart" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="fas fa-chart-pie"></i> User Status Distribution</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="statusChart" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 mb-4">
+      <div class="card shadow">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0"><i class="fas fa-chart-bar"></i> ChairPoints Distribution</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="distributionChart" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Additional Stats -->
   <div class="row mt-4">
     <div class="col-md-4">
@@ -216,6 +263,201 @@
   </div>
 
 </div>
+
+<script>
+// Prepare data for charts
+const usersData = {{ all_users | tojson }};
+
+// Top 10 by ChairPoints
+const top10Points = usersData
+  .filter(u => u.chair_points > 0)
+  .sort((a, b) => b.chair_points - a.chair_points)
+  .slice(0, 10);
+
+// Top 10 by Meetings
+const top10Meetings = usersData
+  .filter(u => u.total_meetings > 0)
+  .sort((a, b) => b.total_meetings - a.total_meetings)
+  .slice(0, 10);
+
+// ChairPoints Bar Chart
+new Chart(document.getElementById('chairpointsChart'), {
+  type: 'bar',
+  data: {
+    labels: top10Points.map(u => u.display_name),
+    datasets: [{
+      label: 'ChairPoints',
+      data: top10Points.map(u => u.chair_points),
+      backgroundColor: 'rgba(255, 193, 7, 0.8)',
+      borderColor: 'rgba(255, 193, 7, 1)',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      title: {
+        display: true,
+        text: 'Top 10 Users by ChairPoints'
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 10
+        }
+      }
+    }
+  }
+});
+
+// Meetings Bar Chart
+new Chart(document.getElementById('meetingsChart'), {
+  type: 'bar',
+  data: {
+    labels: top10Meetings.map(u => u.display_name),
+    datasets: [{
+      label: 'Meetings Chaired',
+      data: top10Meetings.map(u => u.total_meetings),
+      backgroundColor: 'rgba(40, 167, 69, 0.8)',
+      borderColor: 'rgba(40, 167, 69, 1)',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      title: {
+        display: true,
+        text: 'Top 10 Users by Meetings Chaired'
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1
+        }
+      }
+    }
+  }
+});
+
+// User Status Pie Chart
+const activeChairs = usersData.filter(u => u.chair_points > 0 && u.total_meetings > 0).length;
+const trained = usersData.filter(u => u.chair_points > 0 && u.total_meetings === 0).length;
+const hasChaired = usersData.filter(u => u.chair_points === 0 && u.total_meetings > 0).length;
+const registered = usersData.filter(u => u.chair_points === 0 && u.total_meetings === 0).length;
+
+new Chart(document.getElementById('statusChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Active Chair', 'Trained (No Meetings)', 'Has Chaired (No Points)', 'Registered Only'],
+    datasets: [{
+      data: [activeChairs, trained, hasChaired, registered],
+      backgroundColor: [
+        'rgba(40, 167, 69, 0.8)',
+        'rgba(23, 162, 184, 0.8)',
+        'rgba(0, 123, 255, 0.8)',
+        'rgba(108, 117, 125, 0.8)'
+      ],
+      borderColor: [
+        'rgba(40, 167, 69, 1)',
+        'rgba(23, 162, 184, 1)',
+        'rgba(0, 123, 255, 1)',
+        'rgba(108, 117, 125, 1)'
+      ],
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom'
+      },
+      title: {
+        display: true,
+        text: 'User Status Distribution'
+      }
+    }
+  }
+});
+
+// ChairPoints Distribution
+const pointRanges = {
+  '0': 0,
+  '1-10': 0,
+  '11-25': 0,
+  '26-50': 0,
+  '51-100': 0,
+  '100+': 0
+};
+
+usersData.forEach(u => {
+  if (u.chair_points === 0) pointRanges['0']++;
+  else if (u.chair_points <= 10) pointRanges['1-10']++;
+  else if (u.chair_points <= 25) pointRanges['11-25']++;
+  else if (u.chair_points <= 50) pointRanges['26-50']++;
+  else if (u.chair_points <= 100) pointRanges['51-100']++;
+  else pointRanges['100+']++;
+});
+
+new Chart(document.getElementById('distributionChart'), {
+  type: 'bar',
+  data: {
+    labels: Object.keys(pointRanges),
+    datasets: [{
+      label: 'Number of Users',
+      data: Object.values(pointRanges),
+      backgroundColor: 'rgba(255, 193, 7, 0.8)',
+      borderColor: 'rgba(255, 193, 7, 1)',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      title: {
+        display: true,
+        text: 'Distribution of ChairPoints Among Users'
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1
+        },
+        title: {
+          display: true,
+          text: 'Number of Users'
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'ChairPoints Range'
+        }
+      }
+    }
+  }
+});
+</script>
 
 <style>
 .table th {
