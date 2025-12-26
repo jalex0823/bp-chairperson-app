@@ -28,7 +28,6 @@ from wtforms.validators import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from icalendar import Calendar, Event, Alarm
-from reportlab.lib.utils import ImageReader
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
@@ -37,9 +36,25 @@ from io import BytesIO
 import subprocess
 import tempfile
 
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import inch
+# ReportLab depends on Pillow for some functionality; keep PDF/certificate features optional
+# so auth/admin utilities can run in minimal environments.
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.units import inch
+    REPORTLAB_AVAILABLE = True
+except Exception:
+    letter = None
+    canvas = None
+    inch = None
+    REPORTLAB_AVAILABLE = False
+
+try:
+    from reportlab.lib.utils import ImageReader
+    REPORTLAB_IMAGE_READER_AVAILABLE = True
+except Exception:
+    ImageReader = None
+    REPORTLAB_IMAGE_READER_AVAILABLE = False
 from urllib.request import urlopen
 from urllib.error import URLError, HTTPError
 
@@ -1893,27 +1908,84 @@ def login():
         flash("You are already logged in.", "info")
         return redirect(url_for("index"))
 
+    def _strip_zero_width(s: str) -> str:
+        # Common invisible characters introduced by mobile keyboards / copy-paste.
+        return (
+            (s or "")
+            .replace("\u200b", "")  # zero width space
+            .replace("\u200c", "")  # zero width non-joiner
+            .replace("\u200d", "")  # zero width joiner
+            .replace("\ufeff", "")  # BOM
+        )
+
+    def _normalize_email(raw: str) -> str:
+        return _strip_zero_width((raw or "").strip().lower())
+
     form = LoginForm()
     if form.validate_on_submit():
-        email = form.email.data.lower().strip()
+        email = _normalize_email(form.email.data)
         user = User.query.filter_by(email=email).first()
+
+        # Security configuration (configurable to reduce mobile lockout pain)
+        enable_lockout = bool(app.config.get('ENABLE_ACCOUNT_LOCKOUT', True))
+        max_attempts = int(app.config.get('MAX_FAILED_LOGIN_ATTEMPTS', 10) or 0)
+        lock_minutes = int(app.config.get('LOCKOUT_MINUTES', 10) or 0)
+        allow_trim = bool(app.config.get('ALLOW_PASSWORD_TRIM_ON_LOGIN', True))
+        allow_locked_login = bool(app.config.get('ALLOW_LOCKED_ACCOUNT_LOGIN_IF_PASSWORD_CORRECT', True))
         
         if user:
-            # Check if account is locked
-            if user.is_locked():
-                log_audit_event('login_attempt_locked_account', user.id, details={'email': email})
+            raw_password = form.password.data or ""
+            # Build candidate passwords to tolerate common mobile autofill quirks.
+            # We never store or log the password itself.
+            candidates = [raw_password]
+            normalized_pw = _strip_zero_width(raw_password)
+            if normalized_pw != raw_password:
+                candidates.append(normalized_pw)
+            if allow_trim:
+                stripped_pw = raw_password.strip()
+                if stripped_pw and stripped_pw != raw_password:
+                    candidates.append(stripped_pw)
+                stripped_normalized_pw = normalized_pw.strip()
+                if stripped_normalized_pw and stripped_normalized_pw not in candidates:
+                    candidates.append(stripped_normalized_pw)
+
+            password_ok_direct = user.check_password(raw_password)
+            password_ok = password_ok_direct or any(user.check_password(p) for p in candidates[1:])
+
+            # If account is locked, allow login if the correct password is provided.
+            if user.is_locked() and not (allow_locked_login and password_ok):
+                log_audit_event('login_attempt_locked_account', user.id, details={
+                    'email': email,
+                    'failed_attempts': user.failed_login_attempts,
+                    'locked_until': user.locked_until.isoformat() if user.locked_until else None,
+                    'user_agent': (request.headers.get('User-Agent') or '')[:200],
+                    'password_length': len(raw_password),
+                    'password_had_outer_whitespace': raw_password != raw_password.strip(),
+                })
                 flash("Account is temporarily locked due to too many failed login attempts. Please try again later.", "danger")
                 return render_template("login.html", form=form)
-            
+
             # Check password
-            if user.check_password(form.password.data):
+            if password_ok:
                 # Successful login
                 session["user_id"] = user.id
                 user.last_login = datetime.utcnow()
                 user.failed_login_attempts = 0  # Reset failed attempts
+                user.locked_until = None
                 db.session.commit()
                 
-                log_audit_event('login_success', user.id, details={'email': email})
+                log_audit_event('login_success', user.id, details={
+                    'email': email,
+                    'user_agent': (request.headers.get('User-Agent') or '')[:200],
+                    'compat_password_normalization_used': bool(allow_trim and (raw_password != raw_password.strip() or raw_password != _strip_zero_width(raw_password))),
+                })
+
+                if allow_trim and (not password_ok_direct) and raw_password != raw_password.strip():
+                    # Gentle hint: this is a common mobile autofill issue.
+                    flash(
+                        "Note: your password appeared to include extra spaces. If you use autofill on mobile, double-check it doesn’t add a trailing space.",
+                        "warning",
+                    )
                 
                 # Check if password reset is required
                 if user.password_reset_required:
@@ -1926,17 +1998,43 @@ def login():
             else:
                 # Failed login - increment attempts
                 user.failed_login_attempts += 1
-                if user.failed_login_attempts >= 5:
-                    user.lock_account(30)  # Lock for 30 minutes
-                    log_audit_event('account_locked', user.id, details={'email': email, 'failed_attempts': user.failed_login_attempts})
-                    flash("Account locked due to too many failed login attempts. Please try again in 30 minutes.", "danger")
+
+                should_lock = False
+                if enable_lockout and max_attempts > 0 and user.failed_login_attempts >= max_attempts:
+                    should_lock = True
+
+                if should_lock and lock_minutes > 0:
+                    user.lock_account(lock_minutes)
+                    log_audit_event('account_locked', user.id, details={
+                        'email': email,
+                        'failed_attempts': user.failed_login_attempts,
+                        'lock_minutes': lock_minutes,
+                        'user_agent': (request.headers.get('User-Agent') or '')[:200],
+                        'password_length': len(raw_password),
+                        'password_had_outer_whitespace': raw_password != raw_password.strip(),
+                    })
+                    flash(f"Account locked due to too many failed login attempts. Please try again in {lock_minutes} minutes.", "danger")
                 else:
                     db.session.commit()
-                    log_audit_event('login_failure', user.id, details={'email': email, 'failed_attempts': user.failed_login_attempts})
-                    flash(f"Invalid password. {5 - user.failed_login_attempts} attempts remaining.", "danger")
+                    log_audit_event('login_failure', user.id, details={
+                        'email': email,
+                        'failed_attempts': user.failed_login_attempts,
+                        'max_attempts': max_attempts if enable_lockout else None,
+                        'user_agent': (request.headers.get('User-Agent') or '')[:200],
+                        'password_length': len(raw_password),
+                        'password_had_outer_whitespace': raw_password != raw_password.strip(),
+                    })
+                    if enable_lockout and max_attempts > 0:
+                        remaining = max(0, max_attempts - user.failed_login_attempts)
+                        flash(f"Invalid password. {remaining} attempts remaining.", "danger")
+                    else:
+                        flash("Invalid email or password.", "danger")
         else:
             # User not found
-            log_audit_event('login_attempt_invalid_user', details={'email': email})
+            log_audit_event('login_attempt_invalid_user', details={
+                'email': email,
+                'user_agent': (request.headers.get('User-Agent') or '')[:200],
+            })
             flash("Invalid email or password.", "danger")
             
     return render_template("login.html", form=form)
@@ -3217,6 +3315,10 @@ def quiz_certificate(user_id=None):
             y = (height - new_height) / 2
             
             # Draw the image
+            if ImageReader is None:
+                raise RuntimeError(
+                    "Certificate image rendering is unavailable because Pillow/ImageReader could not be imported."
+                )
             c.drawImage(ImageReader(img_buffer), x, y, width=new_width, height=new_height)
             
             c.save()

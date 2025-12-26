@@ -81,15 +81,16 @@
       <fieldset id="regFields">
         <div class="mb-3">
           {{ form.display_name.label(class_='form-label') }}
-          {{ form.display_name(class_='form-control form-control-sm') }}
+          {{ form.display_name(class_='form-control form-control-sm', autocomplete='name', autocapitalize='words', spellcheck='false') }}
         </div>
         <div class="mb-3">
           {{ form.email.label(class_='form-label') }}
-          {{ form.email(class_='form-control form-control-sm') }}
+          {{ form.email(class_='form-control form-control-sm', type='email', autocomplete='username', inputmode='email', autocapitalize='none', autocorrect='off', spellcheck='false') }}
         </div>
         <div class="mb-3">
           {{ form.password.label(class_='form-label') }}
-          {{ form.password(class_='form-control form-control-sm') }}
+          {{ form.password(class_='form-control form-control-sm', type='password', autocomplete='new-password', autocapitalize='none', autocorrect='off', spellcheck='false') }}
+          <div class="form-text">Tip: iPhone/iPad can save this password to Keychain for easy future logins.</div>
         </div>
         <div class="mb-3">
           {{ form.sobriety_date.label(class_='form-label') }}

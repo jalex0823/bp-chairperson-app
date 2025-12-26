@@ -2,28 +2,56 @@
 {% block content %}
   <h2>Log In</h2>
 
-  <form method="post" class="mt-3" style="max-width: 400px;" autocomplete="on">
+  <form method="post" action="{{ url_for('login') }}" class="mt-3" style="max-width: 400px;" autocomplete="on">
     {{ form.hidden_tag() }}
     <div class="mb-3">
       {{ form.email.label(class="form-label") }}
       {{ form.email(class="form-control", 
                     type="email",
-                    autocomplete="email",
+                    autocomplete="username",
                     autocapitalize="none",
                     autocorrect="off",
                     spellcheck="false",
                     inputmode="email",
+                    enterkeyhint="next",
+                    autofocus=true,
                     placeholder="your.email@example.com") }}
+      <div class="form-text">
+        Tip: On iPhone/iPad, using <strong>Keychain</strong> or a password manager will let you save and autofill your login.
+      </div>
     </div>
     <div class="mb-3">
       {{ form.password.label(class="form-label") }}
       {{ form.password(class="form-control",
                        type="password",
                        autocomplete="current-password",
+                       autocapitalize="none",
+                       autocorrect="off",
+                       spellcheck="false",
+                       enterkeyhint="go",
                        placeholder="Enter your password") }}
+      <div class="form-text">
+        On mobile, autofill can sometimes add a trailing space to passwords. If login fails unexpectedly, re-type the password manually.
+      </div>
+      <div class="form-check mt-2">
+        <input class="form-check-input" type="checkbox" value="1" id="showPassword">
+        <label class="form-check-label" for="showPassword">Show password</label>
+      </div>
     </div>
     {{ form.submit(class="btn btn-primary w-100") }}
   </form>
+
+  <script>
+    (function() {
+      const cb = document.getElementById('showPassword');
+      if (!cb) return;
+      cb.addEventListener('change', function() {
+        const pw = document.querySelector('input[name="password"]');
+        if (!pw) return;
+        pw.type = cb.checked ? 'text' : 'password';
+      });
+    })();
+  </script>
 
   <p class="mt-3">
     New to chairing? <a href="{{ url_for('register') }}">Create a Back Porch chairperson account</a>.

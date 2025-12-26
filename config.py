@@ -69,3 +69,24 @@ class Config:
     REGISTRATION_ACCESS_CODE = os.environ.get("REGISTRATION_ACCESS_CODE", "")
     # Optional: comma-separated list of codes (overrides single code if provided)
     REGISTRATION_ACCESS_CODES = os.environ.get("REGISTRATION_ACCESS_CODES")
+
+    # ==========================
+    # Login security / UX tuning
+    # ==========================
+    # These are intentionally configurable because mobile password managers and
+    # autocorrect can cause multiple retries and unnecessary lockouts.
+    ENABLE_ACCOUNT_LOCKOUT = os.environ.get("ENABLE_ACCOUNT_LOCKOUT", "True").lower() == "true"
+    MAX_FAILED_LOGIN_ATTEMPTS = int(os.environ.get("MAX_FAILED_LOGIN_ATTEMPTS", "10"))
+    LOCKOUT_MINUTES = int(os.environ.get("LOCKOUT_MINUTES", "10"))
+
+    # Mobile-friendly compatibility:
+    # If enabled, we will retry password verification after stripping leading/trailing
+    # whitespace and removing zero-width characters.
+    ALLOW_PASSWORD_TRIM_ON_LOGIN = os.environ.get("ALLOW_PASSWORD_TRIM_ON_LOGIN", "True").lower() == "true"
+
+    # If enabled, a locked account can still log in if the user provides the correct password.
+    # This prevents "I finally typed it right but I'm still locked out" frustration.
+    ALLOW_LOCKED_ACCOUNT_LOGIN_IF_PASSWORD_CORRECT = os.environ.get(
+        "ALLOW_LOCKED_ACCOUNT_LOGIN_IF_PASSWORD_CORRECT",
+        "True",
+    ).lower() == "true"
