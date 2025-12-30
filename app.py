@@ -143,6 +143,14 @@ def after_request(response):
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     
+    # Safari cookie compatibility headers
+    # Ensure cookies are properly handled in Safari
+    if 'Set-Cookie' in response.headers:
+        # Safari requires explicit SameSite and Secure attributes
+        # These are set in config, but we ensure the response respects them
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
+        response.headers['Pragma'] = 'no-cache'
+    
     return response
 
 # Expose a simple asset version for cache-busting static resources
@@ -1968,7 +1976,9 @@ def login():
             # Check password
             if password_ok:
                 # Successful login
+                session.permanent = True  # Use PERMANENT_SESSION_LIFETIME from config
                 session["user_id"] = user.id
+                session.modified = True  # Force session to be saved
                 user.last_login = datetime.utcnow()
                 user.failed_login_attempts = 0  # Reset failed attempts
                 user.locked_until = None
@@ -1978,6 +1988,7 @@ def login():
                     'email': email,
                     'user_agent': (request.headers.get('User-Agent') or '')[:200],
                     'compat_password_normalization_used': bool(allow_trim and (raw_password != raw_password.strip() or raw_password != _strip_zero_width(raw_password))),
+                    'session_id_set': bool(session.get('user_id')),
                 })
 
                 if allow_trim and (not password_ok_direct) and raw_password != raw_password.strip():

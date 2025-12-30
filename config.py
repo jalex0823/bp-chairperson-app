@@ -90,3 +90,15 @@ class Config:
         "ALLOW_LOCKED_ACCOUNT_LOGIN_IF_PASSWORD_CORRECT",
         "True",
     ).lower() == "true"
+
+    # ==========================
+    # Session Cookie Configuration (Safari Compatibility)
+    # ==========================
+    # These settings ensure cookies work properly in Safari and other strict browsers
+    # Require secure cookies in production (Heroku with DATABASE_URL), allow HTTP for local dev
+    _is_production = bool(os.getenv('DATABASE_URL'))
+    SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", str(_is_production)).lower() == "true"
+    SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Safari-compatible (allows normal navigation)
+    PERMANENT_SESSION_LIFETIME = 86400  # 24 hours in seconds
+    SESSION_COOKIE_NAME = 'bp_session'  # Custom session cookie name
