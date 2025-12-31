@@ -2,6 +2,25 @@
 (function() {
     'use strict';
 
+    // Safari on macOS has had rendering quirks with our dark theme.
+    // Force light theme there and disable the toggle.
+    const ua = navigator.userAgent || '';
+    const isMac = /Macintosh|Mac OS X/.test(ua);
+    const isSafari = /Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua) && !/Edg\//.test(ua);
+    const disableDarkMode = isMac && isSafari;
+
+    if (disableDarkMode) {
+        try { localStorage.setItem('theme', 'light'); } catch (e) {}
+        document.documentElement.classList.add('safari-macos');
+        document.documentElement.classList.add('light-theme');
+        document.documentElement.classList.remove('dark-theme');
+        document.body.classList.add('light-theme');
+        document.body.classList.remove('dark-theme');
+        const themeToggleEl = document.getElementById('themeToggle');
+        if (themeToggleEl) themeToggleEl.style.display = 'none';
+        return;
+    }
+
     const themeToggle = document.getElementById('themeToggle');
     const themeIcon = document.getElementById('themeIcon');
     const body = document.body;

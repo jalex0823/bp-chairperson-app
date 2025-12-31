@@ -47,6 +47,21 @@
     <!-- Force light theme as default BEFORE page renders -->
     <script>
       (function() {
+        // Safari on macOS has had rendering quirks with our dark theme.
+        // Force light theme there (and prevent the toggle) to avoid unreadable UI.
+        const ua = navigator.userAgent || '';
+        const isMac = /Macintosh|Mac OS X/.test(ua);
+        const isSafari = /Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua) && !/Edg\//.test(ua);
+        const disableDarkMode = isMac && isSafari;
+
+        if (disableDarkMode) {
+          document.documentElement.classList.add('safari-macos');
+          try { localStorage.setItem('theme', 'light'); } catch (e) {}
+          document.documentElement.classList.add('light-theme');
+          document.documentElement.classList.remove('dark-theme');
+          return;
+        }
+
         const theme = localStorage.getItem('theme') || 'light';
         if (theme === 'light') {
           document.documentElement.classList.add('light-theme');
@@ -57,6 +72,23 @@
     </script>
 </head>
 <body class="light-theme">
+<style>
+  /* Safari macOS: hard-disable dark theme styles */
+  html.safari-macos.dark-theme,
+  html.safari-macos body.dark-theme {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+  }
+
+  html.safari-macos #themeToggle { display: none !important; }
+
+  /* Ensure any dark-theme scoped rules don't apply in Safari macOS */
+  html.safari-macos .dark-theme,
+  html.safari-macos body.dark-theme *,
+  html.safari-macos .dark-theme * {
+    color-scheme: light !important;
+  }
+</style>
 <!-- Hidden element to track current ChairPoints for celebration -->
 {% if current_user %}
 <div id="currentChairPoints" data-points="{{ current_user.chair_points or 0 }}" style="display: none;"></div>
