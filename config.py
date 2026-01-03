@@ -98,6 +98,15 @@ class Config:
     # even if email sending succeeds. Useful for local testing on mobile devices.
     SHOW_RESET_LINK_LOCALLY = os.environ.get("SHOW_RESET_LINK_LOCALLY", "False").lower() == "true"
 
+    # Optional: comma-separated admin/support email list to notify when a password reset
+    # is requested. If set, those recipients will receive a copy of the reset link.
+    # Example: "support@backporchmeetings.org,admin@backporchmeetings.org"
+    PASSWORD_RESET_ADMIN_NOTIFY_EMAILS = [
+        e.strip()
+        for e in (os.environ.get("PASSWORD_RESET_ADMIN_NOTIFY_EMAILS", "") or "").split(",")
+        if e.strip()
+    ]
+
     # ==========================
     # Session Cookie Configuration (Safari Compatibility)
     # ==========================

@@ -2183,6 +2183,29 @@ def forgot_password():
             'reset_url_generated': True,
         })
 
+        # Optional: notify admin/support recipients with a copy of the reset link.
+        # This is intentionally opt-in because the link grants password reset access.
+        admin_recipients = app.config.get('PASSWORD_RESET_ADMIN_NOTIFY_EMAILS') or []
+        admin_notify_sent = 0
+        if admin_recipients:
+            admin_body = (
+                "Back Porch Chairperson App Password Reset (Admin Copy)\n\n"
+                f"A password reset was requested for: {email}\n\n"
+                f"Reset link (valid for 24 hours):\n{reset_url}\n\n"
+                "Treat this link as sensitive. Anyone with the link can reset the password."
+            )
+            for admin_email in admin_recipients:
+                try:
+                    if send_email(admin_email, f"Password reset link for {email}", admin_body):
+                        admin_notify_sent += 1
+                except Exception:
+                    continue
+
+            log_audit_event('password_reset_admin_notified', user.id, details={
+                'admin_recipients_count': len(admin_recipients),
+                'admin_notify_sent_count': admin_notify_sent,
+            })
+
         body = (
             "Back Porch Chairperson App Password Reset\n\n"
             "We received a request to reset your password.\n\n"
