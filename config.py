@@ -92,6 +92,13 @@ class Config:
     ).lower() == "true"
 
     # ==========================
+    # Local/dev support helpers
+    # ==========================
+    # If True, the Forgot Password page will display the generated reset link
+    # even if email sending succeeds. Useful for local testing on mobile devices.
+    SHOW_RESET_LINK_LOCALLY = os.environ.get("SHOW_RESET_LINK_LOCALLY", "False").lower() == "true"
+
+    # ==========================
     # Session Cookie Configuration (Safari Compatibility)
     # ==========================
     # These settings ensure cookies work properly in Safari and other strict browsers

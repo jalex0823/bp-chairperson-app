@@ -179,6 +179,70 @@ def get_eastern_today():
     """Get current date in Eastern Time (not UTC)."""
     return get_eastern_now().date()
 
+
+# ==========================
+# AUTH / PASSWORD HELPERS
+# ==========================
+
+_ZERO_WIDTH_CHARS = ("\u200b", "\u200c", "\u200d", "\ufeff")
+
+
+def strip_zero_width(value: str) -> str:
+    """Remove common invisible characters introduced by copy/paste or mobile keyboards."""
+    s = value or ""
+    for ch in _ZERO_WIDTH_CHARS:
+        s = s.replace(ch, "")
+    return s
+
+
+def password_has_outer_whitespace(password: str) -> bool:
+    p = password or ""
+    return p != p.strip()
+
+
+def password_has_invisible_chars(password: str) -> bool:
+    p = password or ""
+    return strip_zero_width(p) != p
+
+
+def validate_password_for_storage(password: str) -> tuple[bool, str]:
+    """Validate passwords before hashing/storing.
+
+    Key principle: do not silently trim/modify. Reject and ask user to retype.
+    This prevents creating passwords that are difficult to reproduce on mobile.
+    """
+    p = password or ""
+    if len(p) < 8:
+        return False, "Password must be at least 8 characters long."
+    if password_has_outer_whitespace(p):
+        return False, "Password cannot start or end with spaces. Please re-type it carefully."
+    if password_has_invisible_chars(p):
+        return False, "Password contains invisible characters (often from mobile autofill). Please re-type it manually."
+    return True, ""
+
+
+def check_password_mobile_friendly(user: "User", raw_password: str) -> bool:
+    """Check password while tolerating common mobile autofill quirks.
+
+    Important: we only normalize the *input*, not the stored password.
+    """
+    raw_password = raw_password or ""
+    allow_trim = bool(app.config.get('ALLOW_PASSWORD_TRIM_ON_LOGIN', True))
+
+    candidates = [raw_password]
+    normalized = strip_zero_width(raw_password)
+    if normalized != raw_password:
+        candidates.append(normalized)
+    if allow_trim:
+        stripped = raw_password.strip()
+        if stripped and stripped != raw_password:
+            candidates.append(stripped)
+        stripped_normalized = normalized.strip()
+        if stripped_normalized and stripped_normalized not in candidates:
+            candidates.append(stripped_normalized)
+
+    return any(user.check_password(pw) for pw in candidates)
+
 # External resources directory for chairing PDFs (configurable)
 # Prefer project-local resources/pdfs so it works both locally and on Heroku.
 DEFAULT_PDFS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'pdfs')
@@ -856,7 +920,7 @@ class RegisterForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired(), Email(), Length(max=255)])
     password = PasswordField(
         "Password",
-        validators=[DataRequired(), Length(min=6, message="At least 6 characters")]
+        validators=[DataRequired(), Length(min=8, message="At least 8 characters")]
     )
     # Change from approx. days to sobriety date; we'll auto-calc days server-side
     sobriety_date = DateField(
@@ -885,6 +949,17 @@ class LoginForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[DataRequired()])
     submit = SubmitField("Log In")
+
+
+class ForgotPasswordForm(FlaskForm):
+    email = StringField("Email", validators=[DataRequired(), Email(), Length(max=255)])
+    submit = SubmitField("Send Reset Link")
+
+
+class ResetPasswordForm(FlaskForm):
+    new_password = PasswordField("New Password", validators=[DataRequired()])
+    confirm_password = PasswordField("Confirm New Password", validators=[DataRequired()])
+    submit = SubmitField("Reset Password")
 
 
 class MeetingForm(FlaskForm):
@@ -948,6 +1023,22 @@ class ChairpersonAvailabilityForm(FlaskForm):
 # SECURITY FUNCTIONS
 # ==========================
 
+def _get_client_ip() -> str | None:
+    """Best-effort client IP extraction.
+
+    Honors X-Forwarded-For (first hop) when present, otherwise falls back to
+    Flask's remote_addr.
+    """
+    try:
+        forwarded_for = request.headers.get('X-Forwarded-For') or request.environ.get('HTTP_X_FORWARDED_FOR')
+        if forwarded_for:
+            # X-Forwarded-For can be a comma-separated list: client, proxy1, proxy2
+            first = str(forwarded_for).split(',')[0].strip()
+            return first or None
+        return request.remote_addr
+    except Exception:
+        return None
+
 def log_audit_event(action, user_id=None, resource_type=None, resource_id=None, details=None):
     """Log security and administrative events."""
     try:
@@ -956,8 +1047,8 @@ def log_audit_event(action, user_id=None, resource_type=None, resource_id=None, 
             action=action,
             resource_type=resource_type,
             resource_id=resource_id,
-            ip_address=request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr),
-            user_agent=request.environ.get('HTTP_USER_AGENT'),
+            ip_address=_get_client_ip(),
+            user_agent=(request.headers.get('User-Agent') or request.environ.get('HTTP_USER_AGENT')),
             details=details
         )
         db.session.add(audit_log)
@@ -1804,6 +1895,13 @@ def register():
 
     form = RegisterForm()
     if form.validate_on_submit():
+        # Prevent passwords that are hard to retype on mobile (spaces/invisible chars).
+        pw_ok, pw_msg = validate_password_for_storage(form.password.data or "")
+        if not pw_ok:
+            flash(pw_msg, "danger")
+            access_codes_configured = bool(app.config.get('REGISTRATION_ACCESS_CODE') or app.config.get('REGISTRATION_ACCESS_CODES'))
+            return render_template("register.html", form=form, access_codes_configured=access_codes_configured)
+
         # Enforce access code(s) if configured
         provided_code = (form.access_code.data or '').strip()
         required_code = app.config.get('REGISTRATION_ACCESS_CODE')
@@ -1916,18 +2014,8 @@ def login():
         flash("You are already logged in.", "info")
         return redirect(url_for("index"))
 
-    def _strip_zero_width(s: str) -> str:
-        # Common invisible characters introduced by mobile keyboards / copy-paste.
-        return (
-            (s or "")
-            .replace("\u200b", "")  # zero width space
-            .replace("\u200c", "")  # zero width non-joiner
-            .replace("\u200d", "")  # zero width joiner
-            .replace("\ufeff", "")  # BOM
-        )
-
     def _normalize_email(raw: str) -> str:
-        return _strip_zero_width((raw or "").strip().lower())
+        return strip_zero_width((raw or "").strip().lower())
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -1946,7 +2034,7 @@ def login():
             # Build candidate passwords to tolerate common mobile autofill quirks.
             # We never store or log the password itself.
             candidates = [raw_password]
-            normalized_pw = _strip_zero_width(raw_password)
+            normalized_pw = strip_zero_width(raw_password)
             if normalized_pw != raw_password:
                 candidates.append(normalized_pw)
             if allow_trim:
@@ -1987,7 +2075,7 @@ def login():
                 log_audit_event('login_success', user.id, details={
                     'email': email,
                     'user_agent': (request.headers.get('User-Agent') or '')[:200],
-                    'compat_password_normalization_used': bool(allow_trim and (raw_password != raw_password.strip() or raw_password != _strip_zero_width(raw_password))),
+                    'compat_password_normalization_used': bool(allow_trim and (raw_password != raw_password.strip() or raw_password != strip_zero_width(raw_password))),
                     'session_id_set': bool(session.get('user_id')),
                 })
 
@@ -2060,6 +2148,125 @@ def logout():
     session.pop("user_id", None)
     flash("Logged out.", "info")
     return redirect(url_for("index"))
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    """Self-service password reset request.
+
+    In production: sends an email reset link (if mail is configured).
+    In local/dev without mail: displays the reset link on-screen.
+    """
+    if get_current_user():
+        return redirect(url_for("index"))
+
+    form = ForgotPasswordForm()
+    if form.validate_on_submit():
+        email = strip_zero_width((form.email.data or "").strip().lower())
+
+        # Always use a generic response to avoid account enumeration.
+        generic_msg = "If an account exists for that email, a password reset link has been sent."
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            flash(generic_msg, "info")
+            return redirect(url_for("login"))
+
+        token, token_row = SecurityToken.create_token(user.id, "password_reset", expires_in_hours=24)
+        db.session.add(token_row)
+        db.session.commit()
+
+        reset_url = url_for("reset_password", token=token, _external=True)
+
+        log_audit_event('password_reset_requested', user.id, details={
+            'email': email,
+            'reset_url_generated': True,
+        })
+
+        body = (
+            "Back Porch Chairperson App Password Reset\n\n"
+            "We received a request to reset your password.\n\n"
+            f"Reset link (valid for 24 hours):\n{reset_url}\n\n"
+            "If you did not request this, you can ignore this email."
+        )
+
+        # If mail isn't configured or send fails locally, show the link as a fallback.
+        sent = False
+        try:
+            sent = send_email(email, "Password Reset Link", body)
+        except Exception:
+            sent = False
+
+        is_production = (os.getenv('FLASK_ENV') == 'production')
+        show_link_locally = bool(app.config.get('SHOW_RESET_LINK_LOCALLY', False))
+        # Easiest path for support/testing: optionally show link in any non-production env,
+        # even if the DB is production (DATABASE_URL set).
+        if (not is_production) and (show_link_locally or (not sent)):
+            # Stay on this page and display the link with copy/share affordances.
+            flash("Local dev mode: copy/share this reset link to the user:", "warning")
+            return render_template("forgot_password.html", form=form, reset_url=reset_url)
+
+        flash(generic_msg, "info")
+        return redirect(url_for("login"))
+
+    return render_template("forgot_password.html", form=form)
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token: str):
+    """Reset password using a one-time token."""
+    if not token:
+        flash("Invalid reset link.", "danger")
+        return redirect(url_for("forgot_password"))
+
+    form = ResetPasswordForm()
+
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    token_row = SecurityToken.query.filter_by(
+        token_hash=token_hash,
+        token_type="password_reset",
+        used_at=None,
+    ).filter(SecurityToken.expires_at > datetime.now(timezone.utc)).first()
+
+    if not token_row:
+        flash("This reset link is invalid or has expired. Please request a new one.", "danger")
+        return redirect(url_for("forgot_password"))
+
+    user = User.query.get(token_row.user_id)
+    if not user:
+        flash("This reset link is invalid. Please request a new one.", "danger")
+        return redirect(url_for("forgot_password"))
+
+    if form.validate_on_submit():
+        new_password = form.new_password.data or ""
+        confirm_password = form.confirm_password.data or ""
+
+        if new_password != confirm_password:
+            flash("Passwords do not match.", "danger")
+            return render_template("reset_password.html", form=form)
+
+        ok, msg = validate_password_for_storage(new_password)
+        if not ok:
+            flash(msg, "danger")
+            return render_template("reset_password.html", form=form)
+
+        # Set new password and unlock the account
+        user.set_password(new_password)
+        user.password_reset_required = False
+        user.failed_login_attempts = 0
+        user.locked_until = None
+
+        token_row.used_at = datetime.now(timezone.utc)
+        db.session.commit()
+
+        log_audit_event('password_reset_completed', user.id, details={
+            'email': user.email,
+        })
+
+        flash("Your password has been reset. You can now log in.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("reset_password.html", form=form)
 
 # API: validate registration unlock key
 @app.route("/api/registration/validate-key", methods=["POST"])
@@ -2719,7 +2926,7 @@ def change_password():
             return render_template("change_password.html", required=required)
         
         # Check current password (skip if password reset is required)
-        if not user.password_reset_required and not user.check_password(current_password):
+        if not user.password_reset_required and not check_password_mobile_friendly(user, current_password or ""):
             flash("Current password is incorrect.", "danger")
             return render_template("change_password.html", required=required)
         
@@ -2728,9 +2935,10 @@ def change_password():
             flash("New passwords do not match.", "danger")
             return render_template("change_password.html", required=required)
         
-        # Check password strength
-        if len(new_password) < 8:
-            flash("Password must be at least 8 characters long.", "danger")
+        # Validate new password (reject problematic whitespace/invisible chars)
+        ok, msg = validate_password_for_storage(new_password)
+        if not ok:
+            flash(msg, "danger")
             return render_template("change_password.html", required=required)
         
         # Update password
