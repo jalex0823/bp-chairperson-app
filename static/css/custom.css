@@ -1413,21 +1413,21 @@ body.light-theme footer.bg-white * {
     color: #1a1a1a !important;
 }
 
-/* Alert boxes - vary by type */
+/* Alerts: keep backgrounds neutral for readability */
+body.light-theme .alert {
+    background-color: #ffffff !important;
+    border-color: #dee2e6 !important;
+    color: #1a1a1a !important;
+}
+
+body.light-theme .alert *:not(.btn):not(.badge) {
+    color: inherit !important;
+}
+
+/* Success alerts can use brand green text on white */
 body.light-theme .alert-success,
-body.light-theme .alert-danger {
-    color: white !important;
-}
-
-/* Alert info - dark text on light blue background */
-body.light-theme .alert-info,
-body.light-theme .alert-info * {
-    color: #1a1a1a !important;
-}
-
-body.light-theme .alert-warning,
-body.light-theme .alert-light {
-    color: #1a1a1a !important;
+body.light-theme .alert-success *:not(.btn):not(.badge) {
+    color: var(--bp-green) !important;
 }
 
 /* Link colors should be visible */
