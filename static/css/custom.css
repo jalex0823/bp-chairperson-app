@@ -2224,3 +2224,18 @@ body.dark-theme .text-danger {
 body.dark-theme .text-info {
     color: #66d9ef !important;
 }
+
+/* ========================================
+   Flash messages (site-wide)
+   Smaller, less intrusive, still readable
+   ======================================== */
+
+.flash-messages .alert {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.flash-messages .alert .btn-close {
+    padding: 0.75rem 0.75rem;
+}
