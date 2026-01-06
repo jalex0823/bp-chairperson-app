@@ -1,7 +1,22 @@
-"""Reset password for any user - Run on Heroku with: heroku run python heroku_reset_password.py"""
-from app import app, db, User
-from werkzeug.security import generate_password_hash
+"""Reset password for any user (PRODUCTION / Heroku).
+
+Usage:
+    heroku run python heroku_reset_password.py <email> [temporary_password]
+"""
+
+from __future__ import annotations
+
+import secrets
 import sys
+
+from werkzeug.security import generate_password_hash
+
+from app import app, db, User
+
+
+def generate_temp_password() -> str:
+        alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
+        return "BP-" + "".join(secrets.choice(alphabet) for _ in range(12))
 
 def reset_password(email, new_password):
     with app.app_context():
@@ -26,9 +41,13 @@ def reset_password(email, new_password):
         return True
 
 if __name__ == "__main__":
-    # Reset password for rblwood@comcast.net
-    email = "rblwood@comcast.net"
-    new_password = "BackPorch2025!"
-    
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
+        print("Usage: python heroku_reset_password.py <email> [temporary_password]")
+        sys.exit(1)
+
+    email = sys.argv[1]
+    new_password = sys.argv[2] if len(sys.argv) == 3 else generate_temp_password()
+
     print(f"\n🔄 Resetting password for {email}...")
-    reset_password(email, new_password)
+    ok = reset_password(email, new_password)
+    sys.exit(0 if ok else 2)

@@ -195,6 +195,17 @@ def strip_zero_width(value: str) -> str:
     return s
 
 
+def normalize_email(value: str) -> str:
+    """Normalize emails for lookup/storage.
+
+    We only apply safe normalizations that help mobile input:
+    - trim outer whitespace
+    - lowercase
+    - remove common zero-width characters
+    """
+    return strip_zero_width((value or "").strip().lower())
+
+
 def password_has_outer_whitespace(password: str) -> bool:
     p = password or ""
     return p != p.strip()
@@ -953,7 +964,7 @@ class LoginForm(FlaskForm):
 
 class ForgotPasswordForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired(), Email(), Length(max=255)])
-    submit = SubmitField("Send Reset Link")
+    submit = SubmitField("Request Password Help")
 
 
 class ResetPasswordForm(FlaskForm):
@@ -1922,7 +1933,8 @@ def register():
         
         # Check for existing user
         try:
-            existing = User.query.filter_by(email=form.email.data.lower().strip()).first()
+            email_norm = normalize_email(form.email.data)
+            existing = User.query.filter_by(email=email_norm).first()
         except Exception as e:
             app.logger.error(f"Database error checking existing user: {e}")
             flash("Database connection error. Please try again later or contact support.", "danger")
@@ -1946,7 +1958,7 @@ def register():
             
             user = User(
                 display_name=form.display_name.data.strip(),
-                email=form.email.data.lower().strip(),
+                email=email_norm,
                 is_admin=False,
                 sobriety_days=sob_days,
                 agreed_guidelines=form.agreed_guidelines.data,
@@ -2014,12 +2026,9 @@ def login():
         flash("You are already logged in.", "info")
         return redirect(url_for("index"))
 
-    def _normalize_email(raw: str) -> str:
-        return strip_zero_width((raw or "").strip().lower())
-
     form = LoginForm()
     if form.validate_on_submit():
-        email = _normalize_email(form.email.data)
+        email = normalize_email(form.email.data)
         user = User.query.filter_by(email=email).first()
 
         # Security configuration (configurable to reduce mobile lockout pain)
@@ -2031,22 +2040,8 @@ def login():
         
         if user:
             raw_password = form.password.data or ""
-            # Build candidate passwords to tolerate common mobile autofill quirks.
-            # We never store or log the password itself.
-            candidates = [raw_password]
-            normalized_pw = strip_zero_width(raw_password)
-            if normalized_pw != raw_password:
-                candidates.append(normalized_pw)
-            if allow_trim:
-                stripped_pw = raw_password.strip()
-                if stripped_pw and stripped_pw != raw_password:
-                    candidates.append(stripped_pw)
-                stripped_normalized_pw = normalized_pw.strip()
-                if stripped_normalized_pw and stripped_normalized_pw not in candidates:
-                    candidates.append(stripped_normalized_pw)
-
             password_ok_direct = user.check_password(raw_password)
-            password_ok = password_ok_direct or any(user.check_password(p) for p in candidates[1:])
+            password_ok = password_ok_direct or check_password_mobile_friendly(user, raw_password)
 
             # If account is locked, allow login if the correct password is provided.
             if user.is_locked() and not (allow_locked_login and password_ok):
@@ -2169,8 +2164,12 @@ def forgot_password():
 
         user = User.query.filter_by(email=email).first()
         if not user:
+            # Still keep the UI response generic, but log so admins can troubleshoot typos.
+            log_audit_event('password_reset_requested_unknown_email', details={
+                'email': email,
+            })
             flash(generic_msg, "info")
-            return redirect(url_for("login"))
+            return render_template("forgot_password.html", form=form)
 
         token, token_row = SecurityToken.create_token(user.id, "password_reset", expires_in_hours=24)
         db.session.add(token_row)
@@ -2220,6 +2219,12 @@ def forgot_password():
         except Exception:
             sent = False
 
+        if not sent:
+            # Avoid hinting to the user whether mail sending failed; log for admins instead.
+            log_audit_event('password_reset_email_send_failed', user.id, details={
+                'email': email,
+            })
+
         is_production = (os.getenv('FLASK_ENV') == 'production')
         show_link_locally = bool(app.config.get('SHOW_RESET_LINK_LOCALLY', False))
         # Easiest path for support/testing: optionally show link in any non-production env,
@@ -2230,7 +2235,8 @@ def forgot_password():
             return render_template("forgot_password.html", form=form, reset_url=reset_url)
 
         flash(generic_msg, "info")
-        return redirect(url_for("login"))
+        # Stay on this page to avoid the feeling of being "kicked out".
+        return render_template("forgot_password.html", form=form)
 
     return render_template("forgot_password.html", form=form)
 
