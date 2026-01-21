@@ -122,6 +122,9 @@
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('meetings_today') }}">Today</a>
           </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('sponsor_register') }}">Sponsor Sign-Up</a>
+        </li>
         {% if current_user and current_user.is_admin %}
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('admin_meetings') }}">Admin Meetings</a>

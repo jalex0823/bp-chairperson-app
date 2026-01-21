@@ -174,6 +174,25 @@
     </div>
   </div>
 
+  <!-- Sponsor Registration -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card border-success shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title"><i class="fas fa-hands-helping"></i> Sponsors</h5>
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <a href="{{ url_for('sponsor_register') }}" class="btn btn-primary align-self-start">Register as a Sponsor</a>
+            <a href="mailto:backporchmeetings@outlook.com?subject=Request%20BP%20Sponsor%20Key&body=Hello,%0D%0A%0D%0AI would like to request a BP Sponsor Key to register as a sponsor.%0D%0A%0D%0AThank you!"
+               class="btn btn-gold align-self-start">
+              Request BP Sponsor Key
+            </a>
+          </div>
+          <p class="card-text text-muted">Sponsor registration is locked until you enter a BP Sponsor Key.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
     <!-- Static Meeting Schedule (Mountain Time) -->
     <div class="card mb-4 shadow-sm">
       <div class="card-header d-flex align-items-center">

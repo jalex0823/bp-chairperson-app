@@ -34,6 +34,11 @@ class Config:
         # Local SQLite database for testing
         import os
         basedir = os.path.abspath(os.path.dirname(__file__))
+        # Ensure instance folder exists so SQLite file can be created reliably (Windows-safe)
+        try:
+            os.makedirs(os.path.join(basedir, 'instance'), exist_ok=True)
+        except Exception:
+            pass
         SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(basedir, 'instance', 'bp_chair.sqlite3')}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -69,6 +74,11 @@ class Config:
     REGISTRATION_ACCESS_CODE = os.environ.get("REGISTRATION_ACCESS_CODE", "")
     # Optional: comma-separated list of codes (overrides single code if provided)
     REGISTRATION_ACCESS_CODES = os.environ.get("REGISTRATION_ACCESS_CODES")
+
+    # Sponsor registration gating (separate from chairperson registration)
+    SPONSOR_REGISTRATION_ENABLED = os.environ.get("SPONSOR_REGISTRATION_ENABLED", "True").lower() == "true"
+    SPONSOR_REGISTRATION_ACCESS_CODE = os.environ.get("SPONSOR_REGISTRATION_ACCESS_CODE", "")
+    SPONSOR_REGISTRATION_ACCESS_CODES = os.environ.get("SPONSOR_REGISTRATION_ACCESS_CODES")
 
     # ==========================
     # Login security / UX tuning

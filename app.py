@@ -23,7 +23,7 @@ from wtforms import (
     DateField, TimeField, PasswordField, SubmitField, IntegerField, RadioField, SelectField, FileField
 )
 from wtforms.validators import (
-    DataRequired, Optional, Email, Length, NumberRange
+    DataRequired, Optional, Email, Length, NumberRange, ValidationError
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -582,6 +582,31 @@ class QuizAttempt(db.Model):
     user = db.relationship("User", backref="quiz_attempts")
 
 
+class Sponsor(db.Model):
+    """
+    Sponsor Registry entry (separate from chairperson accounts).
+    """
+    __tablename__ = "sponsors"
+
+    id = db.Column(db.Integer, primary_key=True)
+    display_name = db.Column(db.String(80), nullable=False, index=True)
+    sobriety_date = db.Column(db.Date, nullable=True, index=True)
+    current_sponsees = db.Column(db.Integer, nullable=False, default=0)
+    max_sponsees = db.Column(db.Integer, nullable=False, default=0)
+    email = db.Column(db.String(255), nullable=True, index=True)
+    phone = db.Column(db.String(50), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    @property
+    def capacity_remaining(self) -> int:
+        try:
+            return max(int(self.max_sponsees or 0) - int(self.current_sponsees or 0), 0)
+        except Exception:
+            return 0
+
+
 # ==========================
 # IMPORTERS / SYNC
 # ==========================
@@ -1030,6 +1055,37 @@ class ChairpersonAvailabilityForm(FlaskForm):
     submit = SubmitField("Volunteer for This Date")
 
 
+class SponsorRegisterForm(FlaskForm):
+    access_code = StringField("BP Sponsor Key", validators=[Optional(), Length(max=64)])
+    display_name = StringField(
+        "Name (first name & last initial or alias)",
+        validators=[DataRequired(), Length(max=80)]
+    )
+    sobriety_date = DateField(
+        "Sobriety Date (optional)",
+        validators=[Optional()],
+        format="%Y-%m-%d"
+    )
+    current_sponsees = IntegerField(
+        "Number of current sponsees",
+        validators=[DataRequired(), NumberRange(min=0, max=200)]
+    )
+    max_sponsees = IntegerField(
+        "Max number you'd like to sponsor",
+        validators=[DataRequired(), NumberRange(min=0, max=200)]
+    )
+    email = StringField("Email (optional)", validators=[Optional(), Email(), Length(max=255)])
+    phone = StringField("Phone (optional)", validators=[Optional(), Length(max=50)])
+    notes = TextAreaField("Notes (optional)", validators=[Optional(), Length(max=1000)])
+    submit = SubmitField("Register as a Sponsor")
+
+    def validate_max_sponsees(self, field):
+        if self.current_sponsees.data is None or field.data is None:
+            return
+        if int(field.data) < int(self.current_sponsees.data):
+            raise ValidationError("Max number to sponsor must be greater than or equal to current sponsees.")
+
+
 # ==========================
 # SECURITY FUNCTIONS
 # ==========================
@@ -1262,7 +1318,7 @@ def ensure_meetings_exist():
         return
     
     # Skip for specific endpoints that should work without database
-    skip_endpoints = ['api_validate_registration_key']
+    skip_endpoints = ['api_validate_registration_key', 'api_validate_sponsor_key']
     if request.endpoint in skip_endpoints:
         return
         
@@ -1333,6 +1389,79 @@ def host_signup_instructions():
 def registration_instructions():
     """Registration Instructions page explaining how to register and what to expect."""
     return render_template("registration_instructions.html")
+
+
+@app.route("/sponsor-register", methods=["GET", "POST"])
+def sponsor_register():
+    """Sponsor Registry registration (gated by BP Sponsor Key if configured)."""
+    form = SponsorRegisterForm()
+
+    access_codes_configured = bool(
+        app.config.get('SPONSOR_REGISTRATION_ACCESS_CODE') or app.config.get('SPONSOR_REGISTRATION_ACCESS_CODES')
+    )
+
+    if not app.config.get('SPONSOR_REGISTRATION_ENABLED', True):
+        flash("Sponsor registration is currently disabled. Please contact the admin.", "warning")
+        return redirect(url_for("index"))
+
+    if form.validate_on_submit():
+        # Enforce sponsor access code(s) if configured
+        provided_code = (form.access_code.data or '').strip()
+        required_code = app.config.get('SPONSOR_REGISTRATION_ACCESS_CODE')
+        codes_list_raw = app.config.get('SPONSOR_REGISTRATION_ACCESS_CODES')  # optional comma-separated list
+        if required_code or codes_list_raw:
+            valid_codes = set()
+            if required_code:
+                valid_codes.add(str(required_code).strip())
+            if codes_list_raw:
+                for c in str(codes_list_raw).split(','):
+                    c = c.strip()
+                    if c:
+                        valid_codes.add(c)
+            if provided_code not in valid_codes:
+                flash("Invalid BP Sponsor Key.", "danger")
+                return render_template("sponsor_register.html", form=form, access_codes_configured=True)
+
+        sponsor = Sponsor(
+            display_name=form.display_name.data.strip(),
+            sobriety_date=form.sobriety_date.data,
+            current_sponsees=int(form.current_sponsees.data or 0),
+            max_sponsees=int(form.max_sponsees.data or 0),
+            email=(form.email.data.strip() if form.email.data else None),
+            phone=(form.phone.data.strip() if form.phone.data else None),
+            notes=(form.notes.data.strip() if form.notes.data else None),
+            is_active=True,
+        )
+        db.session.add(sponsor)
+        db.session.commit()
+        flash("Thank you — you’ve been added to the Sponsor Registry.", "success")
+        return redirect(url_for("index"))
+
+    return render_template("sponsor_register.html", form=form, access_codes_configured=access_codes_configured)
+
+
+@app.route("/api/sponsor/validate-key", methods=["POST"])
+def api_validate_sponsor_key():
+    """Validate Sponsor BP Key used to unlock sponsor registration form."""
+    try:
+        data = request.get_json(force=True) or {}
+        provided = (data.get('key') or '').strip()
+        required_code = app.config.get('SPONSOR_REGISTRATION_ACCESS_CODE')
+        codes_list_raw = app.config.get('SPONSOR_REGISTRATION_ACCESS_CODES')
+        valid_codes = set()
+        if required_code:
+            valid_codes.add(str(required_code).strip())
+        if codes_list_raw:
+            for c in str(codes_list_raw).split(','):
+                c = c.strip()
+                if c:
+                    valid_codes.add(c)
+        ok = True
+        if valid_codes:
+            ok = provided in valid_codes
+        return jsonify({"ok": ok})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
 
 
 @app.route('/resources/pdfs/<path:filename>')
@@ -1602,8 +1731,7 @@ def meeting_detail(meeting_id):
     try:
         meeting = Meeting.query.options(db.joinedload(Meeting.chair_signup).joinedload(ChairSignup.user)).filter_by(id=meeting_id).first()
         if not meeting:
-            flash("Meeting not found.", "danger")
-            return redirect(url_for("calendar_view"))
+            abort(404)
         
         user = get_current_user()
         form = ChairSignupForm()
@@ -1614,8 +1742,7 @@ def meeting_detail(meeting_id):
         app.logger.error(f"Error loading meeting {meeting_id}: {e}")
         import traceback
         app.logger.error(traceback.format_exc())
-        flash("Error loading meeting details. Please try again.", "danger")
-        return redirect(url_for("calendar_view"))
+        abort(404)
 
     if request.method == "POST" and form.validate_on_submit():
         if not user:
@@ -2300,25 +2427,24 @@ def reset_password(token: str):
 # API: validate registration unlock key
 @app.route("/api/registration/validate-key", methods=["POST"])
 def api_validate_registration_key():
-    try:
-        data = request.get_json(force=True) or {}
-        provided = (data.get('key') or '').strip()
-        required_code = app.config.get('REGISTRATION_ACCESS_CODE')
-        codes_list_raw = app.config.get('REGISTRATION_ACCESS_CODES')
-        valid_codes = set()
-        if required_code:
-            valid_codes.add(str(required_code).strip())
-        if codes_list_raw:
-            for c in str(codes_list_raw).split(','):
-                c = c.strip()
-                if c:
-                    valid_codes.add(c)
-        ok = True
-        if valid_codes:
-            ok = provided in valid_codes
-        return jsonify({"ok": ok})
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+    # IMPORTANT: Always return 200 for this endpoint so the frontend can "fail closed"
+    # without treating it as a network/server error.
+    data = request.get_json(silent=True) or {}
+    provided = (data.get('key') or '').strip()
+    required_code = app.config.get('REGISTRATION_ACCESS_CODE')
+    codes_list_raw = app.config.get('REGISTRATION_ACCESS_CODES')
+    valid_codes = set()
+    if required_code:
+        valid_codes.add(str(required_code).strip())
+    if codes_list_raw:
+        for c in str(codes_list_raw).split(','):
+            c = c.strip()
+            if c:
+                valid_codes.add(c)
+    ok = True
+    if valid_codes:
+        ok = provided in valid_codes
+    return jsonify({"ok": ok})
 
 
 # ==========================
@@ -5165,15 +5291,41 @@ def admin_analytics():
     coverage_percentage = round((covered_meetings / total_meetings * 100) if total_meetings > 0 else 0)
     
     # Average signup time (days before meeting)
-    signups_with_days = db.session.query(
-        func.avg(
-            func.datediff(
-                func.concat(Meeting.event_date, ' ', func.coalesce(Meeting.start_time, '00:00:00')),
-                ChairSignup.created_at
+    avg_signup_time = "N/A"
+    try:
+        dialect = db.engine.dialect.name
+    except Exception:
+        dialect = ""
+
+    try:
+        if dialect == "sqlite":
+            rows = (
+                db.session.query(ChairSignup.created_at, Meeting.event_date, Meeting.start_time)
+                .join(Meeting)
+                .all()
             )
-        )
-    ).join(Meeting).scalar()
-    avg_signup_time = f"{int(signups_with_days or 0)} days" if signups_with_days else "N/A"
+            diffs = []
+            for created_at, event_date, start_time in rows:
+                if not created_at or not event_date:
+                    continue
+                meeting_time = start_time or datetime.min.time()
+                meeting_dt = datetime.combine(event_date, meeting_time)
+                delta = meeting_dt - created_at
+                diffs.append(max(int(delta.total_seconds() // 86400), 0))
+            if diffs:
+                avg_signup_time = f"{int(sum(diffs) / len(diffs))} days"
+        else:
+            signups_with_days = db.session.query(
+                func.avg(
+                    func.datediff(
+                        func.concat(Meeting.event_date, ' ', func.coalesce(Meeting.start_time, '00:00:00')),
+                        ChairSignup.created_at
+                    )
+                )
+            ).join(Meeting).scalar()
+            avg_signup_time = f"{int(signups_with_days or 0)} days" if signups_with_days else "N/A"
+    except Exception:
+        avg_signup_time = "N/A"
     
     # Attendance trends (last 12 weeks)
     end_date = date.today()
@@ -5222,10 +5374,23 @@ def admin_analytics():
     }
     
     # Popular time slots
-    time_slots = db.session.query(
-        func.hour(Meeting.start_time).label('hour'),
-        func.count(Meeting.id).label('count')
-    ).filter(Meeting.start_time.isnot(None)).group_by('hour').order_by('hour').all()
+    try:
+        if dialect == "sqlite":
+            counts = {}
+            for m in Meeting.query.filter(Meeting.start_time.isnot(None)).all():
+                try:
+                    h = int(m.start_time.hour)
+                except Exception:
+                    continue
+                counts[h] = counts.get(h, 0) + 1
+            time_slots = sorted([(h, c) for h, c in counts.items()], key=lambda x: x[0])
+        else:
+            time_slots = db.session.query(
+                func.hour(Meeting.start_time).label('hour'),
+                func.count(Meeting.id).label('count')
+            ).filter(Meeting.start_time.isnot(None)).group_by('hour').order_by('hour').all()
+    except Exception:
+        time_slots = []
     
     # ChairPoints Leaderboard - Top 20 chairs by points
     leaderboard = db.session.query(
@@ -5241,15 +5406,23 @@ def admin_analytics():
     }
     
     # Weekly distribution (day of week)
-    weekly_dist = db.session.query(
-        func.dayofweek(Meeting.event_date).label('day'),
-        func.count(Meeting.id).label('count')
-    ).group_by('day').order_by('day').all()
-    
     day_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     weekly_data = [0] * 7
-    for day, count in weekly_dist:
-        weekly_data[day-1] = count  # MySQL dayofweek returns 1-7
+    try:
+        if dialect == "sqlite":
+            for m in Meeting.query.filter(Meeting.event_date.isnot(None)).all():
+                # Python: Monday=0..Sunday=6. We want Sunday=0..Saturday=6
+                idx = (m.event_date.weekday() + 1) % 7
+                weekly_data[idx] += 1
+        else:
+            weekly_dist = db.session.query(
+                func.dayofweek(Meeting.event_date).label('day'),
+                func.count(Meeting.id).label('count')
+            ).group_by('day').order_by('day').all()
+            for day, count in weekly_dist:
+                weekly_data[int(day) - 1] = count  # MySQL dayofweek returns 1-7
+    except Exception:
+        weekly_data = [0] * 7
     
     weekly_distribution_data = {
         'labels': day_names,

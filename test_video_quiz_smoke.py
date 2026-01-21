@@ -15,6 +15,8 @@ from app import app, db, User, QuizAttempt, QUIZZES
 def create_test_user():
     """Create or get a test user"""
     with app.app_context():
+        # Ensure schema exists for local/dev SQLite runs
+        db.create_all()
         test_user = User.query.filter_by(email="test_quiz@example.com").first()
         if not test_user:
             test_user = User(
