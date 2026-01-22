@@ -122,9 +122,6 @@
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('meetings_today') }}">Today</a>
           </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('sponsor_register') }}">Sponsor Sign-Up</a>
-        </li>
         {% if current_user and current_user.is_admin %}
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('admin_meetings') }}">Admin Meetings</a>
@@ -186,12 +183,17 @@
             Logout
           </a>
         {% else %}
-          <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm me-2">
-            Login
-          </a>
-          <a href="{{ url_for('register') }}" class="btn btn-gold btn-sm">
-            Chairperson Sign-Up
-          </a>
+          <div class="d-flex align-items-center gap-2">
+            <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm" style="min-width: 92px;">
+              Login
+            </a>
+            <a href="{{ url_for('sponsor_register') }}" class="btn btn-gold btn-sm" style="min-width: 170px;">
+              Sponsor Sign-Up
+            </a>
+            <a href="{{ url_for('register') }}" class="btn btn-gold btn-sm" style="min-width: 170px;">
+              Chairperson Sign-Up
+            </a>
+          </div>
         {% endif %}
       </div>
     </div>
