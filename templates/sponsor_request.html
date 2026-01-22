@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="container py-4">
+    <div class="row justify-content-center">
+      <div class="col-12 col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h2 class="mb-0">Request Sponsor</h2>
+          <a href="{{ url_for('sponsors_directory') }}" class="btn btn-outline-secondary btn-sm">Back to Directory</a>
+        </div>
+
+        <div class="alert alert-info">
+          You’re requesting an introduction to: <strong>{{ sponsor.display_name }}</strong>.
+        </div>
+
+        {% if sponsor.bio %}
+        <div class="card shadow-sm mb-3">
+          <div class="card-body">
+            <div class="small text-muted mb-1">Sponsor bio</div>
+            <div style="white-space: pre-wrap;">{{ sponsor.bio }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <form method="post" novalidate>
+              {{ form.hidden_tag() }}
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  {{ form.requester_name.label(class="form-label") }}
+                  {{ form.requester_name(class="form-control") }}
+                </div>
+                <div class="col-md-6 mb-3">
+                  {{ form.requester_email.label(class="form-label") }}
+                  {{ form.requester_email(class="form-control", type="email") }}
+                </div>
+              </div>
+
+              <div class="mb-3">
+                {{ form.requester_phone.label(class="form-label") }}
+                {{ form.requester_phone(class="form-control") }}
+              </div>
+
+              <div class="mb-3">
+                {{ form.message.label(class="form-label") }}
+                {{ form.message(class="form-control", rows="4", placeholder="Optional: availability, preferences, or anything helpful") }}
+              </div>
+
+              {{ form.submit(class="btn btn-primary") }}
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+

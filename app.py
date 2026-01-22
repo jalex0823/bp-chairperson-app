@@ -593,9 +593,14 @@ class Sponsor(db.Model):
     sobriety_date = db.Column(db.Date, nullable=True, index=True)
     current_sponsees = db.Column(db.Integer, nullable=False, default=0)
     max_sponsees = db.Column(db.Integer, nullable=False, default=0)
+    # Sponsor contact details (kept private by default; not shown on public directory)
     email = db.Column(db.String(255), nullable=True, index=True)
     phone = db.Column(db.String(50), nullable=True)
-    notes = db.Column(db.Text, nullable=True)
+
+    # Public-facing sponsor bio (what a sponsee reads to decide fit)
+    bio = db.Column(db.Text, nullable=True)
+    profile_image = db.Column(db.Text, nullable=True)  # base64 encoded image data (jpeg/png/etc.)
+    notes = db.Column(db.Text, nullable=True)  # internal/admin notes
     is_active = db.Column(db.Boolean, default=True, index=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
@@ -605,6 +610,47 @@ class Sponsor(db.Model):
             return max(int(self.max_sponsees or 0) - int(self.current_sponsees or 0), 0)
         except Exception:
             return 0
+
+
+class SponsorAccount(db.Model):
+    """Independent sponsor login (separate from chairperson users)."""
+    __tablename__ = "sponsor_accounts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    sponsor_id = db.Column(db.Integer, db.ForeignKey("sponsors.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    email = db.Column(db.String(255), nullable=False, unique=True, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    last_login = db.Column(db.DateTime, nullable=True, index=True)
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.DateTime, nullable=True, index=True)
+
+    sponsor = db.relationship("Sponsor", backref=db.backref("account", uselist=False))
+
+    def set_password(self, password: str):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        return check_password_hash(self.password_hash, password)
+
+    def is_locked(self):
+        return self.locked_until and self.locked_until > datetime.utcnow()
+
+
+class SponsorRequest(db.Model):
+    """Sponsee request for an introduction to a specific sponsor."""
+    __tablename__ = "sponsor_requests"
+
+    id = db.Column(db.Integer, primary_key=True)
+    sponsor_id = db.Column(db.Integer, db.ForeignKey("sponsors.id", ondelete="CASCADE"), nullable=False, index=True)
+    requester_name = db.Column(db.String(80), nullable=False)
+    requester_email = db.Column(db.String(255), nullable=False, index=True)
+    requester_phone = db.Column(db.String(50), nullable=True)
+    message = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default="new", index=True)  # new, contacted, closed
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    sponsor = db.relationship("Sponsor", backref="requests")
 
 
 # ==========================
@@ -1061,6 +1107,11 @@ class SponsorRegisterForm(FlaskForm):
         "Name (first name & last initial or alias)",
         validators=[DataRequired(), Length(max=80)]
     )
+    email = StringField("Email", validators=[DataRequired(), Email(), Length(max=255)])
+    password = PasswordField(
+        "Password",
+        validators=[DataRequired(), Length(min=8, message="At least 8 characters")]
+    )
     sobriety_date = DateField(
         "Sobriety Date (optional)",
         validators=[Optional()],
@@ -1074,16 +1125,49 @@ class SponsorRegisterForm(FlaskForm):
         "Max number you'd like to sponsor",
         validators=[DataRequired(), NumberRange(min=0, max=200)]
     )
-    email = StringField("Email (optional)", validators=[Optional(), Email(), Length(max=255)])
     phone = StringField("Phone (optional)", validators=[Optional(), Length(max=50)])
-    notes = TextAreaField("Notes (optional)", validators=[Optional(), Length(max=1000)])
-    submit = SubmitField("Register as a Sponsor")
+    profile_image = FileField("Bio Photo (optional)", validators=[Optional()])
+    bio = TextAreaField(
+        "Sponsor Bio (what sponsees will read)",
+        validators=[DataRequired(), Length(min=40, max=1500)]
+    )
+    submit = SubmitField("Create Sponsor Account")
 
     def validate_max_sponsees(self, field):
         if self.current_sponsees.data is None or field.data is None:
             return
         if int(field.data) < int(self.current_sponsees.data):
             raise ValidationError("Max number to sponsor must be greater than or equal to current sponsees.")
+
+
+class SponsorLoginForm(FlaskForm):
+    email = StringField("Email", validators=[DataRequired(), Email(), Length(max=255)])
+    password = PasswordField("Password", validators=[DataRequired()])
+    submit = SubmitField("Sponsor Log In")
+
+
+class SponsorPortalForm(FlaskForm):
+    current_sponsees = IntegerField("Number of current sponsees", validators=[DataRequired(), NumberRange(min=0, max=200)])
+    max_sponsees = IntegerField("Max number you'd like to sponsor", validators=[DataRequired(), NumberRange(min=0, max=200)])
+    phone = StringField("Phone (optional)", validators=[Optional(), Length(max=50)])
+    profile_image = FileField("Bio Photo (optional)", validators=[Optional()])
+    bio = TextAreaField("Sponsor Bio", validators=[DataRequired(), Length(min=40, max=1500)])
+    is_active = BooleanField("Active listing (uncheck to pause)", default=True)
+    submit = SubmitField("Save Sponsor Profile")
+
+    def validate_max_sponsees(self, field):
+        if self.current_sponsees.data is None or field.data is None:
+            return
+        if int(field.data) < int(self.current_sponsees.data):
+            raise ValidationError("Max number to sponsor must be greater than or equal to current sponsees.")
+
+
+class SponsorRequestForm(FlaskForm):
+    requester_name = StringField("Your name", validators=[DataRequired(), Length(max=80)])
+    requester_email = StringField("Your email", validators=[DataRequired(), Email(), Length(max=255)])
+    requester_phone = StringField("Your phone (optional)", validators=[Optional(), Length(max=50)])
+    message = TextAreaField("Message (optional)", validators=[Optional(), Length(max=1000)])
+    submit = SubmitField("Request this Sponsor")
 
 
 # ==========================
@@ -1269,6 +1353,26 @@ def get_current_user():
         return None
 
 
+def get_current_sponsor_account():
+    sponsor_account_id = session.get("sponsor_account_id")
+    if not sponsor_account_id:
+        return None
+    try:
+        return SponsorAccount.query.get(sponsor_account_id)
+    except Exception:
+        return None
+
+
+def sponsor_login_required(view_func):
+    @wraps(view_func)
+    def wrapper(*args, **kwargs):
+        if not get_current_sponsor_account():
+            flash("Please log in as a sponsor to access this page.", "warning")
+            return redirect(url_for("sponsor_login", next=request.path))
+        return view_func(*args, **kwargs)
+    return wrapper
+
+
 def login_required(view_func):
     @wraps(view_func)
     def wrapper(*args, **kwargs):
@@ -1297,10 +1401,13 @@ def admin_required(view_func):
 @app.context_processor
 def inject_globals():
     try:
-        return {"current_user": get_current_user()}
+        return {
+            "current_user": get_current_user(),
+            "current_sponsor": (get_current_sponsor_account().sponsor if get_current_sponsor_account() else None),
+        }
     except Exception:
         # If database is unavailable, provide None user
-        return {"current_user": None}
+        return {"current_user": None, "current_sponsor": None}
 
 # Ensure there are always meetings to show: if database is empty and
 # static schedule is enabled, auto-seed a minimal horizon on the first request.
@@ -1426,22 +1533,196 @@ def sponsor_register():
             flash("Invalid BP Sponsor Key.", "danger")
             return render_template("sponsor_register.html", form=form, access_codes_configured=True)
 
+        email_norm = normalize_email(form.email.data)
+        existing_acct = SponsorAccount.query.filter_by(email=email_norm).first()
+        if existing_acct:
+            flash("A sponsor account with that email already exists. Please log in.", "warning")
+            return redirect(url_for("sponsor_login"))
+
         sponsor = Sponsor(
             display_name=form.display_name.data.strip(),
             sobriety_date=form.sobriety_date.data,
             current_sponsees=int(form.current_sponsees.data or 0),
             max_sponsees=int(form.max_sponsees.data or 0),
-            email=(form.email.data.strip() if form.email.data else None),
+            email=email_norm,
             phone=(form.phone.data.strip() if form.phone.data else None),
-            notes=(form.notes.data.strip() if form.notes.data else None),
+            bio=(form.bio.data.strip() if form.bio.data else None),
             is_active=True,
         )
+
+        # Optional sponsor bio photo upload (store as base64 like chair profile images)
+        try:
+            if getattr(form, "profile_image", None) and form.profile_image.data:
+                file = form.profile_image.data
+                if file and allowed_file(file.filename):
+                    image_data = file.read()
+                    if len(image_data) > MAX_IMAGE_SIZE:
+                        flash("Image file is too large. Maximum size is 5MB.", "danger")
+                        return render_template("sponsor_register.html", form=form, access_codes_configured=True)
+                    sponsor.profile_image = base64.b64encode(image_data).decode('utf-8')
+        except Exception as e:
+            app.logger.warning(f"Sponsor image upload skipped: {e}")
         db.session.add(sponsor)
         db.session.commit()
-        flash("Thank you — you’ve been added to the Sponsor Registry.", "success")
-        return redirect(url_for("index"))
+
+        acct = SponsorAccount(sponsor_id=sponsor.id, email=email_norm)
+        acct.set_password(form.password.data)
+        db.session.add(acct)
+        db.session.commit()
+
+        session["sponsor_account_id"] = acct.id
+        flash("Sponsor account created. You can now manage your listing.", "success")
+        return redirect(url_for("sponsor_portal"))
 
     return render_template("sponsor_register.html", form=form, access_codes_configured=access_codes_configured)
+
+
+@app.route("/sponsor/login", methods=["GET", "POST"])
+def sponsor_login():
+    if get_current_sponsor_account():
+        return redirect(url_for("sponsor_portal"))
+
+    form = SponsorLoginForm()
+    if form.validate_on_submit():
+        email = normalize_email(form.email.data)
+        acct = SponsorAccount.query.filter_by(email=email).first()
+        if not acct:
+            flash("Invalid sponsor email or password.", "danger")
+            return render_template("sponsor_login.html", form=form)
+
+        if acct.is_locked():
+            flash("Sponsor account is temporarily locked. Please try again later.", "danger")
+            return render_template("sponsor_login.html", form=form)
+
+        if acct.check_password(form.password.data or ""):
+            acct.last_login = datetime.utcnow()
+            acct.failed_login_attempts = 0
+            acct.locked_until = None
+            db.session.commit()
+            session["sponsor_account_id"] = acct.id
+            flash("Sponsor login successful.", "success")
+            next_url = request.args.get("next") or url_for("sponsor_portal")
+            return redirect(next_url)
+
+        # failed password
+        acct.failed_login_attempts += 1
+        # keep simple lockout for sponsor accounts
+        if acct.failed_login_attempts >= 10:
+            acct.locked_until = datetime.utcnow() + timedelta(minutes=10)
+        db.session.commit()
+        flash("Invalid sponsor email or password.", "danger")
+
+    return render_template("sponsor_login.html", form=form)
+
+
+@app.route("/sponsor/logout")
+def sponsor_logout():
+    session.pop("sponsor_account_id", None)
+    flash("Sponsor logged out.", "info")
+    return redirect(url_for("index"))
+
+
+@app.route("/sponsor/portal", methods=["GET", "POST"])
+@sponsor_login_required
+def sponsor_portal():
+    acct = get_current_sponsor_account()
+    sponsor = acct.sponsor
+    if not sponsor:
+        flash("Sponsor profile not found.", "danger")
+        return redirect(url_for("sponsor_register"))
+
+    form = SponsorPortalForm(obj=sponsor)
+    if form.validate_on_submit():
+        sponsor.current_sponsees = int(form.current_sponsees.data or 0)
+        sponsor.max_sponsees = int(form.max_sponsees.data or 0)
+        sponsor.phone = (form.phone.data.strip() if form.phone.data else None)
+        sponsor.bio = (form.bio.data.strip() if form.bio.data else None)
+        sponsor.is_active = bool(form.is_active.data)
+
+        # Optional sponsor bio photo update
+        try:
+            if getattr(form, "profile_image", None) and form.profile_image.data:
+                file = form.profile_image.data
+                if file and allowed_file(file.filename):
+                    image_data = file.read()
+                    if len(image_data) > MAX_IMAGE_SIZE:
+                        flash("Image file is too large. Maximum size is 5MB.", "danger")
+                        return redirect(url_for("sponsor_portal"))
+                    sponsor.profile_image = base64.b64encode(image_data).decode('utf-8')
+        except Exception as e:
+            app.logger.warning(f"Sponsor image update skipped: {e}")
+
+        db.session.commit()
+        flash("Sponsor profile updated.", "success")
+        return redirect(url_for("sponsor_portal"))
+
+    return render_template("sponsor_portal.html", sponsor=sponsor, form=form)
+
+
+@app.route("/sponsors")
+def sponsors_directory():
+    """Public sponsor directory for sponsees (no sponsor contact details shown)."""
+    q = (request.args.get("q") or "").strip()
+    only_open = (request.args.get("only_open") or "1").strip()
+
+    query = Sponsor.query.filter(Sponsor.is_active.is_(True))
+    if q:
+        query = query.filter(Sponsor.display_name.ilike(f"%{q}%"))
+
+    sponsors = query.order_by(Sponsor.created_at.desc()).all()
+    if only_open not in ("0", "false", "False"):
+        sponsors = [s for s in sponsors if s.capacity_remaining > 0]
+
+    return render_template("sponsors_directory.html", sponsors=sponsors, q=q, only_open=only_open)
+
+
+@app.route("/sponsors/<int:sponsor_id>/request", methods=["GET", "POST"])
+def sponsor_request(sponsor_id: int):
+    sponsor = Sponsor.query.get_or_404(sponsor_id)
+    if not sponsor.is_active:
+        flash("That sponsor is not currently active.", "warning")
+        return redirect(url_for("sponsors_directory"))
+
+    form = SponsorRequestForm()
+    if form.validate_on_submit():
+        req = SponsorRequest(
+            sponsor_id=sponsor.id,
+            requester_name=form.requester_name.data.strip(),
+            requester_email=normalize_email(form.requester_email.data),
+            requester_phone=(form.requester_phone.data.strip() if form.requester_phone.data else None),
+            message=(form.message.data.strip() if form.message.data else None),
+        )
+        db.session.add(req)
+        db.session.commit()
+
+        # Best-effort notification email to the admin inbox if mail is configured
+        try:
+            send_email(
+                "backporchmeetings@outlook.com",
+                f"Sponsor request: {sponsor.display_name}",
+                f"Requester: {req.requester_name}\nEmail: {req.requester_email}\nPhone: {req.requester_phone or ''}\n\nSponsor: {sponsor.display_name}\n\nMessage:\n{req.message or ''}\n",
+            )
+        except Exception:
+            pass
+
+        flash("Request submitted. Back Porch will help connect you.", "success")
+        return redirect(url_for("sponsors_directory"))
+
+    return render_template("sponsor_request.html", sponsor=sponsor, form=form)
+
+
+@app.route("/sponsor/image/<int:sponsor_id>")
+def sponsor_image(sponsor_id: int):
+    """Serve sponsor bio image from database (base64)."""
+    sponsor = Sponsor.query.get_or_404(sponsor_id)
+    if sponsor.profile_image:
+        try:
+            image_data = base64.b64decode(sponsor.profile_image)
+            return Response(image_data, mimetype='image/jpeg')
+        except Exception as e:
+            app.logger.error(f"Error decoding sponsor image for sponsor {sponsor_id}: {e}")
+            return "", 404
+    return "", 404
 
 
 @app.route("/api/sponsor/validate-key", methods=["POST"])
@@ -4579,6 +4860,50 @@ def admin_monthly_pdf():
     return resp
 
 
+@app.route("/admin/sponsor-requests")
+@admin_required
+def admin_sponsor_requests():
+    """Admin view of sponsor introduction requests."""
+    status = (request.args.get("status") or "").strip().lower()
+
+    query = SponsorRequest.query.options(db.joinedload(SponsorRequest.sponsor))
+    if status:
+        query = query.filter(SponsorRequest.status == status)
+
+    requests_list = query.order_by(SponsorRequest.created_at.desc()).all()
+
+    # Counts by status for quick filters
+    counts_rows = (
+        db.session.query(SponsorRequest.status, db.func.count(SponsorRequest.id))
+        .group_by(SponsorRequest.status)
+        .all()
+    )
+    counts = {s: c for (s, c) in counts_rows}
+
+    return render_template(
+        "admin_sponsor_requests.html",
+        requests=requests_list,
+        status=status,
+        counts=counts,
+    )
+
+
+@app.route("/admin/sponsor-requests/<int:req_id>/status", methods=["POST"])
+@admin_required
+def admin_sponsor_request_status(req_id: int):
+    """Admin action to update sponsor request status."""
+    new_status = (request.form.get("status") or "").strip().lower()
+    if new_status not in {"new", "contacted", "closed"}:
+        flash("Invalid status.", "danger")
+        return redirect(url_for("admin_sponsor_requests", status=request.args.get("status") or ""))
+
+    req = SponsorRequest.query.get_or_404(req_id)
+    req.status = new_status
+    db.session.commit()
+    flash("Sponsor request updated.", "success")
+    return redirect(url_for("admin_sponsor_requests", status=request.args.get("status") or ""))
+
+
 @app.route("/admin/reports/monthly")
 @admin_required
 def admin_monthly_html():
@@ -6028,6 +6353,28 @@ def upgrade_schema_command():
                 print("Added meetings.gender_restriction")
             except Exception as e:
                 print(f"Skipped adding meetings.gender_restriction: {e}")
+
+    # Sponsor tables/columns (MySQL best-effort)
+    if 'sponsors' in inspector.get_table_names():
+        cols = [c['name'] if isinstance(c, dict) else c['name'] for c in inspector.get_columns('sponsors')]
+        if 'bio' not in cols:
+            try:
+                conn.execute(db.text("ALTER TABLE sponsors ADD COLUMN bio TEXT NULL"))
+                print("Added sponsors.bio")
+            except Exception as e:
+                print(f"Skipped adding sponsors.bio: {e}")
+        if 'profile_image' not in cols:
+            try:
+                conn.execute(db.text("ALTER TABLE sponsors ADD COLUMN profile_image LONGTEXT NULL"))
+                print("Added sponsors.profile_image")
+            except Exception as e:
+                print(f"Skipped adding sponsors.profile_image: {e}")
+
+    # Ensure sponsor_accounts and sponsor_requests tables exist (create_all will create them for SQLAlchemy DBs)
+    try:
+        db.create_all()
+    except Exception as e:
+        print(f"db.create_all() skipped/failed: {e}")
 
     conn.close()
     print("Schema upgrade complete.")

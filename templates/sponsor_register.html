@@ -19,7 +19,7 @@
 
         <div class="card shadow-sm">
           <div class="card-body p-4">
-            <form id="sponsorRegisterForm" method="post" novalidate>
+            <form id="sponsorRegisterForm" method="post" novalidate enctype="multipart/form-data">
               {{ form.hidden_tag() }}
 
               {% if access_codes_configured %}
@@ -70,6 +70,17 @@
                   {{ form.display_name(class="form-control", placeholder="Example: Jeff A.") }}
                 </div>
 
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    {{ form.email.label(class="form-label") }}
+                    {{ form.email(class="form-control", type="email", autocomplete="username", placeholder="name@example.com") }}
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    {{ form.password.label(class="form-label") }}
+                    {{ form.password(class="form-control", type="password", autocomplete="new-password", placeholder="Create a password") }}
+                  </div>
+                </div>
+
                 <div class="mb-3">
                   {{ form.sobriety_date.label(class="form-label") }}
                   {{ form.sobriety_date(class="form-control", type="date") }}
@@ -91,18 +102,20 @@
 
                 <div class="row">
                   <div class="col-md-6 mb-3">
-                    {{ form.email.label(class="form-label") }}
-                    {{ form.email(class="form-control", placeholder="name@example.com") }}
-                  </div>
-                  <div class="col-md-6 mb-3">
                     {{ form.phone.label(class="form-label") }}
                     {{ form.phone(class="form-control", placeholder="Optional") }}
                   </div>
                 </div>
 
                 <div class="mb-3">
-                  {{ form.notes.label(class="form-label") }}
-                  {{ form.notes(class="form-control", rows="4", placeholder="Optional: sponsorship preferences, availability, etc.") }}
+                  {{ form.bio.label(class="form-label") }}
+                  {{ form.bio(class="form-control", rows="5", placeholder="Tell a little about yourself, what you’re like as a sponsor, availability, approach, etc.") }}
+                </div>
+
+                <div class="mb-3">
+                  {{ form.profile_image.label(class="form-label") }}
+                  {{ form.profile_image(class="form-control", accept="image/*") }}
+                  <div class="form-text">Optional. Photo shown next to your bio in the Sponsor Directory.</div>
                 </div>
 
                 <div class="d-flex gap-2">
@@ -113,6 +126,11 @@
             </form>
           </div>
         </div>
+
+        <p class="mt-3 small">
+          Already registered as a sponsor?
+          <a href="{{ url_for('sponsor_login') }}">Sponsor Log In</a>
+        </p>
 
         <script>
           document.addEventListener('DOMContentLoaded', function() {

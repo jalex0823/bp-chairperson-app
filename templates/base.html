@@ -122,9 +122,15 @@
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('meetings_today') }}">Today</a>
           </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('sponsors_directory') }}">Find a Sponsor</a>
+        </li>
         {% if current_user and current_user.is_admin %}
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('admin_meetings') }}">Admin Meetings</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('admin_sponsor_requests') }}">Sponsor Requests</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('admin_monthly_html') }}">Monthly Report (HTML)</a>
@@ -184,8 +190,11 @@
           </a>
         {% else %}
           <div class="d-flex align-items-center gap-2">
-            <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm" style="min-width: 92px;">
-              Login
+            <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm" style="min-width: 110px;">
+              Chairperson Login
+            </a>
+            <a href="{{ url_for('sponsor_login') }}" class="btn btn-outline-light btn-sm" style="min-width: 110px;">
+              Sponsor Login
             </a>
             <a href="{{ url_for('sponsor_register') }}" class="btn btn-gold btn-sm" style="min-width: 170px;">
               Sponsor Sign-Up

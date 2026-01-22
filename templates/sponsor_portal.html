@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="container py-4">
+    <div class="row justify-content-center">
+      <div class="col-12 col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h2 class="mb-0">Sponsor Portal</h2>
+          <a href="{{ url_for('sponsor_logout') }}" class="btn btn-outline-secondary btn-sm">Sponsor Logout</a>
+        </div>
+
+        <div class="alert alert-info">
+          Update your availability and bio. This helps newcomers choose a sponsor who fits.
+        </div>
+
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <form method="post" novalidate enctype="multipart/form-data">
+              {{ form.hidden_tag() }}
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  {{ form.current_sponsees.label(class="form-label") }}
+                  {{ form.current_sponsees(class="form-control", type="number", min="0") }}
+                </div>
+                <div class="col-md-6 mb-3">
+                  {{ form.max_sponsees.label(class="form-label") }}
+                  {{ form.max_sponsees(class="form-control", type="number", min="0") }}
+                </div>
+              </div>
+
+              <div class="mb-3 small text-muted">
+                Openings: <strong class="text-primary">{{ sponsor.capacity_remaining }}</strong>
+              </div>
+
+              <div class="mb-3">
+                {{ form.phone.label(class="form-label") }}
+                {{ form.phone(class="form-control", placeholder="Optional") }}
+              </div>
+
+              <div class="mb-3">
+                {{ form.profile_image.label(class="form-label") }}
+                {{ form.profile_image(class="form-control", accept="image/*") }}
+                <div class="form-text">Upload a new bio photo to update what is shown publicly.</div>
+              </div>
+
+              <div class="mb-3">
+                {{ form.bio.label(class="form-label") }}
+                {{ form.bio(class="form-control", rows="6") }}
+              </div>
+
+              <div class="form-check mb-3">
+                {{ form.is_active(class="form-check-input", id="is_active") }}
+                <label class="form-check-label" for="is_active">{{ form.is_active.label.text }}</label>
+              </div>
+
+              {{ form.submit(class="btn btn-primary") }}
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

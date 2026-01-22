@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h2 class="mb-0">Find a Sponsor</h2>
+      <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm">Home</a>
+    </div>
+
+    <div class="alert alert-info">
+      Browse sponsors who have openings. Read their bio and request an introduction.
+    </div>
+
+    <form method="get" class="card shadow-sm mb-3">
+      <div class="card-body">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-6">
+            <label class="form-label">Name contains</label>
+            <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Example: Jeff">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Availability</label>
+            <select class="form-select" name="only_open">
+              <option value="1" {% if only_open not in ('0','false','False') %}selected{% endif %}>Only sponsors with openings</option>
+              <option value="0" {% if only_open in ('0','false','False') %}selected{% endif %}>Include full sponsors</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-grid">
+            <button class="btn btn-primary" type="submit">Search</button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div class="row g-3">
+      {% for s in sponsors %}
+        <div class="col-12">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <div class="d-flex flex-column flex-md-row gap-3">
+                <!-- Bio Pic -->
+                <div class="flex-shrink-0 text-center">
+                  {% if s.profile_image %}
+                    <img src="{{ url_for('sponsor_image', sponsor_id=s.id) }}"
+                         alt="{{ s.display_name }}"
+                         class="rounded-circle"
+                         style="width: 88px; height: 88px; object-fit: cover; border: 2px solid rgba(0,0,0,0.1);">
+                  {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 88px; height: 88px; background-color: rgba(15,111,117,0.12); border: 2px solid rgba(15,111,117,0.25);">
+                      <i class="fas fa-user text-primary"></i>
+                    </div>
+                  {% endif %}
+                </div>
+
+                <!-- Main Info -->
+                <div class="flex-grow-1">
+                  <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+                    <div>
+                      <h5 class="mb-1">{{ s.display_name }}</h5>
+                      <div class="small text-muted">
+                        {% if s.sobriety_date %}Sobriety Date: {{ s.sobriety_date.strftime('%Y-%m-%d') }}{% endif %}
+                      </div>
+                    </div>
+                    <div class="text-end">
+                      <div class="small text-muted">Delta (Openings)</div>
+                      <div class="fs-5 fw-semibold {% if s.capacity_remaining > 0 %}text-primary{% else %}text-muted{% endif %}">
+                        {{ s.capacity_remaining }}
+                      </div>
+                      <div class="small text-muted">
+                        Current: {{ s.current_sponsees }} • Max: {{ s.max_sponsees }}
+                      </div>
+                    </div>
+                  </div>
+
+                  {% if s.bio %}
+                    <hr class="my-2">
+                    <div class="small" style="white-space: pre-wrap;">{{ s.bio|truncate(240, True, '…') }}</div>
+                  {% endif %}
+
+                  <div class="mt-3 d-flex gap-2">
+                    <a class="btn btn-gold" href="{{ url_for('sponsor_request', sponsor_id=s.id) }}">Request this sponsor</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if sponsors|length == 0 %}
+      <div class="alert alert-warning mt-3">No sponsors found.</div>
+    {% endif %}
+  </div>
+{% endblock %}
+

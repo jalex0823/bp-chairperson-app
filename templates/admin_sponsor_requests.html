@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="container py-4">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+      <h2 class="mb-0">Sponsor Requests</h2>
+      <a href="{{ url_for('admin_meetings') }}" class="btn btn-outline-secondary btn-sm">Admin Meetings</a>
+    </div>
+
+    <div class="alert alert-info">
+      These are “Request an Introduction” submissions from the public Sponsor Directory. Sponsor contact info stays private; admins coordinate introductions.
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <a class="btn btn-sm {% if not status %}btn-primary{% else %}btn-outline-primary{% endif %}"
+         href="{{ url_for('admin_sponsor_requests') }}">
+        All ({{ (counts.get('new', 0) + counts.get('contacted', 0) + counts.get('closed', 0)) }})
+      </a>
+      <a class="btn btn-sm {% if status == 'new' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+         href="{{ url_for('admin_sponsor_requests', status='new') }}">
+        New ({{ counts.get('new', 0) }})
+      </a>
+      <a class="btn btn-sm {% if status == 'contacted' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+         href="{{ url_for('admin_sponsor_requests', status='contacted') }}">
+        Contacted ({{ counts.get('contacted', 0) }})
+      </a>
+      <a class="btn btn-sm {% if status == 'closed' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+         href="{{ url_for('admin_sponsor_requests', status='closed') }}">
+        Closed ({{ counts.get('closed', 0) }})
+      </a>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th style="min-width: 160px;">Created</th>
+                <th style="min-width: 170px;">Sponsor</th>
+                <th style="min-width: 220px;">Requester</th>
+                <th>Message</th>
+                <th style="min-width: 120px;">Status</th>
+                <th style="min-width: 240px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in requests %}
+                <tr>
+                  <td class="small text-muted">
+                    {{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '' }}
+                  </td>
+                  <td>
+                    <div class="fw-semibold">{{ r.sponsor.display_name if r.sponsor else 'Deleted sponsor' }}</div>
+                    <div class="small text-muted">ID: {{ r.sponsor_id }}</div>
+                  </td>
+                  <td>
+                    <div class="fw-semibold">{{ r.requester_name }}</div>
+                    <div class="small">
+                      <div><a href="mailto:{{ r.requester_email }}">{{ r.requester_email }}</a></div>
+                      {% if r.requester_phone %}
+                        <div>{{ r.requester_phone }}</div>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td style="white-space: pre-wrap;">{{ r.message or '' }}</td>
+                  <td>
+                    {% if r.status == 'new' %}
+                      <span class="badge bg-primary">new</span>
+                    {% elif r.status == 'contacted' %}
+                      <span class="badge bg-warning text-dark">contacted</span>
+                    {% elif r.status == 'closed' %}
+                      <span class="badge bg-secondary">closed</span>
+                    {% else %}
+                      <span class="badge bg-light text-dark">{{ r.status }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="d-flex flex-wrap gap-2">
+                      <form method="post"
+                            action="{{ url_for('admin_sponsor_request_status', req_id=r.id, status=status) }}">
+                        {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+                        <input type="hidden" name="status" value="new">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Mark New</button>
+                      </form>
+
+                      <form method="post"
+                            action="{{ url_for('admin_sponsor_request_status', req_id=r.id, status=status) }}">
+                        {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+                        <input type="hidden" name="status" value="contacted">
+                        <button type="submit" class="btn btn-sm btn-outline-warning">Mark Contacted</button>
+                      </form>
+
+                      <form method="post"
+                            action="{{ url_for('admin_sponsor_request_status', req_id=r.id, status=status) }}">
+                        {% if csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+                        <input type="hidden" name="status" value="closed">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Mark Closed</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {% if requests|length == 0 %}
+      <div class="alert alert-warning mt-3">No sponsor requests found.</div>
+    {% endif %}
+  </div>
+{% endblock %}
+
