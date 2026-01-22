@@ -1393,34 +1393,38 @@ def registration_instructions():
 
 @app.route("/sponsor-register", methods=["GET", "POST"])
 def sponsor_register():
-    """Sponsor Registry registration (gated by BP Sponsor Key if configured)."""
+    """Sponsor Registry registration (locked until BP Sponsor Key is validated)."""
     form = SponsorRegisterForm()
 
-    access_codes_configured = bool(
-        app.config.get('SPONSOR_REGISTRATION_ACCESS_CODE') or app.config.get('SPONSOR_REGISTRATION_ACCESS_CODES')
-    )
+    # Lock sponsor registration by default (fail closed). Only unlock when a valid key is provided.
+    access_codes_configured = True
 
     if not app.config.get('SPONSOR_REGISTRATION_ENABLED', True):
         flash("Sponsor registration is currently disabled. Please contact the admin.", "warning")
         return redirect(url_for("index"))
 
     if form.validate_on_submit():
-        # Enforce sponsor access code(s) if configured
+        # Enforce sponsor access code(s)
         provided_code = (form.access_code.data or '').strip()
         required_code = app.config.get('SPONSOR_REGISTRATION_ACCESS_CODE')
         codes_list_raw = app.config.get('SPONSOR_REGISTRATION_ACCESS_CODES')  # optional comma-separated list
-        if required_code or codes_list_raw:
-            valid_codes = set()
-            if required_code:
-                valid_codes.add(str(required_code).strip())
-            if codes_list_raw:
-                for c in str(codes_list_raw).split(','):
-                    c = c.strip()
-                    if c:
-                        valid_codes.add(c)
-            if provided_code not in valid_codes:
-                flash("Invalid BP Sponsor Key.", "danger")
-                return render_template("sponsor_register.html", form=form, access_codes_configured=True)
+        valid_codes = set()
+        if required_code:
+            valid_codes.add(str(required_code).strip())
+        if codes_list_raw:
+            for c in str(codes_list_raw).split(','):
+                c = c.strip()
+                if c:
+                    valid_codes.add(c)
+
+        # If no keys are configured, keep registration locked (admin must set keys).
+        if not valid_codes:
+            flash("Sponsor registration is locked. Please request a BP Sponsor Key to continue.", "warning")
+            return render_template("sponsor_register.html", form=form, access_codes_configured=True)
+
+        if provided_code not in valid_codes:
+            flash("Invalid BP Sponsor Key.", "danger")
+            return render_template("sponsor_register.html", form=form, access_codes_configured=True)
 
         sponsor = Sponsor(
             display_name=form.display_name.data.strip(),
@@ -1456,9 +1460,7 @@ def api_validate_sponsor_key():
                 c = c.strip()
                 if c:
                     valid_codes.add(c)
-        ok = True
-        if valid_codes:
-            ok = provided in valid_codes
+        ok = provided in valid_codes
         return jsonify({"ok": ok})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400
