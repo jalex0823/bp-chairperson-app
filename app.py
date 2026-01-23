@@ -1673,61 +1673,45 @@ def sponsor_portal():
 @app.route("/sponsors")
 def sponsors_directory():
     """Public sponsor directory for sponsees (contact details may be shown)."""
-    try:
-        q = (request.args.get("q") or "").strip()
-        only_open = (request.args.get("only_open") or "1").strip()
+    q = (request.args.get("q") or "").strip()
+    only_open = (request.args.get("only_open") or "1").strip()
 
-        query = Sponsor.query.filter(Sponsor.is_active.is_(True))
-        if q:
-            query = query.filter(Sponsor.display_name.ilike(f"%{q}%"))
+    query = Sponsor.query.filter(Sponsor.is_active.is_(True))
+    if q:
+        query = query.filter(Sponsor.display_name.ilike(f"%{q}%"))
 
-        sponsors = query.order_by(Sponsor.created_at.desc()).all()
-        if only_open not in ("0", "false", "False"):
-            sponsors = [s for s in sponsors if s.capacity_remaining > 0]
+    sponsors = query.order_by(Sponsor.created_at.desc()).all()
+    if only_open not in ("0", "false", "False"):
+        sponsors = [s for s in sponsors if s.capacity_remaining > 0]
 
-        sponsor_cards = []
-        for s in sponsors:
-            try:
-                subject = f"Requesting sponsorship from {s.display_name or 'Sponsor'}"
-                body = (
+    sponsor_cards = []
+    for s in sponsors:
+        subject = f"Requesting sponsorship from {s.display_name or 'Sponsor'}"
+        body = (
                     f"Hi {s.display_name or 'Sponsor'},\n\n"
-            "I found you on the Back Porch Sponsor Directory and I’m reaching out to ask about sponsorship.\n\n"
-            "My name is:\n"
-            "My phone (optional):\n"
-            "A good time to connect:\n\n"
-            "Thank you,\n"
-        )
-                mailto_href = None
-                if s.email:
-                    try:
-                        mailto_href = f"mailto:{s.email}?subject={quote(subject)}&body={quote(body)}"
-                    except Exception as e:
-                        app.logger.warning(f"Error creating mailto link for sponsor {s.id}: {e}")
-                        mailto_href = f"mailto:{s.email}"
-                tel_href = None
-                if s.phone:
-                    try:
-                        digits = "".join(ch for ch in s.phone if ch.isdigit() or ch == "+")
-                        tel_href = f"tel:{digits}" if digits else None
-                    except Exception as e:
-                        app.logger.warning(f"Error creating tel link for sponsor {s.id}: {e}")
-
-                sponsor_cards.append(
-                    {
-                        "sponsor": s,
-                        "mailto_href": mailto_href,
-                        "tel_href": tel_href,
-                    }
+                    "I found you on the Back Porch Sponsor Directory and I’m reaching out to ask about sponsorship.\n\n"
+                    "My name is:\n"
+                    "My phone (optional):\n"
+                    "A good time to connect:\n\n"
+                    "Thank you,\n"
                 )
-            except Exception as e:
-                app.logger.error(f"Error processing sponsor {s.id if s else 'unknown'}: {e}", exc_info=True)
-                continue
+        mailto_href = None
+        if s.email:
+            mailto_href = f"mailto:{s.email}?subject={quote(subject)}&body={quote(body)}"
+        tel_href = None
+        if s.phone:
+            digits = "".join(ch for ch in s.phone if ch.isdigit() or ch == "+")
+            tel_href = f"tel:{digits}" if digits else None
 
-        return render_template("sponsors_directory.html", sponsors=sponsor_cards, q=q, only_open=only_open)
-    except Exception as e:
-        app.logger.error(f"Error in sponsors_directory route: {e}", exc_info=True)
-        flash("An error occurred while loading the sponsor directory. Please try again later.", "danger")
-        return redirect(url_for("index"))
+        sponsor_cards.append(
+            {
+                "sponsor": s,
+                "mailto_href": mailto_href,
+                "tel_href": tel_href,
+            }
+        )
+
+    return render_template("sponsors_directory.html", sponsors=sponsor_cards, q=q, only_open=only_open)
 
 
 @app.route("/sponsors/<int:sponsor_id>/request", methods=["GET", "POST"])
