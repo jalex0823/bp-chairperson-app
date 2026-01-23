@@ -1690,20 +1690,20 @@ def sponsors_directory():
             try:
                 subject = f"Requesting sponsorship from {s.display_name or 'Sponsor'}"
                 body = (
-            f"Hi {s.display_name or 'Sponsor'},\n\n"
+                    f"Hi {s.display_name or 'Sponsor'},\n\n"
             "I found you on the Back Porch Sponsor Directory and I’m reaching out to ask about sponsorship.\n\n"
             "My name is:\n"
             "My phone (optional):\n"
             "A good time to connect:\n\n"
             "Thank you,\n"
         )
-        mailto_href = None
-        if s.email:
-            try:
-                mailto_href = f"mailto:{s.email}?subject={quote(subject)}&body={quote(body)}"
-            except Exception as e:
-                app.logger.warning(f"Error creating mailto link for sponsor {s.id}: {e}")
-                mailto_href = f"mailto:{s.email}"
+                mailto_href = None
+                if s.email:
+                    try:
+                        mailto_href = f"mailto:{s.email}?subject={quote(subject)}&body={quote(body)}"
+                    except Exception as e:
+                        app.logger.warning(f"Error creating mailto link for sponsor {s.id}: {e}")
+                        mailto_href = f"mailto:{s.email}"
                 tel_href = None
                 if s.phone:
                     try:
@@ -2782,6 +2782,42 @@ def api_validate_registration_key():
     if valid_codes:
         ok = provided in valid_codes
     return jsonify({"ok": ok})
+
+
+@app.route("/api/users/search")
+@admin_required
+def api_users_search():
+    """Search users by name or email for autocomplete. Returns limited results for performance."""
+    query = request.args.get('q', '').strip()
+    limit = min(int(request.args.get('limit', 50)), 100)  # Max 100 results
+    
+    if not query or len(query) < 2:
+        return jsonify({"users": []})
+    
+    # Search by display_name or email
+    users = (
+        User.query.filter(
+            db.or_(
+                User.display_name.ilike(f'%{query}%'),
+                User.email.ilike(f'%{query}%')
+            )
+        )
+        .order_by(User.display_name.asc())
+        .limit(limit)
+        .all()
+    )
+    
+    results = [
+        {
+            "id": user.id,
+            "display_name": user.display_name,
+            "email": user.email,
+            "label": f"{user.display_name} ({user.email})"
+        }
+        for user in users
+    ]
+    
+    return jsonify({"users": results})
 
 
 # ==========================
@@ -4565,8 +4601,7 @@ def admin_meetings():
         meeting_types = [mt[0] for mt in meeting_types if mt[0]]
         cache.set('meeting_types_list', meeting_types, timeout=3600)  # Cache for 1 hour
     
-    # Get all users for chair assignment dropdown
-    all_users = User.query.order_by(User.display_name.asc()).all()
+    # Removed all_users query - now using API endpoint for searchable autocomplete
     
     return render_template(
         "admin_meetings.html", 
@@ -4576,7 +4611,6 @@ def admin_meetings():
         web_source=SOURCE_MEETINGS_WEB_URL, 
         static_schedule_enabled=STATIC_SCHEDULE_ENABLED,
         meeting_types=meeting_types,
-        all_users=all_users,
         current_filters={
             'search': search_query,
             'meeting_type': meeting_type_filter,
