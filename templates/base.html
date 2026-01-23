@@ -189,19 +189,25 @@
             Logout
           </a>
         {% else %}
-          <div class="d-flex align-items-center gap-2">
-            <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm" style="min-width: 110px;">
-              Chairperson Login
-            </a>
-            <a href="{{ url_for('sponsor_login') }}" class="btn btn-outline-light btn-sm" style="min-width: 110px;">
-              Sponsor Login
-            </a>
-            <a href="{{ url_for('sponsor_register') }}" class="btn btn-gold btn-sm" style="min-width: 170px;">
-              Sponsor Sign-Up
-            </a>
-            <a href="{{ url_for('register') }}" class="btn btn-gold btn-sm" style="min-width: 170px;">
-              Chairperson Sign-Up
-            </a>
+          <div class="d-flex align-items-start gap-2">
+            <!-- Sponsor Column -->
+            <div class="d-flex flex-column gap-1">
+              <a href="{{ url_for('sponsor_register') }}" class="btn btn-gold btn-sm" style="min-width: 170px;">
+                Sponsor Sign-Up
+              </a>
+              <a href="{{ url_for('sponsor_login') }}" class="btn btn-outline-light btn-sm" style="min-width: 170px;">
+                Sponsor Login
+              </a>
+            </div>
+            <!-- Chairperson Column -->
+            <div class="d-flex flex-column gap-1">
+              <a href="{{ url_for('register') }}" class="btn btn-gold btn-sm" style="min-width: 170px;">
+                Chairperson Sign-Up
+              </a>
+              <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm" style="min-width: 170px;">
+                Chairperson Login
+              </a>
+            </div>
           </div>
         {% endif %}
       </div>
