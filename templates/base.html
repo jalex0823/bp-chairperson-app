@@ -220,7 +220,17 @@
     {% if messages %}
       <div class="mt-2 flash-messages">
         {% for category, msg in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {% set alert_class = 'alert-' ~ category %}
+          {% if category in ('danger', 'error') %}
+            {% set alert_class = 'alert-danger border-danger border-2 bg-danger-subtle text-danger-emphasis' %}
+          {% elif category == 'warning' %}
+            {% set alert_class = 'alert-warning border-warning border-2 bg-warning-subtle text-warning-emphasis' %}
+          {% elif category == 'success' %}
+            {% set alert_class = 'alert-success border-success border-2 bg-success-subtle text-success-emphasis' %}
+          {% elif category == 'info' %}
+            {% set alert_class = 'alert-info border-info border-2 bg-info-subtle text-info-emphasis' %}
+          {% endif %}
+          <div class="alert {{ alert_class }} alert-dismissible fade show" role="alert">
             {{ msg }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>

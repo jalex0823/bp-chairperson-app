@@ -649,6 +649,41 @@ class SponsorAccount(db.Model):
         return self.locked_until and self.locked_until > datetime.utcnow()
 
 
+class SponsorSecurityToken(db.Model):
+    """
+    Security tokens for sponsor account actions (e.g., password reset).
+    Separate from chairperson SecurityToken to keep roles independent.
+    """
+    __tablename__ = "sponsor_security_tokens"
+
+    id = db.Column(db.Integer, primary_key=True)
+    sponsor_account_id = db.Column(
+        db.Integer,
+        db.ForeignKey("sponsor_accounts.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    token_type = db.Column(db.String(40), nullable=False, index=True)
+    token_hash = db.Column(db.String(255), nullable=False, unique=True)
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
+    used_at = db.Column(db.DateTime, nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    sponsor_account = db.relationship("SponsorAccount", backref="security_tokens")
+
+    @classmethod
+    def create_token(cls, sponsor_account_id: int, token_type: str, expires_in_hours: int = 24):
+        token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        row = cls(
+            sponsor_account_id=sponsor_account_id,
+            token_type=token_type,
+            token_hash=token_hash,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=expires_in_hours),
+        )
+        return token, row
+
+
 class SponsorRequest(db.Model):
     """Sponsee request for an introduction to a specific sponsor."""
     __tablename__ = "sponsor_requests"
@@ -1048,6 +1083,11 @@ class LoginForm(FlaskForm):
 class ForgotPasswordForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired(), Email(), Length(max=255)])
     submit = SubmitField("Request Password Help")
+
+
+class SponsorForgotPasswordForm(FlaskForm):
+    email = StringField("Sponsor Email", validators=[DataRequired(), Email(), Length(max=255)])
+    submit = SubmitField("Request Sponsor Password Help")
 
 
 class ResetPasswordForm(FlaskForm):
@@ -1633,6 +1673,131 @@ def sponsor_logout():
     session.pop("sponsor_account_id", None)
     flash("Sponsor logged out.", "info")
     return redirect(url_for("index"))
+
+
+@app.route("/sponsor/forgot-password", methods=["GET", "POST"])
+def sponsor_forgot_password():
+    """Sponsor self-service password reset request (independent from chairperson accounts)."""
+    if get_current_sponsor_account():
+        return redirect(url_for("sponsor_portal"))
+
+    form = SponsorForgotPasswordForm()
+    if form.validate_on_submit():
+        email = normalize_email(form.email.data or "")
+        generic_msg = "If a sponsor account exists for that email, a password reset link has been sent."
+
+        acct = SponsorAccount.query.filter_by(email=email).first()
+        if not acct:
+            log_audit_event(
+                "sponsor_password_reset_requested_unknown_email",
+                resource_type="sponsor_account",
+                details={"email": email},
+            )
+            flash(generic_msg, "info")
+            return render_template("sponsor_forgot_password.html", form=form)
+
+        token, token_row = SponsorSecurityToken.create_token(acct.id, "sponsor_password_reset", expires_in_hours=24)
+        db.session.add(token_row)
+        db.session.commit()
+
+        reset_url = url_for("sponsor_reset_password", token=token, _external=True)
+        log_audit_event(
+            "sponsor_password_reset_requested",
+            resource_type="sponsor_account",
+            resource_id=acct.id,
+            details={"email": email, "reset_url_generated": True},
+        )
+
+        body = (
+            "Back Porch Sponsor Portal Password Reset\n\n"
+            "We received a request to reset your sponsor portal password.\n\n"
+            f"Reset link (valid for 24 hours):\n{reset_url}\n\n"
+            "If you did not request this, you can ignore this email."
+        )
+
+        sent = False
+        try:
+            sent = send_email(email, "Sponsor Password Reset Link", body)
+        except Exception:
+            sent = False
+
+        if not sent:
+            log_audit_event(
+                "sponsor_password_reset_email_send_failed",
+                resource_type="sponsor_account",
+                resource_id=acct.id,
+                details={"email": email},
+            )
+
+        is_production = (os.getenv('FLASK_ENV') == 'production')
+        show_link_locally = bool(app.config.get('SHOW_RESET_LINK_LOCALLY', False))
+        if (not is_production) and (show_link_locally or (not sent)):
+            flash("Local dev mode: copy/share this reset link to the sponsor:", "warning")
+            return render_template("sponsor_forgot_password.html", form=form, reset_url=reset_url)
+
+        flash(generic_msg, "info")
+        return render_template("sponsor_forgot_password.html", form=form)
+
+    return render_template("sponsor_forgot_password.html", form=form)
+
+
+@app.route("/sponsor/reset-password/<token>", methods=["GET", "POST"])
+def sponsor_reset_password(token: str):
+    """Reset sponsor password using a one-time token."""
+    if not token:
+        flash("Invalid reset link.", "danger")
+        return redirect(url_for("sponsor_forgot_password"))
+
+    form = ResetPasswordForm()
+
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    token_row = SponsorSecurityToken.query.filter_by(
+        token_hash=token_hash,
+        token_type="sponsor_password_reset",
+        used_at=None,
+    ).filter(SponsorSecurityToken.expires_at > datetime.now(timezone.utc)).first()
+
+    if not token_row:
+        flash("This reset link is invalid or has expired. Please request a new one.", "danger")
+        return redirect(url_for("sponsor_forgot_password"))
+
+    acct = SponsorAccount.query.get(token_row.sponsor_account_id)
+    if not acct:
+        flash("This reset link is invalid. Please request a new one.", "danger")
+        return redirect(url_for("sponsor_forgot_password"))
+
+    if form.validate_on_submit():
+        new_password = form.new_password.data or ""
+        confirm_password = form.confirm_password.data or ""
+
+        if new_password != confirm_password:
+            flash("Passwords do not match.", "danger")
+            return render_template("sponsor_reset_password.html", form=form)
+
+        ok, msg = validate_password_for_storage(new_password)
+        if not ok:
+            flash(msg, "danger")
+            return render_template("sponsor_reset_password.html", form=form)
+
+        acct.set_password(new_password)
+        acct.failed_login_attempts = 0
+        acct.locked_until = None
+        acct.last_login = None
+
+        token_row.used_at = datetime.now(timezone.utc)
+        db.session.commit()
+
+        log_audit_event(
+            "sponsor_password_reset_completed",
+            resource_type="sponsor_account",
+            resource_id=acct.id,
+            details={"email": acct.email},
+        )
+
+        flash("Your sponsor password has been reset. You can now log in.", "success")
+        return redirect(url_for("sponsor_login"))
+
+    return render_template("sponsor_reset_password.html", form=form)
 
 
 @app.route("/sponsor/portal", methods=["GET", "POST"])
