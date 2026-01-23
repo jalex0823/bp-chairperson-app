@@ -33,6 +33,7 @@
 
     <div class="row g-3">
       {% for row in sponsors %}
+        {% if row and row.sponsor %}
         {% set s = row.sponsor %}
         <div class="col-12">
           <div class="card shadow-sm">
@@ -42,7 +43,7 @@
                 <div class="flex-shrink-0 text-center">
                   {% if s.profile_image %}
                     <img src="{{ url_for('sponsor_image', sponsor_id=s.id) }}"
-                         alt="{{ s.display_name }}"
+                         alt="{{ s.display_name or 'Sponsor' }}"
                          class="rounded-circle"
                          style="width: 88px; height: 88px; object-fit: cover; border: 2px solid rgba(0,0,0,0.1);">
                   {% else %}
@@ -57,18 +58,18 @@
                 <div class="flex-grow-1">
                   <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
                     <div>
-                      <h5 class="mb-1">{{ s.display_name }}</h5>
+                      <h5 class="mb-1">{{ s.display_name or 'Sponsor' }}</h5>
                       <div class="small text-muted">
                         {% if s.sobriety_date %}Sobriety Date: {{ s.sobriety_date.strftime('%Y-%m-%d') }}{% endif %}
                       </div>
                     </div>
                     <div class="text-end">
                       <div class="small text-muted">Delta (Openings)</div>
-                      <div class="fs-5 fw-semibold {% if s.capacity_remaining > 0 %}text-primary{% else %}text-muted{% endif %}">
-                        {{ s.capacity_remaining }}
+                      <div class="fs-5 fw-semibold {% if (s.capacity_remaining or 0) > 0 %}text-primary{% else %}text-muted{% endif %}">
+                        {{ s.capacity_remaining or 0 }}
                       </div>
                       <div class="small text-muted">
-                        Current: {{ s.current_sponsees }} • Max: {{ s.max_sponsees }}
+                        Current: {{ s.current_sponsees or 0 }} • Max: {{ s.max_sponsees or 0 }}
                       </div>
                     </div>
                   </div>
@@ -91,6 +92,7 @@
             </div>
           </div>
         </div>
+        {% endif %}
       {% endfor %}
     </div>
 
