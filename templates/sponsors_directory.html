@@ -7,7 +7,7 @@
     </div>
 
     <div class="alert alert-info">
-      Browse sponsors who have openings. Read their bio and request an introduction.
+      Browse sponsors who have openings. Read their bio and contact them directly.
     </div>
 
     <form method="get" class="card shadow-sm mb-3">
@@ -32,7 +32,8 @@
     </form>
 
     <div class="row g-3">
-      {% for s in sponsors %}
+      {% for row in sponsors %}
+        {% set s = row.sponsor %}
         <div class="col-12">
           <div class="card shadow-sm">
             <div class="card-body">
@@ -78,7 +79,12 @@
                   {% endif %}
 
                   <div class="mt-3 d-flex gap-2">
-                    <a class="btn btn-gold" href="{{ url_for('sponsor_request', sponsor_id=s.id) }}">Request this sponsor</a>
+                    {% if row.mailto_href %}
+                      <a class="btn btn-gold" href="{{ row.mailto_href }}">Email sponsor</a>
+                    {% endif %}
+                    {% if row.tel_href %}
+                      <a class="btn btn-outline-secondary" href="{{ row.tel_href }}">Call / Text</a>
+                    {% endif %}
                   </div>
                 </div>
               </div>

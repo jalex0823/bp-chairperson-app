@@ -35,6 +35,7 @@ import calendar
 from io import BytesIO
 import subprocess
 import tempfile
+from urllib.parse import quote
 
 # ReportLab depends on Pillow for some functionality; keep PDF/certificate features optional
 # so auth/admin utilities can run in minimal environments.
@@ -1149,6 +1150,7 @@ class SponsorLoginForm(FlaskForm):
 class SponsorPortalForm(FlaskForm):
     current_sponsees = IntegerField("Number of current sponsees", validators=[DataRequired(), NumberRange(min=0, max=200)])
     max_sponsees = IntegerField("Max number you'd like to sponsor", validators=[DataRequired(), NumberRange(min=0, max=200)])
+    email = StringField("Email (shown publicly)", validators=[DataRequired(), Email(), Length(max=255)])
     phone = StringField("Phone (optional)", validators=[Optional(), Length(max=50)])
     profile_image = FileField("Bio Photo (optional)", validators=[Optional()])
     bio = TextAreaField("Sponsor Bio", validators=[DataRequired(), Length(min=40, max=1500)])
@@ -1635,6 +1637,15 @@ def sponsor_portal():
     if form.validate_on_submit():
         sponsor.current_sponsees = int(form.current_sponsees.data or 0)
         sponsor.max_sponsees = int(form.max_sponsees.data or 0)
+        # Allow sponsor to update the email used for login + public contact
+        new_email = normalize_email(form.email.data)
+        if new_email and new_email != acct.email:
+            existing = SponsorAccount.query.filter(SponsorAccount.email == new_email, SponsorAccount.id != acct.id).first()
+            if existing:
+                flash("That sponsor email is already in use. Please choose another.", "danger")
+                return redirect(url_for("sponsor_portal"))
+            acct.email = new_email
+            sponsor.email = new_email
         sponsor.phone = (form.phone.data.strip() if form.phone.data else None)
         sponsor.bio = (form.bio.data.strip() if form.bio.data else None)
         sponsor.is_active = bool(form.is_active.data)
@@ -1661,7 +1672,7 @@ def sponsor_portal():
 
 @app.route("/sponsors")
 def sponsors_directory():
-    """Public sponsor directory for sponsees (no sponsor contact details shown)."""
+    """Public sponsor directory for sponsees (contact details may be shown)."""
     q = (request.args.get("q") or "").strip()
     only_open = (request.args.get("only_open") or "1").strip()
 
@@ -1673,7 +1684,32 @@ def sponsors_directory():
     if only_open not in ("0", "false", "False"):
         sponsors = [s for s in sponsors if s.capacity_remaining > 0]
 
-    return render_template("sponsors_directory.html", sponsors=sponsors, q=q, only_open=only_open)
+    sponsor_cards = []
+    for s in sponsors:
+        subject = f"Requesting sponsorship from {s.display_name}"
+        body = (
+            f"Hi {s.display_name},\n\n"
+            "I found you on the Back Porch Sponsor Directory and I’m reaching out to ask about sponsorship.\n\n"
+            "My name is:\n"
+            "My phone (optional):\n"
+            "A good time to connect:\n\n"
+            "Thank you,\n"
+        )
+        mailto_href = f"mailto:{s.email}?subject={quote(subject)}&body={quote(body)}" if s.email else None
+        tel_href = None
+        if s.phone:
+            digits = "".join(ch for ch in s.phone if ch.isdigit() or ch == "+")
+            tel_href = f"tel:{digits}" if digits else None
+
+        sponsor_cards.append(
+            {
+                "sponsor": s,
+                "mailto_href": mailto_href,
+                "tel_href": tel_href,
+            }
+        )
+
+    return render_template("sponsors_directory.html", sponsors=sponsor_cards, q=q, only_open=only_open)
 
 
 @app.route("/sponsors/<int:sponsor_id>/request", methods=["GET", "POST"])

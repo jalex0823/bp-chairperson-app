@@ -33,6 +33,12 @@
               </div>
 
               <div class="mb-3">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control", type="email", autocomplete="username") }}
+                <div class="form-text">This email is shown publicly and is also used for your sponsor login.</div>
+              </div>
+
+              <div class="mb-3">
                 {{ form.phone.label(class="form-label") }}
                 {{ form.phone(class="form-control", placeholder="Optional") }}
               </div>
