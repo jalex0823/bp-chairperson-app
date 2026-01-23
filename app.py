@@ -196,6 +196,17 @@ def strip_zero_width(value: str) -> str:
     return s
 
 
+def normalize_access_code(value: str) -> str:
+    """Normalize unlock/access codes for comparison.
+
+    We normalize defensively to reduce support issues:
+    - trim outer whitespace
+    - remove zero-width chars (common on mobile copy/paste)
+    - uppercase (case-insensitive keys)
+    """
+    return strip_zero_width((value or "").strip()).upper()
+
+
 def normalize_email(value: str) -> str:
     """Normalize emails for lookup/storage.
 
@@ -1514,15 +1525,15 @@ def sponsor_register():
 
     if form.validate_on_submit():
         # Enforce sponsor access code(s)
-        provided_code = (form.access_code.data or '').strip()
+        provided_code = normalize_access_code(form.access_code.data or '')
         required_code = app.config.get('SPONSOR_REGISTRATION_ACCESS_CODE')
         codes_list_raw = app.config.get('SPONSOR_REGISTRATION_ACCESS_CODES')  # optional comma-separated list
         valid_codes = set()
         if required_code:
-            valid_codes.add(str(required_code).strip())
+            valid_codes.add(normalize_access_code(str(required_code)))
         if codes_list_raw:
             for c in str(codes_list_raw).split(','):
-                c = c.strip()
+                c = normalize_access_code(c)
                 if c:
                     valid_codes.add(c)
 
@@ -1768,19 +1779,21 @@ def api_validate_sponsor_key():
     """Validate Sponsor BP Key used to unlock sponsor registration form."""
     try:
         data = request.get_json(force=True) or {}
-        provided = (data.get('key') or '').strip()
+        provided = normalize_access_code(data.get('key') or '')
         required_code = app.config.get('SPONSOR_REGISTRATION_ACCESS_CODE')
         codes_list_raw = app.config.get('SPONSOR_REGISTRATION_ACCESS_CODES')
         valid_codes = set()
         if required_code:
-            valid_codes.add(str(required_code).strip())
+            valid_codes.add(normalize_access_code(str(required_code)))
         if codes_list_raw:
             for c in str(codes_list_raw).split(','):
-                c = c.strip()
+                c = normalize_access_code(c)
                 if c:
                     valid_codes.add(c)
+        if not valid_codes:
+            return jsonify({"ok": False, "reason": "not_configured"})
         ok = provided in valid_codes
-        return jsonify({"ok": ok})
+        return jsonify({"ok": ok, "reason": ("ok" if ok else "invalid")})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400
 

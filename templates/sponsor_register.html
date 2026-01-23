@@ -132,6 +132,101 @@
           <a href="{{ url_for('sponsor_login') }}">Sponsor Log In</a>
         </p>
 
+        <!-- Unlock feedback modal -->
+        <div class="modal fade" id="sponsorUnlockModal" tabindex="-1" aria-labelledby="sponsorUnlockModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header" id="sponsorUnlockModalHeader">
+                <h5 class="modal-title" id="sponsorUnlockModalLabel">BP Sponsor Key</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body" id="sponsorUnlockModalBody">
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <style>
+          /* Sponsor unlock celebration (graffiti + confetti) */
+          .sponsor-unlock-celebration {
+            position: fixed;
+            inset: 0;
+            z-index: 2000; /* above Bootstrap modal backdrop (1050) */
+            pointer-events: none;
+            display: none;
+          }
+          .sponsor-unlock-celebration.active { display: block; }
+          .sponsor-unlock-celebration .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(1px);
+          }
+          .sponsor-unlock-celebration .graffiti {
+            position: absolute;
+            left: 50%;
+            top: 18%;
+            transform: translateX(-50%) rotate(-4deg);
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            font-size: clamp(2rem, 6vw, 4rem);
+            color: #ffd54a;
+            text-shadow:
+              -3px -3px 0 #0f6f75,
+              3px -3px 0 #0f6f75,
+              -3px 3px 0 #0f6f75,
+              3px 3px 0 #0f6f75,
+              0 10px 24px rgba(0,0,0,0.35);
+            animation: sponsorGraffitiPop 900ms ease-out both;
+            border-radius: 16px;
+            padding: 8px 18px;
+            background: rgba(255, 255, 255, 0.08);
+          }
+          .sponsor-unlock-celebration .graffiti small {
+            display: block;
+            font-size: 0.45em;
+            font-weight: 700;
+            opacity: 0.95;
+            margin-top: 6px;
+            letter-spacing: 0.02em;
+          }
+          @keyframes sponsorGraffitiPop {
+            0%   { transform: translateX(-50%) scale(0.75) rotate(-10deg); opacity: 0; }
+            60%  { transform: translateX(-50%) scale(1.06) rotate(-4deg); opacity: 1; }
+            100% { transform: translateX(-50%) scale(1.0) rotate(-4deg); opacity: 1; }
+          }
+          .sponsor-confetti {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+          }
+          .sponsor-confetti .c {
+            position: absolute;
+            width: 10px;
+            height: 16px;
+            border-radius: 2px;
+            opacity: 0.95;
+            top: -20px;
+            animation: sponsorConfettiFall linear forwards;
+          }
+          @keyframes sponsorConfettiFall {
+            to { transform: translateY(110vh) rotate(520deg); }
+          }
+        </style>
+
+        <div id="sponsorUnlockCelebration" class="sponsor-unlock-celebration" aria-hidden="true">
+          <div class="overlay"></div>
+          <div class="sponsor-confetti" id="sponsorConfetti"></div>
+          <div class="graffiti">
+            Unlocked!
+            <small>Welcome to service</small>
+          </div>
+        </div>
+
         <script>
           document.addEventListener('DOMContentLoaded', function() {
             const accessConfigured = {{ 'true' if access_codes_configured else 'false' }};
@@ -140,9 +235,60 @@
             const submitBtn = document.querySelector('#sponsorRegisterForm button[type="submit"], #sponsorRegisterForm input[type="submit"]');
             const unlockStatus = document.getElementById('sponsorUnlockStatus');
             let failedAttempts = 0;
+            let unlockDisabledUntil = 0;
+
+            const modalEl = document.getElementById('sponsorUnlockModal');
+            const modalHeader = document.getElementById('sponsorUnlockModalHeader');
+            const modalBody = document.getElementById('sponsorUnlockModalBody');
+            const sponsorUnlockModal = (modalEl && window.bootstrap) ? new bootstrap.Modal(modalEl) : null;
+
+            function showModal(kind, message) {
+              if (!modalHeader || !modalBody || !sponsorUnlockModal) return;
+              // kind: 'success' | 'danger' | 'warning' | 'info'
+              modalHeader.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'bg-info', 'text-white', 'text-dark');
+              if (kind === 'success' || kind === 'danger' || kind === 'info') {
+                modalHeader.classList.add('text-white');
+              } else {
+                modalHeader.classList.add('text-dark');
+              }
+              if (kind === 'success') modalHeader.classList.add('bg-success');
+              if (kind === 'danger') modalHeader.classList.add('bg-danger');
+              if (kind === 'warning') modalHeader.classList.add('bg-warning');
+              if (kind === 'info') modalHeader.classList.add('bg-info');
+              modalBody.textContent = message;
+              sponsorUnlockModal.show();
+            }
+
+            function triggerUnlockCelebration() {
+              const root = document.getElementById('sponsorUnlockCelebration');
+              const confettiWrap = document.getElementById('sponsorConfetti');
+              if (!root || !confettiWrap) return;
+
+              confettiWrap.innerHTML = '';
+              const colors = ['#ffd54a', '#0f6f75', '#28a745', '#007bff', '#dc3545', '#ffa500'];
+              const pieces = 60;
+              for (let i = 0; i < pieces; i++) {
+                const d = document.createElement('div');
+                d.className = 'c';
+                d.style.left = `${Math.random() * 100}%`;
+                d.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                d.style.animationDuration = `${2200 + Math.random() * 1400}ms`;
+                d.style.animationDelay = `${Math.random() * 250}ms`;
+                d.style.transform = `translateY(0) rotate(${Math.random() * 180}deg)`;
+                confettiWrap.appendChild(d);
+              }
+
+              root.classList.add('active');
+              setTimeout(() => root.classList.remove('active'), 2500);
+            }
 
             function setLockedState(locked) {
               if (!regFields) return;
+              // regFields is a FIELDSET. If it remains disabled, children cannot be used
+              // even if we toggle each input's disabled property.
+              if (typeof regFields.disabled !== 'undefined') {
+                regFields.disabled = locked;
+              }
               for (const el of regFields.querySelectorAll('input, select, textarea')) {
                 el.disabled = locked;
               }
@@ -150,8 +296,17 @@
             }
 
             async function tryUnlock() {
+              const now = Date.now();
+              if (unlockDisabledUntil && now < unlockDisabledUntil) {
+                const secs = Math.ceil((unlockDisabledUntil - now) / 1000);
+                showModal('warning', `Please wait ${secs}s before trying again.`);
+                return;
+              }
               const key = (accessInput && accessInput.value ? accessInput.value.trim() : '');
-              if (!key) return;
+              if (!key) {
+                showModal('warning', 'Please enter your BP Sponsor Key.');
+                return;
+              }
               try {
                 const resp = await fetch('/api/sponsor/validate-key', {
                   method: 'POST',
@@ -167,14 +322,21 @@
                     accessInput.classList.add('is-valid');
                   }
                   if (unlockStatus) unlockStatus.style.display = 'block';
+                  showModal('success', 'Key accepted. Sponsor registration form unlocked.');
+                  triggerUnlockCelebration();
                 } else {
                   failedAttempts++;
                   if (accessInput) {
                     accessInput.classList.remove('is-valid');
                     accessInput.classList.add('is-invalid');
                   }
-                  if (failedAttempts >= 3) {
-                    window.location.href = 'https://www.google.com/';
+                  if (data && data.reason === 'not_configured') {
+                    showModal('warning', 'Sponsor registration is currently locked (no keys configured). Please request a BP Sponsor Key and try again later.');
+                  } else {
+                    showModal('danger', 'Invalid BP Sponsor Key. Please check the key (copy/paste) or request a new one.');
+                  }
+                  if (failedAttempts >= 5) {
+                    unlockDisabledUntil = Date.now() + (30 * 1000);
                   }
                 }
               } catch (e) {
@@ -183,8 +345,9 @@
                   accessInput.classList.remove('is-valid');
                   accessInput.classList.add('is-invalid');
                 }
-                if (failedAttempts >= 3) {
-                  window.location.href = 'https://www.google.com/';
+                showModal('danger', 'Could not validate the key right now. Please try again.');
+                if (failedAttempts >= 5) {
+                  unlockDisabledUntil = Date.now() + (30 * 1000);
                 }
               }
             }
