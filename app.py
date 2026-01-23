@@ -2789,7 +2789,14 @@ def api_validate_registration_key():
 def api_users_search():
     """Search users by name or email for autocomplete. Returns limited results for performance."""
     query = request.args.get('q', '').strip()
-    limit = min(int(request.args.get('limit', 50)), 100)  # Max 100 results
+    # Validate and convert limit parameter with error handling
+    try:
+        limit = int(request.args.get('limit', 50))
+        # Ensure limit is within valid range (1-100)
+        limit = max(1, min(limit, 100))
+    except (ValueError, TypeError):
+        # If limit is invalid or non-numeric, use default
+        limit = 50
     
     if not query or len(query) < 2:
         return jsonify({"users": []})
@@ -6517,4 +6524,3 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run(debug=True)
-
