@@ -266,6 +266,26 @@ def check_password_mobile_friendly(user: "User", raw_password: str) -> bool:
 
     return any(user.check_password(pw) for pw in candidates)
 
+
+def check_sponsor_password_mobile_friendly(acct: "SponsorAccount", raw_password: str) -> bool:
+    """Check sponsor password while tolerating common mobile autofill quirks."""
+    raw_password = raw_password or ""
+    allow_trim = bool(app.config.get('ALLOW_PASSWORD_TRIM_ON_LOGIN', True))
+
+    candidates = [raw_password]
+    normalized = strip_zero_width(raw_password)
+    if normalized != raw_password:
+        candidates.append(normalized)
+    if allow_trim:
+        stripped = raw_password.strip()
+        if stripped and stripped != raw_password:
+            candidates.append(stripped)
+        stripped_normalized = normalized.strip()
+        if stripped_normalized and stripped_normalized not in candidates:
+            candidates.append(stripped_normalized)
+
+    return any(acct.check_password(pw) for pw in candidates)
+
 # External resources directory for chairing PDFs (configurable)
 # Prefer project-local resources/pdfs so it works both locally and on Heroku.
 DEFAULT_PDFS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'pdfs')
@@ -1592,6 +1612,12 @@ def sponsor_register():
             flash("A sponsor account with that email already exists. Please log in.", "warning")
             return redirect(url_for("sponsor_login"))
 
+        # Validate password before storing (prevents hard-to-reproduce mobile passwords)
+        ok, pw_msg = validate_password_for_storage(form.password.data or "")
+        if not ok:
+            flash(pw_msg, "danger")
+            return render_template("sponsor_register.html", form=form, access_codes_configured=True)
+
         sponsor = Sponsor(
             display_name=form.display_name.data.strip(),
             sobriety_date=form.sobriety_date.data,
@@ -1623,9 +1649,9 @@ def sponsor_register():
         db.session.add(acct)
         db.session.commit()
 
-        session["sponsor_account_id"] = acct.id
-        flash("Sponsor account created. You can now manage your listing.", "success")
-        return redirect(url_for("sponsor_portal"))
+        # Do not auto-login sponsors after registration; keep flow explicit.
+        flash("Sponsor account created. Please log in to continue.", "success")
+        return redirect(url_for("sponsor_login", email=email_norm))
 
     return render_template("sponsor_register.html", form=form, access_codes_configured=access_codes_configured)
 
@@ -1636,6 +1662,10 @@ def sponsor_login():
         return redirect(url_for("sponsor_portal"))
 
     form = SponsorLoginForm()
+    if request.method == "GET":
+        prefill_email = normalize_email(request.args.get("email") or "")
+        if prefill_email:
+            form.email.data = prefill_email
     if form.validate_on_submit():
         email = normalize_email(form.email.data)
         acct = SponsorAccount.query.filter_by(email=email).first()
@@ -1647,7 +1677,7 @@ def sponsor_login():
             flash("Sponsor account is temporarily locked. Please try again later.", "danger")
             return render_template("sponsor_login.html", form=form)
 
-        if acct.check_password(form.password.data or ""):
+        if check_sponsor_password_mobile_friendly(acct, form.password.data or ""):
             acct.last_login = datetime.utcnow()
             acct.failed_login_attempts = 0
             acct.locked_until = None
@@ -1959,6 +1989,43 @@ def api_validate_sponsor_key():
             return jsonify({"ok": False, "reason": "not_configured"})
         ok = provided in valid_codes
         return jsonify({"ok": ok, "reason": ("ok" if ok else "invalid")})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/sponsor/prefill", methods=["POST"])
+def api_sponsor_prefill():
+    """Prefill sponsor sign-up fields from chairperson data (requires valid sponsor key)."""
+    try:
+        data = request.get_json(force=True) or {}
+        provided_key = normalize_access_code(data.get("key") or "")
+        email = normalize_email(data.get("email") or "")
+
+        required_code = app.config.get('SPONSOR_REGISTRATION_ACCESS_CODE')
+        codes_list_raw = app.config.get('SPONSOR_REGISTRATION_ACCESS_CODES')
+        valid_codes = set()
+        if required_code:
+            valid_codes.add(normalize_access_code(str(required_code)))
+        if codes_list_raw:
+            for c in str(codes_list_raw).split(','):
+                c = normalize_access_code(c)
+                if c:
+                    valid_codes.add(c)
+
+        if not valid_codes:
+            return jsonify({"ok": False, "reason": "not_configured"})
+        if not provided_key or (provided_key not in valid_codes):
+            return jsonify({"ok": False, "reason": "invalid_key"})
+
+        if not email:
+            return jsonify({"ok": True, "found": False})
+
+        # Pull display name from chairperson account if it exists.
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return jsonify({"ok": True, "found": False})
+
+        return jsonify({"ok": True, "found": True, "display_name": user.display_name or ""})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400
 

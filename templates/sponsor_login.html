@@ -12,12 +12,29 @@
 
               <div class="mb-3">
                 {{ form.email.label(class="form-label") }}
-                {{ form.email(class="form-control", type="email", autocomplete="username") }}
+                {{ form.email(class="form-control",
+                              type="email",
+                              autocomplete="username",
+                              autocapitalize="none",
+                              autocorrect="off",
+                              spellcheck="false",
+                              inputmode="email",
+                              enterkeyhint="next") }}
               </div>
 
               <div class="mb-3">
                 {{ form.password.label(class="form-label") }}
-                {{ form.password(class="form-control", type="password", autocomplete="current-password") }}
+                {{ form.password(class="form-control",
+                                 type="password",
+                                 autocomplete="current-password",
+                                 autocapitalize="none",
+                                 autocorrect="off",
+                                 spellcheck="false",
+                                 enterkeyhint="done",
+                                 placeholder="Enter your sponsor password") }}
+                <div class="form-text">
+                  If you’re on mobile and login fails unexpectedly, try re-typing the password manually (autofill can add hidden characters).
+                </div>
               </div>
 
               {{ form.submit(class="btn btn-primary w-100") }}

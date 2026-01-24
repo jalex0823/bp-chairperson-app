@@ -67,13 +67,14 @@
               <fieldset id="sponsorRegFields" {% if access_codes_configured %}disabled{% endif %}>
                 <div class="mb-3">
                   {{ form.display_name.label(class="form-label") }}
-                  {{ form.display_name(class="form-control", placeholder="Example: Jeff A.") }}
+                  {{ form.display_name(class="form-control", id="sponsor_display_name", placeholder="Example: Jeff A.") }}
+                  <div id="sponsorPrefillHint" class="form-text" style="display:none;"></div>
                 </div>
 
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     {{ form.email.label(class="form-label") }}
-                    {{ form.email(class="form-control", type="email", autocomplete="username", placeholder="name@example.com") }}
+                    {{ form.email(class="form-control", id="sponsor_email", type="email", autocomplete="username", placeholder="name@example.com") }}
                   </div>
                   <div class="col-md-6 mb-3">
                     {{ form.password.label(class="form-label") }}
@@ -234,8 +235,12 @@
             const regFields = document.getElementById('sponsorRegFields');
             const submitBtn = document.querySelector('#sponsorRegisterForm button[type="submit"], #sponsorRegisterForm input[type="submit"]');
             const unlockStatus = document.getElementById('sponsorUnlockStatus');
+            const emailInput = document.getElementById('sponsor_email');
+            const nameInput = document.getElementById('sponsor_display_name');
+            const prefillHint = document.getElementById('sponsorPrefillHint');
             let failedAttempts = 0;
             let unlockDisabledUntil = 0;
+            let prefillTimer = null;
 
             const modalEl = document.getElementById('sponsorUnlockModal');
             const modalHeader = document.getElementById('sponsorUnlockModalHeader');
@@ -324,6 +329,8 @@
                   if (unlockStatus) unlockStatus.style.display = 'block';
                   showModal('success', 'Key accepted. Sponsor registration form unlocked.');
                   triggerUnlockCelebration();
+                  // After unlock, attempt to prefill name from chairperson account (if email matches)
+                  schedulePrefill();
                 } else {
                   failedAttempts++;
                   if (accessInput) {
@@ -352,16 +359,59 @@
               }
             }
 
+            async function prefillFromChair() {
+              if (!emailInput || !nameInput) return;
+              const key = localStorage.getItem('bp_sponsor_access_code') || (accessInput && accessInput.value ? accessInput.value.trim() : '');
+              if (!key) return;
+              const email = (emailInput.value || '').trim();
+              const name = (nameInput.value || '').trim();
+              if (!email || email.length < 5) return;
+              // Only prefill if name is currently empty (don't overwrite user's edits)
+              if (name) return;
+
+              try {
+                const resp = await fetch('/api/sponsor/prefill', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ key, email })
+                });
+                const data = await resp.json();
+                if (data && data.ok && data.found && data.display_name) {
+                  nameInput.value = data.display_name;
+                  if (prefillHint) {
+                    prefillHint.textContent = 'We found a chairperson account for this email and pre-filled your name. You can edit it.';
+                    prefillHint.style.display = 'block';
+                  }
+                } else {
+                  if (prefillHint) prefillHint.style.display = 'none';
+                }
+              } catch (e) {
+                // ignore prefill failures
+              }
+            }
+
+            function schedulePrefill() {
+              if (!accessConfigured) return;
+              if (!emailInput) return;
+              if (prefillTimer) clearTimeout(prefillTimer);
+              prefillTimer = setTimeout(prefillFromChair, 400);
+            }
+
             if (accessConfigured) {
               setLockedState(true);
               const unlockBtn = document.getElementById('sponsorUnlockSubmit');
               const clearBtn = document.getElementById('sponsorUnlockClear');
               if (unlockBtn) unlockBtn.addEventListener('click', tryUnlock);
+              if (emailInput) {
+                emailInput.addEventListener('blur', schedulePrefill);
+                emailInput.addEventListener('input', schedulePrefill);
+              }
               if (clearBtn) {
                 clearBtn.addEventListener('click', function() {
                   localStorage.removeItem('bp_sponsor_access_code');
                   if (accessInput) accessInput.value = '';
                   setLockedState(true);
+                  if (prefillHint) prefillHint.style.display = 'none';
                   if (accessInput) {
                     accessInput.classList.remove('is-valid');
                     accessInput.classList.remove('is-invalid');
