@@ -1424,6 +1424,17 @@ body.light-theme .alert *:not(.btn):not(.badge) {
     color: inherit !important;
 }
 
+/* Danger alerts should still read as "danger" (auth failures, etc.) */
+body.light-theme .alert-danger {
+    background-color: #f8d7da !important;
+    border-color: #f1aeb5 !important;
+    color: #842029 !important;
+}
+
+body.light-theme .alert-danger *:not(.btn):not(.badge) {
+    color: inherit !important;
+}
+
 /* Success alerts can use brand green text on white */
 body.light-theme .alert-success,
 body.light-theme .alert-success *:not(.btn):not(.badge) {

@@ -1707,14 +1707,19 @@ def sponsor_logout():
 
 @app.route("/sponsor/forgot-password", methods=["GET", "POST"])
 def sponsor_forgot_password():
-    """Sponsor self-service password reset request (independent from chairperson accounts)."""
+    """Sponsor self-service password reset request (independent from chairperson accounts).
+
+    Unlike chairperson reset, sponsor reset is handled "internally" (no email required):
+    after requesting a reset, the one-time link is displayed on-screen with copy/share tools.
+    """
     if get_current_sponsor_account():
         return redirect(url_for("sponsor_portal"))
 
     form = SponsorForgotPasswordForm()
     if form.validate_on_submit():
         email = normalize_email(form.email.data or "")
-        generic_msg = "If a sponsor account exists for that email, a password reset link has been sent."
+        # Keep response generic to reduce account enumeration.
+        generic_msg = "If a sponsor account exists for that email, a password reset link is available."
 
         acct = SponsorAccount.query.filter_by(email=email).first()
         if not acct:
@@ -1738,35 +1743,9 @@ def sponsor_forgot_password():
             details={"email": email, "reset_url_generated": True},
         )
 
-        body = (
-            "Back Porch Sponsor Portal Password Reset\n\n"
-            "We received a request to reset your sponsor portal password.\n\n"
-            f"Reset link (valid for 24 hours):\n{reset_url}\n\n"
-            "If you did not request this, you can ignore this email."
-        )
-
-        sent = False
-        try:
-            sent = send_email(email, "Sponsor Password Reset Link", body)
-        except Exception:
-            sent = False
-
-        if not sent:
-            log_audit_event(
-                "sponsor_password_reset_email_send_failed",
-                resource_type="sponsor_account",
-                resource_id=acct.id,
-                details={"email": email},
-            )
-
-        is_production = (os.getenv('FLASK_ENV') == 'production')
-        show_link_locally = bool(app.config.get('SHOW_RESET_LINK_LOCALLY', False))
-        if (not is_production) and (show_link_locally or (not sent)):
-            flash("Local dev mode: copy/share this reset link to the sponsor:", "warning")
-            return render_template("sponsor_forgot_password.html", form=form, reset_url=reset_url)
-
-        flash(generic_msg, "info")
-        return render_template("sponsor_forgot_password.html", form=form)
+        # Internal reset: display link on-screen with copy/share affordances.
+        flash("Copy/share this reset link (valid for 24 hours):", "warning")
+        return render_template("sponsor_forgot_password.html", form=form, reset_url=reset_url)
 
     return render_template("sponsor_forgot_password.html", form=form)
 

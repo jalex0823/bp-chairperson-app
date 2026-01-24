@@ -107,7 +107,7 @@
     </button>
     
     <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+      <ul class="navbar-nav flex-grow-1 justify-content-lg-evenly mb-2 mb-lg-0">
         {% if not (current_user and current_user.is_admin) %}
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('chair_resources') }}">How to Chair / Resources</a>
@@ -145,7 +145,7 @@
         </li>
         {% endif %}
       </ul>
-      <div class="d-flex align-items-center">
+      <div class="d-flex align-items-center flex-shrink-0 ms-lg-3">
         {% if current_user %}
           <!-- Theme Toggle -->
           <button id="themeToggle" class="btn btn-sm me-2" title="Toggle Dark/Light Theme" style="font-size: 1.2rem; border: none;">
