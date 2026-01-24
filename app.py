@@ -15,7 +15,7 @@ from flask import (
 )
 from flask import send_from_directory
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from flask_wtf import FlaskForm
 from flask_mail import Mail, Message
 from wtforms import (
@@ -216,6 +216,23 @@ def normalize_email(value: str) -> str:
     - remove common zero-width characters
     """
     return strip_zero_width((value or "").strip().lower())
+
+
+def format_us_phone(value: str) -> str | None:
+    """Format a US phone number as (000) 000-0000 when possible.
+
+    Stores a readable format while other parts of the app (tel: links) already
+    strip digits as needed.
+    """
+    raw = strip_zero_width(value or "").strip()
+    if not raw:
+        return None
+    digits = "".join(ch for ch in raw if ch.isdigit())
+    if len(digits) == 11 and digits.startswith("1"):
+        digits = digits[1:]
+    if len(digits) == 10:
+        return f"({digits[0:3]}) {digits[3:6]}-{digits[6:10]}"
+    return raw
 
 
 def password_has_outer_whitespace(password: str) -> bool:
@@ -1634,7 +1651,7 @@ def sponsor_register():
                 current_sponsees=int(form.current_sponsees.data or 0),
                 max_sponsees=int(form.max_sponsees.data or 0),
                 email=email_norm,
-                phone=(form.phone.data.strip() if form.phone.data else None),
+                phone=format_us_phone(form.phone.data),
                 bio=(form.bio.data.strip() if form.bio.data else None),
                 is_active=True,
             )
@@ -1666,6 +1683,38 @@ def sponsor_register():
             app.logger.exception(f"Sponsor registration failed for {email_norm}: {e}")
             flash("We couldn’t create your sponsor account. Please double-check the form and try again.", "danger")
             return render_template("sponsor_register.html", form=form, access_codes_configured=True)
+
+        # Notifications (best-effort)
+        try:
+            if app.config.get("SEND_REGISTRATION_CONFIRMATION_TO_USER", True) and email_norm:
+                send_email(
+                    email_norm,
+                    "Back Porch Sponsor Registration — Welcome",
+                    (
+                        "Congratulations — your Back Porch Sponsor Portal account has been created.\n\n"
+                        "Next step: log in and manage your listing here:\n"
+                        f"{url_for('sponsor_login', _external=True)}\n\n"
+                        "Thank you for being of service.\n"
+                    ),
+                )
+        except Exception:
+            pass
+        try:
+            for admin_email in (app.config.get("SPONSOR_REGISTRATION_NOTIFY_EMAILS") or []):
+                send_email(
+                    admin_email,
+                    f"New Sponsor Registration: {sponsor.display_name}",
+                    (
+                        "A new sponsor registered.\n\n"
+                        f"Name: {sponsor.display_name}\n"
+                        f"Email: {sponsor.email or ''}\n"
+                        f"Phone: {sponsor.phone or ''}\n"
+                        f"Capacity: {sponsor.current_sponsees}/{sponsor.max_sponsees}\n\n"
+                        f"Sponsor login: {url_for('sponsor_login', _external=True)}\n"
+                    ),
+                )
+        except Exception:
+            pass
 
         # Do not auto-login sponsors after registration; keep flow explicit.
         flash("Congratulations — your Sponsor Portal account has been created! Please log in to manage your sponsor listing.", "success")
@@ -1997,7 +2046,8 @@ def sponsors_directory():
     q = (request.args.get("q") or "").strip()
     only_open = (request.args.get("only_open") or "1").strip()
 
-    query = Sponsor.query.filter(Sponsor.is_active.is_(True))
+    # Treat NULL as active for legacy rows created before is_active existed/defaulted.
+    query = Sponsor.query.filter(or_(Sponsor.is_active.is_(True), Sponsor.is_active.is_(None)))
     if q:
         query = query.filter(Sponsor.display_name.ilike(f"%{q}%"))
 
@@ -2048,19 +2098,29 @@ def sponsor_request(sponsor_id: int):
             sponsor_id=sponsor.id,
             requester_name=form.requester_name.data.strip(),
             requester_email=normalize_email(form.requester_email.data),
-            requester_phone=(form.requester_phone.data.strip() if form.requester_phone.data else None),
+            requester_phone=format_us_phone(form.requester_phone.data),
             message=(form.message.data.strip() if form.message.data else None),
         )
         db.session.add(req)
         db.session.commit()
 
-        # Best-effort notification email to the admin inbox if mail is configured
+        # Best-effort notification email to configured recipients
         try:
-            send_email(
-                "backporchmeetings@outlook.com",
-                f"Sponsor request: {sponsor.display_name}",
-                f"Requester: {req.requester_name}\nEmail: {req.requester_email}\nPhone: {req.requester_phone or ''}\n\nSponsor: {sponsor.display_name}\n\nMessage:\n{req.message or ''}\n",
-            )
+            admin_link = url_for("admin_sponsor_requests", _external=True)
+            recipients = app.config.get("SPONSOR_REQUEST_NOTIFY_EMAILS") or ["backporchmeetings@outlook.com"]
+            for r in recipients:
+                send_email(
+                    r,
+                    f"Sponsor request: {sponsor.display_name}",
+                    (
+                        f"Requester: {req.requester_name}\n"
+                        f"Email: {req.requester_email}\n"
+                        f"Phone: {req.requester_phone or ''}\n\n"
+                        f"Sponsor: {sponsor.display_name}\n\n"
+                        f"Message:\n{req.message or ''}\n\n"
+                        f"Admin page: {admin_link}\n"
+                    ),
+                )
         except Exception:
             pass
 
@@ -2780,6 +2840,30 @@ def register():
                 session["user_id"] = user.id
                 app.logger.info(f"New user registered: {user.email} (ID: {user.id})")
                 flash("Chairperson account created. Thank you for your service!", "success")
+                # Notifications (best-effort)
+                try:
+                    if app.config.get("SEND_REGISTRATION_CONFIRMATION_TO_USER", True) and user.email:
+                        send_email(
+                            user.email,
+                            "Back Porch Chairperson Registration — Welcome",
+                            (
+                                "Your Back Porch Chairperson account has been created.\n\n"
+                                "Log in anytime to view your dashboard and chair commitments:\n"
+                                f"{url_for('login', _external=True)}\n\n"
+                                "Thank you for your service.\n"
+                            ),
+                        )
+                except Exception:
+                    pass
+                try:
+                    for admin_email in (app.config.get("CHAIR_REGISTRATION_NOTIFY_EMAILS") or []):
+                        send_email(
+                            admin_email,
+                            f"New Chairperson Registration: {user.display_name}",
+                            f"Name: {user.display_name}\nEmail: {user.email}\nBP ID: {user.bp_id or ''}\n",
+                        )
+                except Exception:
+                    pass
                 next_url = request.args.get("next") or url_for("dashboard")
                 return redirect(next_url)
             except Exception as e:
@@ -4445,6 +4529,18 @@ def quiz_certificate(user_id=None):
 
 def send_email(to, subject, body, ical_attachment=None, ical_filename=None):
     """Send an email using Flask-Mail with optional iCal attachment."""
+    # Best-effort: if mail isn't configured, do nothing (avoid noisy failures).
+    try:
+        if app.config.get("TESTING"):
+            return False
+        if not app.config.get("MAIL_SERVER"):
+            return False
+        # Most SMTP providers require auth; skip if missing.
+        if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
+            return False
+    except Exception:
+        return False
+
     msg = Message(subject, recipients=[to], body=body)
     
     # Attach iCal file if provided

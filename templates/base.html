@@ -252,9 +252,32 @@
 <!-- Self-hosted Bootstrap JS Bundle (includes Popper) -->
 <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}?v={{ asset_version }}"></script>
 <script>
-// Base-level JS (no registration key UX in the navbar)
 document.addEventListener('DOMContentLoaded', function() {
-  // No-op for now
+  // Phone auto-format: (000) 000-0000
+  function formatPhonePartial(digits) {
+    const d = (digits || '').replace(/\D/g, '').slice(0, 10);
+    if (d.length === 0) return '';
+    if (d.length < 4) return '(' + d;
+    if (d.length < 7) return '(' + d.slice(0, 3) + ') ' + d.slice(3);
+    return '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6);
+  }
+
+  for (const el of document.querySelectorAll('input.phone-us')) {
+    el.setAttribute('inputmode', 'tel');
+    el.setAttribute('autocomplete', el.getAttribute('autocomplete') || 'tel');
+    el.setAttribute('placeholder', el.getAttribute('placeholder') || '(000) 000-0000');
+    el.setAttribute('maxlength', el.getAttribute('maxlength') || '14');
+    el.addEventListener('input', function() {
+      const digits = (el.value || '').replace(/\D/g, '');
+      el.value = formatPhonePartial(digits);
+    });
+    el.addEventListener('blur', function() {
+      const digits = (el.value || '').replace(/\D/g, '');
+      if (digits.length === 10) {
+        el.value = formatPhonePartial(digits);
+      }
+    });
+  }
 });
 </script>
 

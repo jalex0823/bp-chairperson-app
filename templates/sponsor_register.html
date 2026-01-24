@@ -117,7 +117,7 @@
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     {{ form.phone.label(class="form-label") }}
-                    {{ form.phone(class="form-control", placeholder="Optional") }}
+                    {{ form.phone(class="form-control phone-us", id="sponsor_phone", placeholder="(000) 000-0000") }}
                   </div>
                 </div>
 
@@ -313,16 +313,17 @@
               if (submitBtn) submitBtn.disabled = locked;
             }
 
-            async function tryUnlock() {
+            async function tryUnlock(opts) {
+              const silent = !!(opts && opts.silent);
               const now = Date.now();
               if (unlockDisabledUntil && now < unlockDisabledUntil) {
                 const secs = Math.ceil((unlockDisabledUntil - now) / 1000);
-                showModal('warning', `Please wait ${secs}s before trying again.`);
+                if (!silent) showModal('warning', `Please wait ${secs}s before trying again.`);
                 return;
               }
               const key = (accessInput && accessInput.value ? accessInput.value.trim() : '');
               if (!key) {
-                showModal('warning', 'Please enter your BP Sponsor Key.');
+                if (!silent) showModal('warning', 'Please enter your BP Sponsor Key.');
                 return;
               }
               try {
@@ -334,14 +335,21 @@
                 const data = await resp.json();
                 if (data && data.ok) {
                   localStorage.setItem('bp_sponsor_access_code', key);
+                  localStorage.setItem('bp_sponsor_unlocked', '1');
                   setLockedState(false);
                   if (accessInput) {
                     accessInput.classList.remove('is-invalid');
                     accessInput.classList.add('is-valid');
                   }
-                  if (unlockStatus) unlockStatus.style.display = 'block';
-                  showModal('success', 'Key accepted. Sponsor registration form unlocked.');
-                  triggerUnlockCelebration();
+                  // Only show the "Key accepted" announcement the first time the user unlocks manually.
+                  if (!silent) {
+                    if (unlockStatus) unlockStatus.style.display = 'block';
+                    showModal('success', 'Key accepted. Sponsor registration form unlocked.');
+                    triggerUnlockCelebration();
+                  } else {
+                    // On auto-unlock (page reload / after validation errors), keep it quiet.
+                    if (unlockStatus) unlockStatus.style.display = 'none';
+                  }
                   // After unlock, attempt to prefill name from chairperson account (if email matches)
                   schedulePrefill();
                 } else {
@@ -351,9 +359,9 @@
                     accessInput.classList.add('is-invalid');
                   }
                   if (data && data.reason === 'not_configured') {
-                    showModal('warning', 'Sponsor registration is currently locked (no keys configured). Please request a BP Sponsor Key and try again later.');
+                    if (!silent) showModal('warning', 'Sponsor registration is currently locked (no keys configured). Please request a BP Sponsor Key and try again later.');
                   } else {
-                    showModal('danger', 'Invalid BP Sponsor Key. Please check the key (copy/paste) or request a new one.');
+                    if (!silent) showModal('danger', 'Invalid BP Sponsor Key. Please check the key (copy/paste) or request a new one.');
                   }
                   if (failedAttempts >= 5) {
                     unlockDisabledUntil = Date.now() + (30 * 1000);
@@ -365,7 +373,7 @@
                   accessInput.classList.remove('is-valid');
                   accessInput.classList.add('is-invalid');
                 }
-                showModal('danger', 'Could not validate the key right now. Please try again.');
+                if (!silent) showModal('danger', 'Could not validate the key right now. Please try again.');
                 if (failedAttempts >= 5) {
                   unlockDisabledUntil = Date.now() + (30 * 1000);
                 }
@@ -422,6 +430,7 @@
               if (clearBtn) {
                 clearBtn.addEventListener('click', function() {
                   localStorage.removeItem('bp_sponsor_access_code');
+                  localStorage.removeItem('bp_sponsor_unlocked');
                   if (accessInput) accessInput.value = '';
                   setLockedState(true);
                   if (prefillHint) prefillHint.style.display = 'none';
@@ -436,7 +445,8 @@
               const saved = localStorage.getItem('bp_sponsor_access_code');
               if (saved && accessInput) {
                 accessInput.value = saved;
-                tryUnlock();
+                // Auto-unlock silently so users don't see the success announcement again on reload.
+                tryUnlock({ silent: true });
               }
             } else {
               setLockedState(false);

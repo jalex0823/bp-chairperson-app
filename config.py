@@ -118,6 +118,29 @@ class Config:
     ]
 
     # ==========================
+    # Notification recipients
+    # ==========================
+    # Comma-separated email lists. These are best-effort: if mail isn't configured, sends will fail silently.
+    SPONSOR_REGISTRATION_NOTIFY_EMAILS = [
+        e.strip()
+        for e in (os.environ.get("SPONSOR_REGISTRATION_NOTIFY_EMAILS", "backporchmeetings@outlook.com") or "").split(",")
+        if e.strip()
+    ]
+    SPONSOR_REQUEST_NOTIFY_EMAILS = [
+        e.strip()
+        for e in (os.environ.get("SPONSOR_REQUEST_NOTIFY_EMAILS", "backporchmeetings@outlook.com") or "").split(",")
+        if e.strip()
+    ]
+    CHAIR_REGISTRATION_NOTIFY_EMAILS = [
+        e.strip()
+        for e in (os.environ.get("CHAIR_REGISTRATION_NOTIFY_EMAILS", "backporchmeetings@outlook.com") or "").split(",")
+        if e.strip()
+    ]
+
+    # If True, send a welcome/confirmation email to the registering user (chair + sponsor).
+    SEND_REGISTRATION_CONFIRMATION_TO_USER = os.environ.get("SEND_REGISTRATION_CONFIRMATION_TO_USER", "True").lower() == "true"
+
+    # ==========================
     # Session Cookie Configuration (Safari Compatibility)
     # ==========================
     # These settings ensure cookies work properly in Safari and other strict browsers

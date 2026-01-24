@@ -97,7 +97,13 @@
     </div>
 
     {% if sponsors|length == 0 %}
-      <div class="alert alert-warning mt-3">No sponsors found.</div>
+      <div class="alert alert-warning mt-3">
+        <strong>No sponsors found.</strong>
+        <div class="mt-2">
+          If you just registered as a sponsor, log in to the Sponsor Portal to make sure your listing is active:
+          <a href="{{ url_for('sponsor_login') }}">Sponsor Login</a>.
+        </div>
+      </div>
     {% endif %}
   </div>
 {% endblock %}
