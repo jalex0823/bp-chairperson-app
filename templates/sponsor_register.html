@@ -22,6 +22,19 @@
             <form id="sponsorRegisterForm" method="post" novalidate enctype="multipart/form-data">
               {{ form.hidden_tag() }}
 
+              {% if form.errors %}
+                <div class="alert alert-danger">
+                  <strong>Please fix the following:</strong>
+                  <ul class="mb-0">
+                    {% for field_name, errors in form.errors.items() %}
+                      {% for err in errors %}
+                        <li><strong>{{ field_name|replace('_',' ')|title }}:</strong> {{ err }}</li>
+                      {% endfor %}
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+
               {% if access_codes_configured %}
               <!-- Sponsor Key Section -->
               <div class="mb-4 p-3 border rounded" style="background-color: var(--bp-gold-light); border-color: var(--bp-gold) !important;">

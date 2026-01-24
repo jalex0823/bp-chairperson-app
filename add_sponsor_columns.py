@@ -76,7 +76,7 @@ def add_sponsor_columns():
             alter_statements.append("ALTER TABLE sponsors ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
 
     if not alter_statements:
-        print("✓ sponsors table already has required columns")
+        print("OK: sponsors table already has required columns")
         return True
 
     try:
@@ -85,10 +85,10 @@ def add_sponsor_columns():
                 print(f"Running: {stmt}")
                 conn.execute(text(stmt))
             conn.commit()
-        print("✓ Successfully applied sponsor column migrations")
+        print("OK: Successfully applied sponsor column migrations")
         return True
     except Exception as e:
-        print(f"✗ Error applying sponsor column migrations: {e}")
+        print(f"ERROR: Error applying sponsor column migrations: {e}")
         return False
 
 

@@ -23,7 +23,7 @@ from wtforms import (
     DateField, TimeField, PasswordField, SubmitField, IntegerField, RadioField, SelectField, FileField, HiddenField
 )
 from wtforms.validators import (
-    DataRequired, Optional, Email, Length, NumberRange, ValidationError
+    DataRequired, InputRequired, Optional, Email, Length, NumberRange, ValidationError
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -1200,11 +1200,11 @@ class SponsorRegisterForm(FlaskForm):
     )
     current_sponsees = IntegerField(
         "Number of current sponsees",
-        validators=[DataRequired(), NumberRange(min=0, max=200)]
+        validators=[InputRequired(message="This field is required."), NumberRange(min=0, max=200)]
     )
     max_sponsees = IntegerField(
         "Max number you'd like to sponsor",
-        validators=[DataRequired(), NumberRange(min=0, max=200)]
+        validators=[InputRequired(message="This field is required."), NumberRange(min=0, max=200)]
     )
     phone = StringField("Phone (optional)", validators=[Optional(), Length(max=50)])
     profile_image = FileField("Bio Photo (optional)", validators=[Optional()])
@@ -1228,8 +1228,8 @@ class SponsorLoginForm(FlaskForm):
 
 
 class SponsorPortalForm(FlaskForm):
-    current_sponsees = IntegerField("Number of current sponsees", validators=[DataRequired(), NumberRange(min=0, max=200)])
-    max_sponsees = IntegerField("Max number you'd like to sponsor", validators=[DataRequired(), NumberRange(min=0, max=200)])
+    current_sponsees = IntegerField("Number of current sponsees", validators=[InputRequired(message="This field is required."), NumberRange(min=0, max=200)])
+    max_sponsees = IntegerField("Max number you'd like to sponsor", validators=[InputRequired(message="This field is required."), NumberRange(min=0, max=200)])
     email = StringField("Email (shown publicly)", validators=[DataRequired(), Email(), Length(max=255)])
     phone = StringField("Phone (optional)", validators=[Optional(), Length(max=50)])
     profile_image = FileField("Bio Photo (optional)", validators=[Optional()])
@@ -1627,40 +1627,53 @@ def sponsor_register():
             flash(pw_msg, "danger")
             return render_template("sponsor_register.html", form=form, access_codes_configured=True)
 
-        sponsor = Sponsor(
-            display_name=form.display_name.data.strip(),
-            sobriety_date=form.sobriety_date.data,
-            current_sponsees=int(form.current_sponsees.data or 0),
-            max_sponsees=int(form.max_sponsees.data or 0),
-            email=email_norm,
-            phone=(form.phone.data.strip() if form.phone.data else None),
-            bio=(form.bio.data.strip() if form.bio.data else None),
-            is_active=True,
-        )
-
-        # Optional sponsor bio photo upload (store as base64 like chair profile images)
         try:
-            if getattr(form, "profile_image", None) and form.profile_image.data:
-                file = form.profile_image.data
-                if file and allowed_file(file.filename):
-                    image_data = file.read()
-                    if len(image_data) > MAX_IMAGE_SIZE:
-                        flash("Image file is too large. Maximum size is 5MB.", "danger")
-                        return render_template("sponsor_register.html", form=form, access_codes_configured=True)
-                    sponsor.profile_image = base64.b64encode(image_data).decode('utf-8')
-        except Exception as e:
-            app.logger.warning(f"Sponsor image upload skipped: {e}")
-        db.session.add(sponsor)
-        db.session.commit()
+            sponsor = Sponsor(
+                display_name=form.display_name.data.strip(),
+                sobriety_date=form.sobriety_date.data,
+                current_sponsees=int(form.current_sponsees.data or 0),
+                max_sponsees=int(form.max_sponsees.data or 0),
+                email=email_norm,
+                phone=(form.phone.data.strip() if form.phone.data else None),
+                bio=(form.bio.data.strip() if form.bio.data else None),
+                is_active=True,
+            )
 
-        acct = SponsorAccount(sponsor_id=sponsor.id, email=email_norm)
-        acct.set_password(form.password.data)
-        db.session.add(acct)
-        db.session.commit()
+            # Optional sponsor bio photo upload (store as base64 like chair profile images)
+            try:
+                if getattr(form, "profile_image", None) and form.profile_image.data:
+                    file = form.profile_image.data
+                    if file and allowed_file(file.filename):
+                        image_data = file.read()
+                        if len(image_data) > MAX_IMAGE_SIZE:
+                            flash("Image file is too large. Maximum size is 5MB.", "danger")
+                            return render_template("sponsor_register.html", form=form, access_codes_configured=True)
+                        sponsor.profile_image = base64.b64encode(image_data).decode('utf-8')
+            except Exception as e:
+                app.logger.warning(f"Sponsor image upload skipped: {e}")
+
+            # Atomic create: sponsor + sponsor account in a single commit
+            db.session.add(sponsor)
+            db.session.flush()  # get sponsor.id without committing
+
+            acct = SponsorAccount(sponsor_id=sponsor.id, email=email_norm)
+            acct.set_password(form.password.data)
+            db.session.add(acct)
+
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            app.logger.exception(f"Sponsor registration failed for {email_norm}: {e}")
+            flash("We couldn’t create your sponsor account. Please double-check the form and try again.", "danger")
+            return render_template("sponsor_register.html", form=form, access_codes_configured=True)
 
         # Do not auto-login sponsors after registration; keep flow explicit.
-        flash("Sponsor account created. Please log in to continue.", "success")
+        flash("Congratulations — your Sponsor Portal account has been created! Please log in to manage your sponsor listing.", "success")
         return redirect(url_for("sponsor_login", email=email_norm))
+
+    # If POST but validation failed, show a clear message (template also lists field errors).
+    if request.method == "POST":
+        flash("Please correct the highlighted fields below and try again.", "danger")
 
     return render_template("sponsor_register.html", form=form, access_codes_configured=access_codes_configured)
 
