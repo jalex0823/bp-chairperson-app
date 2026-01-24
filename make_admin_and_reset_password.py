@@ -1,10 +1,10 @@
-"""Promote a chairperson user to admin and set a new password.
+"""Promote a chairperson user to admin (optionally reset password).
 
 Usage (local DB):
-  python make_admin_and_reset_password.py "<email_or_display_name>" "<new_password>"
+  python make_admin_and_reset_password.py "<email_or_display_name>" ["<new_password>"]
 
 Usage (Heroku/production):
-  heroku run python make_admin_and_reset_password.py "<email_or_display_name>" "<new_password>"
+  heroku run python make_admin_and_reset_password.py "<email_or_display_name>" ["<new_password>"]
 
 Notes:
 - This ONLY affects chairperson accounts (User table). Sponsor accounts are independent.
@@ -24,13 +24,10 @@ def _is_email(value: str) -> bool:
     return "@" in (value or "")
 
 
-def promote_and_reset(identifier: str, new_password: str) -> bool:
+def promote_and_reset(identifier: str, new_password: str | None = None) -> bool:
     ident = (identifier or "").strip()
     if not ident:
         print("❌ Identifier is required (email or display name).")
-        return False
-    if not new_password:
-        print("❌ New password is required.")
         return False
 
     with app.app_context():
@@ -55,7 +52,8 @@ def promote_and_reset(identifier: str, new_password: str) -> bool:
         user = matches[0]
 
         user.is_admin = True
-        user.password_hash = generate_password_hash(new_password)
+        if new_password:
+            user.password_hash = generate_password_hash(new_password)
 
         # If present, ensure they can log in immediately.
         if hasattr(user, "password_reset_required"):
@@ -73,16 +71,20 @@ def promote_and_reset(identifier: str, new_password: str) -> bool:
         print(f"👤 Display Name: {getattr(user, 'display_name', '(unknown)')}")
         print(f"📧 Email: {user.email}")
         print(f"🛡️  is_admin: {user.is_admin}")
-        print("🔑 Password updated.")
+        if new_password:
+            print("🔑 Password updated.")
+        else:
+            print("🔑 Password unchanged.")
         print("=" * 60)
         return True
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print('Usage: python make_admin_and_reset_password.py "<email_or_display_name>" "<new_password>"')
+    if len(sys.argv) not in (2, 3):
+        print('Usage: python make_admin_and_reset_password.py "<email_or_display_name>" ["<new_password>"]')
         sys.exit(1)
 
-    ok = promote_and_reset(sys.argv[1], sys.argv[2])
+    new_password = sys.argv[2] if len(sys.argv) == 3 else None
+    ok = promote_and_reset(sys.argv[1], new_password)
     sys.exit(0 if ok else 2)
 

@@ -1250,6 +1250,7 @@ class SponsorPortalForm(FlaskForm):
     email = StringField("Email (shown publicly)", validators=[DataRequired(), Email(), Length(max=255)])
     phone = StringField("Phone (optional)", validators=[Optional(), Length(max=50)])
     profile_image = FileField("Bio Photo (optional)", validators=[Optional()])
+    remove_profile_image = BooleanField("Remove current bio photo", default=False)
     bio = TextAreaField("Sponsor Bio", validators=[DataRequired(), Length(min=40, max=1500)])
     is_active = BooleanField("Active listing (uncheck to pause)", default=True)
     submit = SubmitField("Save Sponsor Profile")
@@ -1259,6 +1260,11 @@ class SponsorPortalForm(FlaskForm):
             return
         if int(field.data) < int(self.current_sponsees.data):
             raise ValidationError("Max number to sponsor must be greater than or equal to current sponsees.")
+
+
+class SponsorDeleteAccountForm(FlaskForm):
+    password = PasswordField("Confirm your sponsor password", validators=[DataRequired()])
+    submit = SubmitField("Delete My Sponsor Account")
 
 
 class SponsorRequestForm(FlaskForm):
@@ -2004,6 +2010,7 @@ def sponsor_portal():
         return redirect(url_for("sponsor_register"))
 
     form = SponsorPortalForm(obj=sponsor)
+    delete_form = SponsorDeleteAccountForm()
     if form.validate_on_submit():
         sponsor.current_sponsees = int(form.current_sponsees.data or 0)
         sponsor.max_sponsees = int(form.max_sponsees.data or 0)
@@ -2020,11 +2027,23 @@ def sponsor_portal():
         sponsor.bio = (form.bio.data.strip() if form.bio.data else None)
         sponsor.is_active = bool(form.is_active.data)
 
+        # Remove current sponsor bio photo (only if no new upload is provided)
+        try:
+            wants_remove = bool(getattr(form, "remove_profile_image", None) and form.remove_profile_image.data)
+            file = getattr(form, "profile_image", None).data if getattr(form, "profile_image", None) else None
+            has_new_upload = bool(file and hasattr(file, "filename") and (file.filename or "").strip())
+            if wants_remove and not has_new_upload:
+                sponsor.profile_image = None
+        except Exception:
+            pass
+
         # Optional sponsor bio photo update
         try:
             if getattr(form, "profile_image", None) and form.profile_image.data:
                 file = form.profile_image.data
-                if file and allowed_file(file.filename):
+                # WTForms FileField can be a FileStorage (has .filename) or, in some edge cases,
+                # a plain string. Guard defensively.
+                if file and hasattr(file, "filename") and (file.filename or "").strip() and allowed_file(file.filename or ""):
                     image_data = file.read()
                     if len(image_data) > MAX_IMAGE_SIZE:
                         flash("Image file is too large. Maximum size is 5MB.", "danger")
@@ -2037,7 +2056,49 @@ def sponsor_portal():
         flash("Sponsor profile updated.", "success")
         return redirect(url_for("sponsor_portal"))
 
-    return render_template("sponsor_portal.html", sponsor=sponsor, form=form)
+    return render_template("sponsor_portal.html", sponsor=sponsor, form=form, delete_form=delete_form)
+
+
+@app.route("/sponsor/delete-account", methods=["POST"])
+@sponsor_login_required
+def sponsor_delete_account():
+    """Allow a sponsor to permanently delete their sponsor account and listing."""
+    acct = get_current_sponsor_account()
+    if not acct:
+        flash("Please log in as a sponsor to continue.", "warning")
+        return redirect(url_for("sponsor_login"))
+
+    form = SponsorDeleteAccountForm()
+    if not form.validate_on_submit():
+        flash("Please enter your sponsor password to delete your account.", "danger")
+        return redirect(url_for("sponsor_portal"))
+
+    if not check_sponsor_password_mobile_friendly(acct, form.password.data or ""):
+        flash("Password incorrect. Your sponsor account was not deleted.", "danger")
+        return redirect(url_for("sponsor_portal"))
+
+    sponsor = acct.sponsor
+    sponsor_id = sponsor.id if sponsor else None
+
+    try:
+        # Remove requests explicitly (defensive for DBs without FK cascades enabled)
+        if sponsor_id:
+            SponsorRequest.query.filter_by(sponsor_id=sponsor_id).delete()
+
+        # Delete sponsor login + sponsor profile
+        db.session.delete(acct)
+        if sponsor:
+            db.session.delete(sponsor)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Sponsor account deletion failed")
+        flash("Could not delete your sponsor account right now. Please try again.", "danger")
+        return redirect(url_for("sponsor_portal"))
+
+    session.pop("sponsor_account_id", None)
+    flash("Your sponsor account has been deleted.", "success")
+    return redirect(url_for("index"))
 
 
 @app.route("/sponsors")
@@ -2137,7 +2198,18 @@ def sponsor_image(sponsor_id: int):
     if sponsor.profile_image:
         try:
             image_data = base64.b64decode(sponsor.profile_image)
-            return Response(image_data, mimetype='image/jpeg')
+            # Best-effort content-type detection (so PNG/GIF/WEBP render correctly)
+            mimetype = "application/octet-stream"
+            if len(image_data) >= 12:
+                if image_data.startswith(b"\xff\xd8\xff"):
+                    mimetype = "image/jpeg"
+                elif image_data.startswith(b"\x89PNG\r\n\x1a\n"):
+                    mimetype = "image/png"
+                elif image_data.startswith(b"GIF87a") or image_data.startswith(b"GIF89a"):
+                    mimetype = "image/gif"
+                elif image_data[0:4] == b"RIFF" and image_data[8:12] == b"WEBP":
+                    mimetype = "image/webp"
+            return Response(image_data, mimetype=mimetype)
         except Exception as e:
             app.logger.error(f"Error decoding sponsor image for sponsor {sponsor_id}: {e}")
             return "", 404

@@ -8,6 +8,13 @@ import os
 from datetime import datetime, timedelta
 from io import BytesIO
 
+# Windows console can be cp1252; ensure UTF-8 so emoji/status output doesn't crash tests.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 # Add the app directory to the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 

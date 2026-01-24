@@ -5,6 +5,24 @@
       <div class="col-12 col-md-10 col-lg-8 col-xl-7">
         <h2 class="mb-3 text-center">Register as a Sponsor</h2>
 
+        {% if access_codes_configured %}
+          <!-- Avoid flashing the key box after it's already been accepted -->
+          <script>
+            (function() {
+              try {
+                const unlocked = localStorage.getItem('bp_sponsor_unlocked') === '1';
+                const key = localStorage.getItem('bp_sponsor_access_code');
+                if (unlocked && key) {
+                  document.documentElement.classList.add('bp-sponsor-unlocked');
+                }
+              } catch (e) {}
+            })();
+          </script>
+          <style>
+            .bp-sponsor-unlocked #sponsorKeySection { display: none !important; }
+          </style>
+        {% endif %}
+
         <div class="alert alert-info">
           <strong>Note:</strong> Sponsor registration requires a <strong>BP Sponsor Key</strong>. If you don’t have one, request it below and we’ll send a key after verification.
         </div>
@@ -37,7 +55,7 @@
 
               {% if access_codes_configured %}
               <!-- Sponsor Key Section -->
-              <div class="mb-4 p-3 border rounded" style="background-color: var(--bp-gold-light); border-color: var(--bp-gold) !important;">
+              <div id="sponsorKeySection" class="mb-4 p-3 border rounded" style="background-color: var(--bp-gold-light); border-color: var(--bp-gold) !important;">
                 <div class="d-flex align-items-center mb-2">
                   <i class="fas fa-key text-warning me-2" style="font-size: 1.5rem;"></i>
                   <h5 class="mb-0">BP Sponsor Key Required</h5>
@@ -245,6 +263,7 @@
           document.addEventListener('DOMContentLoaded', function() {
             const accessConfigured = {{ 'true' if access_codes_configured else 'false' }};
             const accessInput = document.getElementById('sponsor_access_code');
+            const keySection = document.getElementById('sponsorKeySection');
             const regFields = document.getElementById('sponsorRegFields');
             const submitBtn = document.querySelector('#sponsorRegisterForm button[type="submit"], #sponsorRegisterForm input[type="submit"]');
             const unlockStatus = document.getElementById('sponsorUnlockStatus');
@@ -313,6 +332,34 @@
               if (submitBtn) submitBtn.disabled = locked;
             }
 
+            function setKeySectionVisible(visible) {
+              if (!keySection) return;
+              if (visible) {
+                keySection.classList.remove('d-none');
+                keySection.removeAttribute('aria-hidden');
+                document.documentElement.classList.remove('bp-sponsor-unlocked');
+              } else {
+                keySection.classList.add('d-none');
+                keySection.setAttribute('aria-hidden', 'true');
+                document.documentElement.classList.add('bp-sponsor-unlocked');
+              }
+            }
+
+            function clearUnlock() {
+              localStorage.removeItem('bp_sponsor_access_code');
+              localStorage.removeItem('bp_sponsor_unlocked');
+              if (accessInput) accessInput.value = '';
+              setLockedState(true);
+              if (prefillHint) prefillHint.style.display = 'none';
+              if (accessInput) {
+                accessInput.classList.remove('is-valid');
+                accessInput.classList.remove('is-invalid');
+              }
+              if (unlockStatus) unlockStatus.style.display = 'none';
+              setKeySectionVisible(true);
+              if (accessInput) accessInput.focus();
+            }
+
             async function tryUnlock(opts) {
               const silent = !!(opts && opts.silent);
               const now = Date.now();
@@ -337,6 +384,8 @@
                   localStorage.setItem('bp_sponsor_access_code', key);
                   localStorage.setItem('bp_sponsor_unlocked', '1');
                   setLockedState(false);
+                  // Hide the key entry UI after a successful unlock.
+                  setKeySectionVisible(false);
                   if (accessInput) {
                     accessInput.classList.remove('is-invalid');
                     accessInput.classList.add('is-valid');
@@ -363,6 +412,8 @@
                   } else {
                     if (!silent) showModal('danger', 'Invalid BP Sponsor Key. Please check the key (copy/paste) or request a new one.');
                   }
+                  // If auto-unlock fails, clear stored key and show the key section again.
+                  if (silent) clearUnlock();
                   if (failedAttempts >= 5) {
                     unlockDisabledUntil = Date.now() + (30 * 1000);
                   }
@@ -374,6 +425,7 @@
                   accessInput.classList.add('is-invalid');
                 }
                 if (!silent) showModal('danger', 'Could not validate the key right now. Please try again.');
+                if (silent) clearUnlock();
                 if (failedAttempts >= 5) {
                   unlockDisabledUntil = Date.now() + (30 * 1000);
                 }
@@ -420,6 +472,7 @@
 
             if (accessConfigured) {
               setLockedState(true);
+              setKeySectionVisible(true);
               const unlockBtn = document.getElementById('sponsorUnlockSubmit');
               const clearBtn = document.getElementById('sponsorUnlockClear');
               if (unlockBtn) unlockBtn.addEventListener('click', tryUnlock);
@@ -428,23 +481,17 @@
                 emailInput.addEventListener('input', schedulePrefill);
               }
               if (clearBtn) {
-                clearBtn.addEventListener('click', function() {
-                  localStorage.removeItem('bp_sponsor_access_code');
-                  localStorage.removeItem('bp_sponsor_unlocked');
-                  if (accessInput) accessInput.value = '';
-                  setLockedState(true);
-                  if (prefillHint) prefillHint.style.display = 'none';
-                  if (accessInput) {
-                    accessInput.classList.remove('is-valid');
-                    accessInput.classList.remove('is-invalid');
-                  }
-                  if (unlockStatus) unlockStatus.style.display = 'none';
-                });
+                clearBtn.addEventListener('click', clearUnlock);
               }
 
               const saved = localStorage.getItem('bp_sponsor_access_code');
-              if (saved && accessInput) {
+              const savedUnlocked = localStorage.getItem('bp_sponsor_unlocked') === '1';
+              if (savedUnlocked && saved && accessInput) {
                 accessInput.value = saved;
+                // Hide key section immediately (no flash) and optimistically unlock fields,
+                // then validate silently. If validation fails, clearUnlock() will re-lock/show.
+                setKeySectionVisible(false);
+                setLockedState(false);
                 // Auto-unlock silently so users don't see the success announcement again on reload.
                 tryUnlock({ silent: true });
               }

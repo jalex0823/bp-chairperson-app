@@ -1,18 +1,121 @@
 {% extends "base.html" %}
 {% block content %}
+  <style>
+    /* Sponsor Portal theming (Back Porch green + gold) */
+    .bp-portal-hero {
+      background: linear-gradient(135deg, var(--bp-green) 0%, var(--bp-green-dark) 100%);
+      border-radius: 0.85rem;
+      box-shadow: 0 10px 22px rgba(15, 111, 117, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: white;
+    }
+    .bp-portal-hero .title {
+      color: var(--bp-gold);
+      font-weight: 800;
+      letter-spacing: 0.01em;
+    }
+    .bp-portal-hero .subtext {
+      opacity: 0.92;
+    }
+    .bp-portal-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .bp-portal-pill .num {
+      background: var(--bp-gold);
+      color: #1a1a1a;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-weight: 800;
+    }
+    .bp-portal-card {
+      border: 1px solid rgba(15, 111, 117, 0.18);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.06);
+    }
+    .bp-portal-card .card-header {
+      background: var(--bp-green);
+      color: white;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .bp-portal-card .card-header .accent {
+      color: var(--bp-gold);
+    }
+    .bp-portal-section-note {
+      background: var(--bp-gold-light);
+      border: 1px solid rgba(247, 183, 51, 0.55);
+      border-left: 6px solid var(--bp-gold);
+      border-radius: 0.75rem;
+    }
+    .bp-portal-section-note strong {
+      color: var(--bp-green-dark);
+    }
+    .bp-portal-photo {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .bp-portal-photo img {
+      width: 84px;
+      height: 84px;
+      object-fit: cover;
+      border-radius: 14px;
+      border: 3px solid rgba(247, 183, 51, 0.65);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.10);
+      background: #fff;
+    }
+    .bp-portal-photo .meta {
+      min-width: 220px;
+    }
+  </style>
+
   <div class="container py-4">
     <div class="row justify-content-center">
       <div class="col-12 col-lg-8">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <h2 class="mb-0">Sponsor Portal</h2>
-          <a href="{{ url_for('sponsor_logout') }}" class="btn btn-outline-secondary btn-sm">Sponsor Logout</a>
+        <div class="bp-portal-hero p-4 mb-4">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+              <h2 class="mb-1 title">Sponsor Portal</h2>
+              <div class="subtext">
+                Update your availability and bio so newcomers can choose a sponsor who fits.
+              </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <span class="bp-portal-pill" title="Openings = Max minus Current">
+                Openings <span class="num">{{ sponsor.capacity_remaining }}</span>
+              </span>
+              <a href="{{ url_for('sponsors_directory') }}" class="btn btn-gold btn-sm">
+                View Sponsor Directory
+              </a>
+              <a href="{{ url_for('sponsor_logout') }}" class="btn btn-outline-light btn-sm">
+                Sponsor Logout
+              </a>
+            </div>
+          </div>
         </div>
 
-        <div class="alert alert-info">
-          Update your availability and bio. This helps newcomers choose a sponsor who fits.
+        <div class="bp-portal-section-note p-3 mb-4">
+          <strong>Tip:</strong> Keep your current and max sponsee numbers updated so the directory shows accurate openings.
         </div>
 
-        <div class="card shadow-sm">
+        <div class="card bp-portal-card">
+          <div class="card-header py-3">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <div class="fw-bold">
+                Sponsor Profile <span class="accent">•</span> Public Listing
+              </div>
+              <span class="badge bg-warning text-dark">
+                Back Porch Sponsor
+              </span>
+            </div>
+          </div>
           <div class="card-body">
             <form method="post" novalidate enctype="multipart/form-data">
               {{ form.hidden_tag() }}
@@ -28,10 +131,6 @@
                 </div>
               </div>
 
-              <div class="mb-3 small text-muted">
-                Openings: <strong class="text-primary">{{ sponsor.capacity_remaining }}</strong>
-              </div>
-
               <div class="mb-3">
                 {{ form.email.label(class="form-label") }}
                 {{ form.email(class="form-control", type="email", autocomplete="username") }}
@@ -45,8 +144,27 @@
 
               <div class="mb-3">
                 {{ form.profile_image.label(class="form-label") }}
-                {{ form.profile_image(class="form-control", accept="image/*") }}
-                <div class="form-text">Upload a new bio photo to update what is shown publicly.</div>
+
+                <div class="bp-portal-photo mb-2">
+                  {% if sponsor.profile_image %}
+                    <img id="bpPortalPhotoPreview" src="{{ url_for('sponsor_image', sponsor_id=sponsor.id) }}" alt="Current bio photo">
+                  {% else %}
+                    <img id="bpPortalPhotoPreview" src="{{ url_for('static', filename='img/backporch-logo.png') }}?v={{ asset_version }}" alt="No bio photo">
+                  {% endif %}
+                  <div class="meta">
+                    <div class="small text-muted mb-1">Current Bio Photo</div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                      {{ form.profile_image(class="form-control", id="bpPortalPhotoFile", accept="image/*") }}
+                    </div>
+                    <div class="form-text">Choose a new photo to replace your current one.</div>
+                    {% if sponsor.profile_image %}
+                      <div class="form-check mt-2">
+                        {{ form.remove_profile_image(class="form-check-input", id="remove_profile_image") }}
+                        <label class="form-check-label" for="remove_profile_image">{{ form.remove_profile_image.label.text }}</label>
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
               </div>
 
               <div class="mb-3">
@@ -59,10 +177,76 @@
                 <label class="form-check-label" for="is_active">{{ form.is_active.label.text }}</label>
               </div>
 
-              {{ form.submit(class="btn btn-primary") }}
+              <div class="d-flex flex-wrap gap-2">
+                {{ form.submit(class="btn btn-primary") }}
+                <a href="{{ url_for('sponsors_directory') }}" class="btn btn-outline-secondary">
+                  Preview my public listing
+                </a>
+              </div>
             </form>
           </div>
         </div>
+
+        <div class="card shadow-sm border-danger mt-4">
+          <div class="card-body">
+            <h5 class="card-title text-danger mb-2">Danger zone</h5>
+            <p class="card-text small text-muted mb-3">
+              Deleting your sponsor account permanently removes your Sponsor Portal login and your public listing.
+            </p>
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteSponsorAccountModal">
+              Delete my sponsor account
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Live preview for sponsor bio photo on selection
+    document.addEventListener('DOMContentLoaded', function () {
+      const fileInput = document.getElementById('bpPortalPhotoFile');
+      const preview = document.getElementById('bpPortalPhotoPreview');
+      const removeCb = document.getElementById('remove_profile_image');
+      if (!fileInput || !preview) return;
+
+      fileInput.addEventListener('change', function () {
+        const file = (fileInput.files && fileInput.files[0]) ? fileInput.files[0] : null;
+        if (!file) return;
+        try {
+          const url = URL.createObjectURL(file);
+          preview.src = url;
+          // If user picks a new file, uncheck "remove" (new upload wins).
+          if (removeCb) removeCb.checked = false;
+        } catch (e) {}
+      });
+    });
+  </script>
+
+  <!-- Delete sponsor account modal -->
+  <div class="modal fade" id="deleteSponsorAccountModal" tabindex="-1" aria-labelledby="deleteSponsorAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="deleteSponsorAccountModalLabel">Delete sponsor account</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form method="post" action="{{ url_for('sponsor_delete_account') }}" novalidate>
+          <div class="modal-body">
+            {{ delete_form.hidden_tag() }}
+            <p class="mb-3">
+              This cannot be undone. Please confirm by entering your sponsor password.
+            </p>
+            <div class="mb-2">
+              {{ delete_form.password.label(class="form-label") }}
+              {{ delete_form.password(class="form-control", type="password", autocomplete="current-password") }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            {{ delete_form.submit(class="btn btn-danger") }}
+          </div>
+        </form>
       </div>
     </div>
   </div>
