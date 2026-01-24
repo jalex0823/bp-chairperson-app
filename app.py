@@ -1723,13 +1723,40 @@ def sponsor_forgot_password():
 
         acct = SponsorAccount.query.filter_by(email=email).first()
         if not acct:
-            log_audit_event(
-                "sponsor_password_reset_requested_unknown_email",
-                resource_type="sponsor_account",
-                details={"email": email},
-            )
-            flash(generic_msg, "info")
-            return render_template("sponsor_forgot_password.html", form=form)
+            # If a sponsor profile exists but the SponsorAccount row is missing
+            # (common when sponsor features were deployed before sponsor_accounts existed),
+            # auto-create the sponsor account and allow password reset immediately.
+            sponsor = Sponsor.query.filter_by(email=email).first()
+            if sponsor:
+                try:
+                    temp_pw = secrets.token_urlsafe(32)
+                    acct = SponsorAccount(sponsor_id=sponsor.id, email=email)
+                    acct.set_password(temp_pw)
+                    db.session.add(acct)
+                    db.session.commit()
+                    log_audit_event(
+                        "sponsor_account_auto_created_for_password_reset",
+                        resource_type="sponsor_account",
+                        resource_id=acct.id,
+                        details={"email": email, "sponsor_id": sponsor.id},
+                    )
+                except Exception as e:
+                    db.session.rollback()
+                    log_audit_event(
+                        "sponsor_account_auto_create_failed_for_password_reset",
+                        resource_type="sponsor_account",
+                        details={"email": email, "sponsor_id": getattr(sponsor, "id", None), "error": str(e)[:200]},
+                    )
+                    flash(generic_msg, "info")
+                    return render_template("sponsor_forgot_password.html", form=form)
+            else:
+                log_audit_event(
+                    "sponsor_password_reset_requested_unknown_email",
+                    resource_type="sponsor_account",
+                    details={"email": email},
+                )
+                flash(generic_msg, "info")
+                return render_template("sponsor_forgot_password.html", form=form)
 
         token, token_row = SponsorSecurityToken.create_token(acct.id, "sponsor_password_reset", expires_in_hours=24)
         db.session.add(token_row)
