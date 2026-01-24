@@ -20,7 +20,7 @@ from flask_wtf import FlaskForm
 from flask_mail import Mail, Message
 from wtforms import (
     StringField, TextAreaField, BooleanField,
-    DateField, TimeField, PasswordField, SubmitField, IntegerField, RadioField, SelectField, FileField
+    DateField, TimeField, PasswordField, SubmitField, IntegerField, RadioField, SelectField, FileField, HiddenField
 )
 from wtforms.validators import (
     DataRequired, Optional, Email, Length, NumberRange, ValidationError
@@ -1110,6 +1110,15 @@ class SponsorForgotPasswordForm(FlaskForm):
     submit = SubmitField("Request Sponsor Password Help")
 
 
+class SponsorInternalResetForm(FlaskForm):
+    """Two-step, fully internal sponsor password reset (no email, no external links)."""
+    email = StringField("Sponsor Email", validators=[DataRequired(), Email(), Length(max=255)])
+    new_password = PasswordField("New Password", validators=[Optional()])
+    confirm_password = PasswordField("Confirm New Password", validators=[Optional()])
+    step = HiddenField(default="email")  # 'email' or 'reset'
+    submit = SubmitField("Continue")
+
+
 class ResetPasswordForm(FlaskForm):
     new_password = PasswordField("New Password", validators=[DataRequired()])
     confirm_password = PasswordField("Confirm New Password", validators=[DataRequired()])
@@ -1709,72 +1718,159 @@ def sponsor_logout():
 def sponsor_forgot_password():
     """Sponsor self-service password reset request (independent from chairperson accounts).
 
-    Unlike chairperson reset, sponsor reset is handled "internally" (no email required):
-    after requesting a reset, the one-time link is displayed on-screen with copy/share tools.
+    This is fully in-app:
+    - submit email
+    - if found, show password + confirm fields
+    - save, show a success modal, and return to sponsor login
     """
     if get_current_sponsor_account():
         return redirect(url_for("sponsor_portal"))
 
-    form = SponsorForgotPasswordForm()
-    if form.validate_on_submit():
-        email = normalize_email(form.email.data or "")
-        # Keep response generic to reduce account enumeration.
-        generic_msg = "If a sponsor account exists for that email, a password reset link is available."
+    form = SponsorInternalResetForm()
+    step = (form.step.data or request.form.get("step") or "email").strip().lower()
 
-        acct = SponsorAccount.query.filter_by(email=email).first()
-        if not acct:
-            # If a sponsor profile exists but the SponsorAccount row is missing
-            # (common when sponsor features were deployed before sponsor_accounts existed),
-            # auto-create the sponsor account and allow password reset immediately.
-            sponsor = Sponsor.query.filter_by(email=email).first()
-            if sponsor:
-                try:
-                    temp_pw = secrets.token_urlsafe(32)
-                    acct = SponsorAccount(sponsor_id=sponsor.id, email=email)
-                    acct.set_password(temp_pw)
-                    db.session.add(acct)
-                    db.session.commit()
-                    log_audit_event(
-                        "sponsor_account_auto_created_for_password_reset",
-                        resource_type="sponsor_account",
-                        resource_id=acct.id,
-                        details={"email": email, "sponsor_id": sponsor.id},
-                    )
-                except Exception as e:
-                    db.session.rollback()
-                    log_audit_event(
-                        "sponsor_account_auto_create_failed_for_password_reset",
-                        resource_type="sponsor_account",
-                        details={"email": email, "sponsor_id": getattr(sponsor, "id", None), "error": str(e)[:200]},
-                    )
-                    flash(generic_msg, "info")
-                    return render_template("sponsor_forgot_password.html", form=form)
-            else:
-                log_audit_event(
-                    "sponsor_password_reset_requested_unknown_email",
-                    resource_type="sponsor_account",
-                    details={"email": email},
+    # Default state
+    show_reset_fields = False
+    verified_email = None
+
+    # If we're mid-reset, keep the email in session
+    reset_acct_id = session.get("sponsor_pw_reset_acct_id")
+    reset_email = session.get("sponsor_pw_reset_email")
+    if reset_email:
+        verified_email = reset_email
+
+    if request.method == "POST":
+        if step == "email":
+            if not form.validate_on_submit():
+                return render_template(
+                    "sponsor_forgot_password.html",
+                    form=form,
+                    show_reset_fields=False,
                 )
-                flash(generic_msg, "info")
-                return render_template("sponsor_forgot_password.html", form=form)
 
-        token, token_row = SponsorSecurityToken.create_token(acct.id, "sponsor_password_reset", expires_in_hours=24)
-        db.session.add(token_row)
-        db.session.commit()
+            email = normalize_email(form.email.data or "")
+            acct = SponsorAccount.query.filter_by(email=email).first()
 
-        reset_url = url_for("sponsor_reset_password", token=token, _external=True)
-        log_audit_event(
-            "sponsor_password_reset_requested",
-            resource_type="sponsor_account",
-            resource_id=acct.id,
-            details={"email": email, "reset_url_generated": True},
-        )
+            if not acct:
+                # If sponsor profile exists but the SponsorAccount row is missing, auto-create it.
+                sponsor = Sponsor.query.filter_by(email=email).first()
+                if sponsor:
+                    try:
+                        temp_pw = secrets.token_urlsafe(32)
+                        acct = SponsorAccount(sponsor_id=sponsor.id, email=email)
+                        acct.set_password(temp_pw)
+                        db.session.add(acct)
+                        db.session.commit()
+                        log_audit_event(
+                            "sponsor_account_auto_created_for_password_reset",
+                            resource_type="sponsor_account",
+                            resource_id=acct.id,
+                            details={"email": email, "sponsor_id": sponsor.id},
+                        )
+                    except Exception as e:
+                        db.session.rollback()
+                        log_audit_event(
+                            "sponsor_account_auto_create_failed_for_password_reset",
+                            resource_type="sponsor_account",
+                            details={"email": email, "sponsor_id": getattr(sponsor, "id", None), "error": str(e)[:200]},
+                        )
+                        flash("Unable to start password reset right now. Please try again.", "danger")
+                        return render_template("sponsor_forgot_password.html", form=form, show_reset_fields=False)
 
-        # Internal reset: display link on-screen with copy/share affordances.
-        flash("Copy/share this reset link (valid for 24 hours):", "warning")
-        return render_template("sponsor_forgot_password.html", form=form, reset_url=reset_url)
+            if not acct:
+                flash("No sponsor account found for that email.", "danger")
+                return render_template("sponsor_forgot_password.html", form=form, show_reset_fields=False)
 
-    return render_template("sponsor_forgot_password.html", form=form)
+            # Email verified: store in session for step 2
+            session["sponsor_pw_reset_acct_id"] = acct.id
+            session["sponsor_pw_reset_email"] = acct.email
+            verified_email = acct.email
+            show_reset_fields = True
+            form.step.data = "reset"
+            flash("Email verified. Enter your new sponsor password below.", "info")
+
+        elif step == "reset":
+            # Require that step 1 happened
+            if not reset_acct_id or not reset_email:
+                flash("Please enter your sponsor email first.", "warning")
+                form.step.data = "email"
+                return render_template("sponsor_forgot_password.html", form=form, show_reset_fields=False)
+
+            verified_email = reset_email
+            show_reset_fields = True
+
+            new_password = (form.new_password.data or "")
+            confirm_password = (form.confirm_password.data or "")
+            if not new_password or not confirm_password:
+                flash("Please enter your new password twice.", "danger")
+                form.step.data = "reset"
+                return render_template(
+                    "sponsor_forgot_password.html",
+                    form=form,
+                    show_reset_fields=True,
+                    verified_email=verified_email,
+                )
+
+            if new_password != confirm_password:
+                flash("Passwords do not match.", "danger")
+                form.step.data = "reset"
+                return render_template(
+                    "sponsor_forgot_password.html",
+                    form=form,
+                    show_reset_fields=True,
+                    verified_email=verified_email,
+                )
+
+            ok, msg = validate_password_for_storage(new_password)
+            if not ok:
+                flash(msg, "danger")
+                form.step.data = "reset"
+                return render_template(
+                    "sponsor_forgot_password.html",
+                    form=form,
+                    show_reset_fields=True,
+                    verified_email=verified_email,
+                )
+
+            acct = SponsorAccount.query.get(reset_acct_id)
+            if not acct or acct.email != reset_email:
+                flash("Unable to reset password. Please start over.", "danger")
+                session.pop("sponsor_pw_reset_acct_id", None)
+                session.pop("sponsor_pw_reset_email", None)
+                form.step.data = "email"
+                return render_template("sponsor_forgot_password.html", form=form, show_reset_fields=False)
+
+            acct.set_password(new_password)
+            acct.failed_login_attempts = 0
+            acct.locked_until = None
+            acct.last_login = None
+            db.session.commit()
+
+            log_audit_event(
+                "sponsor_password_reset_completed_internal",
+                resource_type="sponsor_account",
+                resource_id=acct.id,
+                details={"email": acct.email},
+            )
+
+            # Clear reset state
+            session.pop("sponsor_pw_reset_acct_id", None)
+            session.pop("sponsor_pw_reset_email", None)
+
+            # Show modal + auto redirect to sponsor login
+            return render_template(
+                "sponsor_forgot_password.html",
+                form=SponsorInternalResetForm(),
+                show_reset_fields=False,
+                reset_success=True,
+            )
+
+    return render_template(
+        "sponsor_forgot_password.html",
+        form=form,
+        show_reset_fields=show_reset_fields,
+        verified_email=verified_email,
+    )
 
 
 @app.route("/sponsor/reset-password/<token>", methods=["GET", "POST"])
