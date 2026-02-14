@@ -3341,10 +3341,24 @@ def dashboard():
         # Handle profile form submission
         form = ProfileForm(obj=user)
         if form.validate_on_submit():
-            user.display_name = form.display_name.data.strip()
-            user.gender = form.gender.data or None
-            db.session.commit()
-            flash("Profile updated successfully!", "success")
+            try:
+                user.display_name = form.display_name.data.strip()
+                user.gender = form.gender.data or None
+                # Handle profile image upload (same as /profile page)
+                if form.profile_image.data:
+                    file = form.profile_image.data
+                    if file and allowed_file(file.filename):
+                        image_data = file.read()
+                        if len(image_data) > MAX_IMAGE_SIZE:
+                            flash("Image file is too large. Maximum size is 5MB.", "danger")
+                            return redirect(url_for("dashboard"))
+                        user.profile_image = base64.b64encode(image_data).decode("utf-8")
+                db.session.commit()
+                flash("Profile updated successfully!", "success")
+            except Exception as e:
+                db.session.rollback()
+                app.logger.error(f"Error updating profile on dashboard: {e}")
+                flash(f"Error updating profile: {str(e)}", "danger")
             return redirect(url_for("dashboard"))
         
         # Get user's meetings - use explicit SELECT with proper joins
