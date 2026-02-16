@@ -74,6 +74,8 @@ class Config:
     REGISTRATION_ACCESS_CODE = os.environ.get("REGISTRATION_ACCESS_CODE", "")
     # Optional: comma-separated list of codes (overrides single code if provided)
     REGISTRATION_ACCESS_CODES = os.environ.get("REGISTRATION_ACCESS_CODES")
+    # Suspended keys: comma-separated list of former keys that must no longer work
+    REGISTRATION_ACCESS_SUSPENDED_KEYS = os.environ.get("REGISTRATION_ACCESS_SUSPENDED_KEYS", "")
 
     # Sponsor registration gating (separate from chairperson registration)
     SPONSOR_REGISTRATION_ENABLED = os.environ.get("SPONSOR_REGISTRATION_ENABLED", "True").lower() == "true"

@@ -2857,6 +2857,7 @@ def register():
         provided_code = (form.access_code.data or '').strip()
         required_code = app.config.get('REGISTRATION_ACCESS_CODE')
         codes_list_raw = app.config.get('REGISTRATION_ACCESS_CODES')  # optional comma-separated list
+        suspended_raw = app.config.get('REGISTRATION_ACCESS_SUSPENDED_KEYS') or ''
         if required_code or codes_list_raw:
             valid_codes = set()
             if required_code:
@@ -2866,7 +2867,8 @@ def register():
                     c = c.strip()
                     if c:
                         valid_codes.add(c)
-            if provided_code not in valid_codes:
+            suspended_codes = set(c.strip() for c in suspended_raw.split(',') if c.strip())
+            if provided_code not in valid_codes or provided_code in suspended_codes:
                 flash("Invalid access code.", "danger")
                 access_codes_configured = True
                 return render_template("register.html", form=form, access_codes_configured=access_codes_configured)
@@ -3270,6 +3272,7 @@ def api_validate_registration_key():
     provided = (data.get('key') or '').strip()
     required_code = app.config.get('REGISTRATION_ACCESS_CODE')
     codes_list_raw = app.config.get('REGISTRATION_ACCESS_CODES')
+    suspended_raw = app.config.get('REGISTRATION_ACCESS_SUSPENDED_KEYS') or ''
     valid_codes = set()
     if required_code:
         valid_codes.add(str(required_code).strip())
@@ -3278,9 +3281,14 @@ def api_validate_registration_key():
             c = c.strip()
             if c:
                 valid_codes.add(c)
+    suspended_codes = set()
+    for c in suspended_raw.split(','):
+        c = c.strip()
+        if c:
+            suspended_codes.add(c)
     ok = True
     if valid_codes:
-        ok = provided in valid_codes
+        ok = provided in valid_codes and provided not in suspended_codes
     return jsonify({"ok": ok})
 
 
