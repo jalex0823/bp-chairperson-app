@@ -6973,6 +6973,95 @@ def api_admin_clear_chair(meeting_id):
     return jsonify({"ok": True})
 
 
+# Admin: Bulk Chair Assignment API (JSON)
+@app.route("/api/admin/meetings/bulk-assign", methods=["POST"])
+def api_admin_bulk_assign_chair():
+    """Assign one chairperson to multiple meetings at once."""
+    current = get_current_user()
+    if not current or not current.is_admin:
+        return jsonify({"ok": False, "error": "Admin access required."}), 403
+
+    data = request.get_json(silent=True) or {}
+    meeting_ids = data.get("meeting_ids", [])
+    user_id = data.get("user_id")
+
+    if not meeting_ids or not isinstance(meeting_ids, list):
+        return jsonify({"ok": False, "error": "No meetings selected."}), 400
+    if not user_id:
+        return jsonify({"ok": False, "error": "No user selected."}), 400
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"ok": False, "error": "User not found."}), 404
+
+    assigned = []
+    errors = []
+    try:
+        for mid in meeting_ids:
+            meeting = Meeting.query.get(mid)
+            if not meeting:
+                errors.append(f"Meeting {mid} not found")
+                continue
+
+            # Remove existing chair if any
+            if meeting.chair_signup:
+                db.session.delete(meeting.chair_signup)
+                db.session.flush()
+
+            signup = ChairSignup(
+                meeting_id=meeting.id,
+                user_id=user.id,
+                display_name_snapshot=user.display_name,
+                notes="Bulk assignment by admin"
+            )
+            db.session.add(signup)
+            assigned.append(mid)
+
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in bulk assign: {e}")
+        return jsonify({"ok": False, "error": f"Database error: {str(e)}"}), 500
+
+    log_audit_event('bulk_assign_chair', current.id, details={
+        'meeting_ids': assigned,
+        'chair_name': user.display_name,
+        'chair_email': user.email,
+        'count': len(assigned)
+    })
+
+    # Send one summary email to the chairperson
+    if assigned:
+        try:
+            meetings = Meeting.query.filter(Meeting.id.in_(assigned)).order_by(Meeting.event_date).all()
+            meeting_lines = "\n".join([
+                f"  • {m.title} — {m.event_date.strftime('%A, %B %d, %Y')} at {m.start_time.strftime('%I:%M %p') if m.start_time else 'TBD'}"
+                for m in meetings
+            ])
+            subject = f"Chairperson Assignment: {len(assigned)} Meetings"
+            body = f"""Hello {user.display_name},
+
+You have been assigned to chair the following {len(assigned)} meeting(s):
+
+{meeting_lines}
+
+If you have any questions, please contact the administrator.
+
+Thank you for your service!
+"""
+            send_email(user.email, subject, body)
+        except Exception as e:
+            app.logger.error(f"Failed to send bulk assignment email: {e}")
+
+    return jsonify({
+        "ok": True,
+        "assigned_count": len(assigned),
+        "chair_name": user.display_name,
+        "assigned_ids": assigned,
+        "errors": errors
+    })
+
+
 # Admin: Export Chair Activity Report (CSV)
 @app.route("/admin/reports/chair-activity")
 @admin_required
