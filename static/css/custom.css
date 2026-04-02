@@ -1629,29 +1629,38 @@ body.dark-theme {
     }
 
     /* Form controls */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="search"],
+    input[type="date"],
+    input[type="time"],
+    input[type="file"],
+    textarea,
+    select,
     .form-control,
     .form-select {
-        background-color: var(--bp-dark-bg-tertiary);
-        border-color: var(--bp-dark-border);
-        color: var(--bp-dark-text);
+        background-color: #ffffff !important;
+        border-color: #ced4da !important;
+        color: #1a1a1a !important;
     }
 
     .form-control:focus,
     .form-select:focus {
-        background-color: var(--bp-dark-bg-secondary);
-        border-color: var(--bp-green);
-        color: var(--bp-dark-text);
+        background-color: #ffffff !important;
+        border-color: var(--bp-green) !important;
+        color: #1a1a1a !important;
         box-shadow: 0 0 0 0.25rem rgba(15, 111, 117, 0.25);
     }
 
     .form-control::placeholder {
-        color: var(--bp-dark-text-muted);
+        color: #6c757d !important;
     }
 
     /* Form check (radio/checkbox) */
     .form-check-input {
-        background-color: var(--bp-dark-bg-tertiary);
-        border-color: var(--bp-dark-border);
+        background-color: #ffffff !important;
+        border-color: #ced4da !important;
     }
 
     .form-check-input:checked {
@@ -2009,28 +2018,38 @@ body.dark-theme .badge.text-dark {
     color: #000 !important;
 }
 
+/* ALL FORM INPUTS in dark mode - White background with black text */
+body.dark-theme input[type="text"],
+body.dark-theme input[type="email"],
+body.dark-theme input[type="password"],
+body.dark-theme input[type="search"],
+body.dark-theme input[type="date"],
+body.dark-theme input[type="time"],
+body.dark-theme input[type="file"],
+body.dark-theme textarea,
+body.dark-theme select,
 body.dark-theme .form-control,
 body.dark-theme .form-select {
-    background-color: var(--bp-dark-bg-tertiary);
-    border-color: var(--bp-dark-border);
-    color: var(--bp-dark-text);
+    background-color: #ffffff !important;
+    border-color: #ced4da !important;
+    color: #1a1a1a !important;
 }
 
 body.dark-theme .form-control:focus,
 body.dark-theme .form-select:focus {
-    background-color: var(--bp-dark-bg-secondary);
-    border-color: var(--bp-green);
-    color: var(--bp-dark-text);
+    background-color: #ffffff !important;
+    border-color: var(--bp-green) !important;
+    color: #1a1a1a !important;
     box-shadow: 0 0 0 0.25rem rgba(15, 111, 117, 0.25);
 }
 
 body.dark-theme .form-control::placeholder {
-    color: var(--bp-dark-text-muted);
+    color: #6c757d !important;
 }
 
 body.dark-theme .form-check-input {
-    background-color: var(--bp-dark-bg-tertiary);
-    border-color: var(--bp-dark-border);
+    background-color: #ffffff !important;
+    border-color: #ced4da !important;
 }
 
 body.dark-theme .form-check-input:checked {
