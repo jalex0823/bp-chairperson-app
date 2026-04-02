@@ -5080,6 +5080,8 @@ def admin_meetings():
     date_to = request.args.get('date_to', '')
     chair_status = request.args.get('chair_status', '')
     day_of_week = request.args.get('day_of_week', '')
+    sort_by = request.args.get('sort_by', 'date')
+    sort_dir = request.args.get('sort_dir', 'desc')
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 100, type=int)  # Configurable page size
     
@@ -5141,8 +5143,19 @@ def admin_meetings():
         except (ValueError, TypeError):
             pass
     
-    # Order by date and time with index optimization
-    query = query.order_by(Meeting.event_date.desc(), Meeting.start_time.desc())
+    # Dynamic sort ordering
+    sort_dir = sort_dir if sort_dir in ('asc', 'desc') else 'desc'
+    sort_columns = {
+        'date': Meeting.event_date,
+        'title': Meeting.title,
+        'type': Meeting.meeting_type,
+        'open': Meeting.is_open,
+    }
+    sort_col = sort_columns.get(sort_by, Meeting.event_date)
+    if sort_dir == 'asc':
+        query = query.order_by(sort_col.asc(), Meeting.start_time.asc())
+    else:
+        query = query.order_by(sort_col.desc(), Meeting.start_time.desc())
     
     # Paginate results for performance
     pagination = query.paginate(
@@ -5176,6 +5189,8 @@ def admin_meetings():
             'date_to': date_to,
             'chair_status': chair_status,
             'day_of_week': day_of_week,
+            'sort_by': sort_by,
+            'sort_dir': sort_dir,
             'page': page,
             'per_page': per_page
         }
