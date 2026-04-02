@@ -231,6 +231,20 @@
           </select>
         </div>
         
+        <div class="col-md-2">
+          <label for="day_of_week" class="form-label">Day of Week</label>
+          <select class="form-select" id="day_of_week" name="day_of_week">
+            <option value="">All Days</option>
+            <option value="1" {% if current_filters.day_of_week == '1' %}selected{% endif %}>Sunday</option>
+            <option value="2" {% if current_filters.day_of_week == '2' %}selected{% endif %}>Monday</option>
+            <option value="3" {% if current_filters.day_of_week == '3' %}selected{% endif %}>Tuesday</option>
+            <option value="4" {% if current_filters.day_of_week == '4' %}selected{% endif %}>Wednesday</option>
+            <option value="5" {% if current_filters.day_of_week == '5' %}selected{% endif %}>Thursday</option>
+            <option value="6" {% if current_filters.day_of_week == '6' %}selected{% endif %}>Friday</option>
+            <option value="7" {% if current_filters.day_of_week == '7' %}selected{% endif %}>Saturday</option>
+          </select>
+        </div>
+        
         <div class="col-12">
           <button type="submit" class="btn btn-primary btn-sm me-2">
             <i class="fas fa-search"></i> Apply Filters
@@ -245,7 +259,7 @@
   </div>
 
   {% if not meetings %}
-    {% if current_filters.search or current_filters.meeting_type or current_filters.date_from or current_filters.date_to or current_filters.chair_status %}
+    {% if current_filters.search or current_filters.meeting_type or current_filters.date_from or current_filters.date_to or current_filters.chair_status or current_filters.day_of_week %}
       <div class="alert alert-info">
         <i class="fas fa-info-circle"></i> No meetings match your search criteria. Try adjusting your filters.
       </div>
@@ -258,6 +272,7 @@
       <thead>
         <tr>
           <th>Date</th>
+          <th>Day</th>
           <th>Meeting</th>
           <th>Type</th>
           <th>Chair</th>
@@ -276,6 +291,9 @@
             <td>
               {{ m.event_date.strftime('%Y-%m-%d') }}<br>
               <small>{{ m.start_time.strftime('%I:%M %p') }}</small>
+            </td>
+            <td>
+              <strong>{{ m.event_date.strftime('%a') }}</strong>
             </td>
             <td>
               <strong>{{ m.title }}</strong><br>
@@ -349,7 +367,7 @@
           <!-- Assign Chair Modal for meeting {{ m.id }} -->
           {% if not m.chair_signup %}
           <tr style="display:none;">
-            <td colspan="6">
+            <td colspan="7">
               <div class="modal fade" id="assignChairModal{{ m.id }}" tabindex="-1">
                 <div class="modal-dialog">
                   <div class="modal-content">
@@ -525,7 +543,7 @@
         <ul class="pagination pagination-sm mb-0">
           <!-- Previous page -->
           <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-            <a class="page-link" href="{% if pagination.has_prev %}{{ url_for('admin_meetings', page=pagination.prev_num, search=current_filters.search, meeting_type=current_filters.meeting_type, date_from=current_filters.date_from, date_to=current_filters.date_to, chair_status=current_filters.chair_status, per_page=current_filters.per_page) }}{% else %}#{% endif %}">
+            <a class="page-link" href="{% if pagination.has_prev %}{{ url_for('admin_meetings', page=pagination.prev_num, search=current_filters.search, meeting_type=current_filters.meeting_type, date_from=current_filters.date_from, date_to=current_filters.date_to, chair_status=current_filters.chair_status, day_of_week=current_filters.day_of_week, per_page=current_filters.per_page) }}{% else %}#{% endif %}">
               <i class="fas fa-chevron-left"></i> Previous
             </a>
           </li>
@@ -535,7 +553,7 @@
             {% if page_num %}
               {% if page_num != pagination.page %}
                 <li class="page-item">
-                  <a class="page-link" href="{{ url_for('admin_meetings', page=page_num, search=current_filters.search, meeting_type=current_filters.meeting_type, date_from=current_filters.date_from, date_to=current_filters.date_to, chair_status=current_filters.chair_status, per_page=current_filters.per_page) }}">{{ page_num }}</a>
+                  <a class="page-link" href="{{ url_for('admin_meetings', page=page_num, search=current_filters.search, meeting_type=current_filters.meeting_type, date_from=current_filters.date_from, date_to=current_filters.date_to, chair_status=current_filters.chair_status, day_of_week=current_filters.day_of_week, per_page=current_filters.per_page) }}">{{ page_num }}</a>
                 </li>
               {% else %}
                 <li class="page-item active">
@@ -551,7 +569,7 @@
           
           <!-- Next page -->
           <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-            <a class="page-link" href="{% if pagination.has_next %}{{ url_for('admin_meetings', page=pagination.next_num, search=current_filters.search, meeting_type=current_filters.meeting_type, date_from=current_filters.date_from, date_to=current_filters.date_to, chair_status=current_filters.chair_status, per_page=current_filters.per_page) }}{% else %}#{% endif %}">
+            <a class="page-link" href="{% if pagination.has_next %}{{ url_for('admin_meetings', page=pagination.next_num, search=current_filters.search, meeting_type=current_filters.meeting_type, date_from=current_filters.date_from, date_to=current_filters.date_to, chair_status=current_filters.chair_status, day_of_week=current_filters.day_of_week, per_page=current_filters.per_page) }}{% else %}#{% endif %}">
               Next <i class="fas fa-chevron-right"></i>
             </a>
           </li>
@@ -576,7 +594,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-submit form on filter changes (except search)
-    const filterSelects = document.querySelectorAll('#meeting_type, #chair_status');
+    const filterSelects = document.querySelectorAll('#meeting_type, #chair_status, #day_of_week');
     filterSelects.forEach(select => {
         select.addEventListener('change', function() {
             this.form.submit();

@@ -5079,6 +5079,7 @@ def admin_meetings():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
     chair_status = request.args.get('chair_status', '')
+    day_of_week = request.args.get('day_of_week', '')
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)  # Configurable page size
     
@@ -5124,6 +5125,15 @@ def admin_meetings():
     elif chair_status == 'needs_chair':
         query = query.filter(~Meeting.chair_signup.has())
     
+    # Apply day of week filter (MySQL DAYOFWEEK: 1=Sun, 2=Mon, ..., 7=Sat)
+    if day_of_week:
+        try:
+            dow_num = int(day_of_week)
+            if 1 <= dow_num <= 7:
+                query = query.filter(func.dayofweek(Meeting.event_date) == dow_num)
+        except (ValueError, TypeError):
+            pass
+    
     # Order by date and time with index optimization
     query = query.order_by(Meeting.event_date.desc(), Meeting.start_time.desc())
     
@@ -5158,6 +5168,7 @@ def admin_meetings():
             'date_from': date_from,
             'date_to': date_to,
             'chair_status': chair_status,
+            'day_of_week': day_of_week,
             'page': page,
             'per_page': per_page
         }
