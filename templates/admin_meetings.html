@@ -750,9 +750,15 @@ function changePageSize(newSize) {
     try {
       const resp = await fetch(ASSIGN_URL_TPL.replace('{mid}', mid), {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId })
       });
+      const ct = resp.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        alert('Server returned non-JSON response (HTTP ' + resp.status + '). Please refresh and try again.');
+        return;
+      }
       const data = await resp.json();
       if (data.ok) {
         updateCellUI(cell, data.chair_name);
@@ -771,11 +777,19 @@ function changePageSize(newSize) {
     try {
       const resp = await fetch(CLEAR_URL_TPL.replace('{mid}', mid), {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' }
       });
+      const ct = resp.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        alert('Server returned non-JSON response (HTTP ' + resp.status + '). Please refresh and try again.');
+        return;
+      }
       const data = await resp.json();
       if (data.ok) {
         updateCellUI(cell, null);
+      } else {
+        alert(data.error || 'Failed to clear chair.');
       }
     } catch (e) {
       alert('Error clearing chair: ' + e.message);

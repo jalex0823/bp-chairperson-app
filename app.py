@@ -6860,12 +6860,19 @@ Thank you for your service!
     return redirect(url_for("admin_meetings"))
 
 
-# Admin: Inline Chair Assignment API (JSON)
+# Admin: Inline Chair Assignment API (JSON-only responses)
 @app.route("/api/admin/meetings/<int:meeting_id>/assign-chair", methods=["POST"])
-@admin_required
 def api_admin_assign_chair(meeting_id):
     """Assign a chair to a meeting via JSON API for inline editing."""
-    meeting = Meeting.query.get_or_404(meeting_id)
+    # Inline auth check — always return JSON, never redirect
+    current = get_current_user()
+    if not current or not current.is_admin:
+        return jsonify({"ok": False, "error": "Admin access required."}), 403
+
+    meeting = Meeting.query.get(meeting_id)
+    if not meeting:
+        return jsonify({"ok": False, "error": "Meeting not found."}), 404
+
     data = request.get_json(silent=True) or {}
     user_id = data.get("user_id")
 
@@ -6876,20 +6883,26 @@ def api_admin_assign_chair(meeting_id):
     if not user:
         return jsonify({"ok": False, "error": "User not found."}), 404
 
-    # Remove existing chair if any
-    if meeting.chair_signup:
-        db.session.delete(meeting.chair_signup)
+    try:
+        # Remove existing chair if any
+        if meeting.chair_signup:
+            db.session.delete(meeting.chair_signup)
+            db.session.flush()
 
-    signup = ChairSignup(
-        meeting_id=meeting.id,
-        user_id=user.id,
-        display_name_snapshot=user.display_name,
-        notes="Inline assignment by admin"
-    )
-    db.session.add(signup)
-    db.session.commit()
+        signup = ChairSignup(
+            meeting_id=meeting.id,
+            user_id=user.id,
+            display_name_snapshot=user.display_name,
+            notes="Inline assignment by admin"
+        )
+        db.session.add(signup)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error assigning chair: {e}")
+        return jsonify({"ok": False, "error": f"Database error: {str(e)}"}), 500
 
-    log_audit_event('assign_chair', get_current_user().id, details={
+    log_audit_event('assign_chair', current.id, details={
         'meeting_id': meeting_id,
         'chair_name': user.display_name,
         'chair_email': user.email,
@@ -6925,19 +6938,31 @@ Thank you for your service!
 
 
 @app.route("/api/admin/meetings/<int:meeting_id>/clear-chair", methods=["POST"])
-@admin_required
 def api_admin_clear_chair(meeting_id):
     """Clear the chair assignment from a meeting via JSON API."""
-    meeting = Meeting.query.get_or_404(meeting_id)
-    if meeting.chair_signup:
-        name = meeting.chair_signup.display_name_snapshot
-        db.session.delete(meeting.chair_signup)
-        db.session.commit()
-        log_audit_event('clear_chair', get_current_user().id, details={
-            'meeting_id': meeting_id,
-            'cleared_name': name,
-            'method': 'inline'
-        })
+    current = get_current_user()
+    if not current or not current.is_admin:
+        return jsonify({"ok": False, "error": "Admin access required."}), 403
+
+    meeting = Meeting.query.get(meeting_id)
+    if not meeting:
+        return jsonify({"ok": False, "error": "Meeting not found."}), 404
+
+    try:
+        if meeting.chair_signup:
+            name = meeting.chair_signup.display_name_snapshot
+            db.session.delete(meeting.chair_signup)
+            db.session.commit()
+            log_audit_event('clear_chair', current.id, details={
+                'meeting_id': meeting_id,
+                'cleared_name': name,
+                'method': 'inline'
+            })
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error clearing chair: {e}")
+        return jsonify({"ok": False, "error": f"Database error: {str(e)}"}), 500
+
     return jsonify({"ok": True})
 
 
