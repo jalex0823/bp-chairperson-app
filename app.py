@@ -6860,6 +6860,87 @@ Thank you for your service!
     return redirect(url_for("admin_meetings"))
 
 
+# Admin: Inline Chair Assignment API (JSON)
+@app.route("/api/admin/meetings/<int:meeting_id>/assign-chair", methods=["POST"])
+@admin_required
+def api_admin_assign_chair(meeting_id):
+    """Assign a chair to a meeting via JSON API for inline editing."""
+    meeting = Meeting.query.get_or_404(meeting_id)
+    data = request.get_json(silent=True) or {}
+    user_id = data.get("user_id")
+
+    if not user_id:
+        return jsonify({"ok": False, "error": "No user selected."}), 400
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"ok": False, "error": "User not found."}), 404
+
+    # Remove existing chair if any
+    if meeting.chair_signup:
+        db.session.delete(meeting.chair_signup)
+
+    signup = ChairSignup(
+        meeting_id=meeting.id,
+        user_id=user.id,
+        display_name_snapshot=user.display_name,
+        notes="Inline assignment by admin"
+    )
+    db.session.add(signup)
+    db.session.commit()
+
+    log_audit_event('assign_chair', get_current_user().id, details={
+        'meeting_id': meeting_id,
+        'chair_name': user.display_name,
+        'chair_email': user.email,
+        'method': 'inline'
+    })
+
+    # Send confirmation email (non-blocking)
+    try:
+        subject = f"Chairperson Assignment: {meeting.title}"
+        body = f"""Hello {user.display_name},
+
+You have been assigned to chair the following meeting:
+
+Meeting: {meeting.title}
+Date: {meeting.event_date.strftime('%A, %B %d, %Y')}
+Time: {meeting.start_time.strftime('%I:%M %p') if meeting.start_time else 'TBD'}
+
+{f'Zoom Link: {meeting.zoom_link}' if meeting.zoom_link else ''}
+
+If you have any questions, please contact the administrator.
+
+Thank you for your service!
+"""
+        send_email(user.email, subject, body)
+    except Exception as e:
+        app.logger.error(f"Failed to send assignment email: {e}")
+
+    return jsonify({
+        "ok": True,
+        "chair_name": user.display_name,
+        "user_id": user.id
+    })
+
+
+@app.route("/api/admin/meetings/<int:meeting_id>/clear-chair", methods=["POST"])
+@admin_required
+def api_admin_clear_chair(meeting_id):
+    """Clear the chair assignment from a meeting via JSON API."""
+    meeting = Meeting.query.get_or_404(meeting_id)
+    if meeting.chair_signup:
+        name = meeting.chair_signup.display_name_snapshot
+        db.session.delete(meeting.chair_signup)
+        db.session.commit()
+        log_audit_event('clear_chair', get_current_user().id, details={
+            'meeting_id': meeting_id,
+            'cleared_name': name,
+            'method': 'inline'
+        })
+    return jsonify({"ok": True})
+
+
 # Admin: Export Chair Activity Report (CSV)
 @app.route("/admin/reports/chair-activity")
 @admin_required
