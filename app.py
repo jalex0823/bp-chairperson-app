@@ -5125,12 +5125,19 @@ def admin_meetings():
     elif chair_status == 'needs_chair':
         query = query.filter(~Meeting.chair_signup.has())
     
-    # Apply day of week filter (MySQL DAYOFWEEK: 1=Sun, 2=Mon, ..., 7=Sat)
+    # Apply day of week filter
+    # Template sends: 0=Sunday, 1=Monday, ..., 6=Saturday
+    # PostgreSQL EXTRACT(DOW): 0=Sunday, 1=Monday, ..., 6=Saturday
+    # MySQL DAYOFWEEK: 1=Sunday, 2=Monday, ..., 7=Saturday
     if day_of_week:
         try:
             dow_num = int(day_of_week)
-            if 1 <= dow_num <= 7:
-                query = query.filter(func.dayofweek(Meeting.event_date) == dow_num)
+            if 0 <= dow_num <= 6:
+                db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+                if 'mysql' in db_uri:
+                    query = query.filter(func.dayofweek(Meeting.event_date) == (dow_num + 1))
+                else:
+                    query = query.filter(func.extract('dow', Meeting.event_date) == dow_num)
         except (ValueError, TypeError):
             pass
     
