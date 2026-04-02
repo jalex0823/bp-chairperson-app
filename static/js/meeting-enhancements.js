@@ -275,6 +275,9 @@ class MeetingConflictDetector {
             <div class="d-flex align-items-center justify-content-between">
                 <span id="selection-count" class="text-muted">0 selected</span>
                 <div class="btn-group btn-group-sm">
+                    <button class="btn btn-success" onclick="if(window.openBulkAssignModal) openBulkAssignModal(); else alert('Bulk assign not available on this page.');">
+                        <i class="fas fa-user-check"></i> Bulk Assign Chair
+                    </button>
                     <button class="btn btn-outline-primary" onclick="bulkOperations.exportSelected()">
                         <i class="fas fa-download"></i> Export
                     </button>

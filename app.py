@@ -824,7 +824,7 @@ def import_meetings_from_ics(ics_url: str, replace_future: bool = True) -> int:
     return imported
 
 
-def seed_meetings_from_static_schedule(weeks: int = 12, replace_future: bool = True) -> int:
+def seed_meetings_from_static_schedule(weeks: int = 52, replace_future: bool = True) -> int:
     """Generate meetings for the next N weeks based on STATIC_SCHEDULE.
     If replace_future is True, clear future meetings first.
     Returns number of meetings created.
@@ -922,7 +922,7 @@ def seed_meetings_from_static_schedule(weeks: int = 12, replace_future: bool = T
     return created
 
 
-def import_meetings_from_webpage(page_url: str, weeks: int = 12, replace_future: bool = True) -> int:
+def import_meetings_from_webpage(page_url: str, weeks: int = 52, replace_future: bool = True) -> int:
     """Scrape meeting schedule from an external HTML page and generate meetings for the next N weeks.
     This is resilient to minor content changes by looking for known phrases and time patterns.
     The current site schedule includes:
@@ -1537,9 +1537,9 @@ def ensure_meetings_exist():
     try:
         total = Meeting.query.count()
         if total == 0 and app.config.get('STATIC_SCHEDULE_ENABLED', True):
-            # Seed next 12 weeks so the homepage and calendar never look empty
-            seed_meetings_from_static_schedule(weeks=12, replace_future=True)
-            app.logger.info("Auto-seeded 12 weeks from static schedule (DB was empty).")
+            # Seed next 52 weeks so the homepage and calendar never look empty
+            seed_meetings_from_static_schedule(weeks=52, replace_future=True)
+            app.logger.info("Auto-seeded 52 weeks from static schedule (DB was empty).")
         _auto_seed_done = True
     except Exception as e:
         app.logger.warning(f"Auto-seed skipped due to error: {e}")
@@ -5081,10 +5081,10 @@ def admin_meetings():
     chair_status = request.args.get('chair_status', '')
     day_of_week = request.args.get('day_of_week', '')
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)  # Configurable page size
+    per_page = request.args.get('per_page', 100, type=int)  # Configurable page size
     
     # Validate per_page limits for performance
-    per_page = min(max(per_page, 10), 100)  # Between 10 and 100
+    per_page = min(max(per_page, 10), 500)  # Between 10 and 500
     
     # Start with base query with optimized loading
     query = Meeting.query.options(
@@ -5222,7 +5222,7 @@ def admin_seed_static():
         flash("Static schedule seeding is disabled.", "warning")
         return redirect(url_for('admin_meetings'))
     try:
-        count = seed_meetings_from_static_schedule(weeks=int(request.args.get("weeks", 12)), replace_future=True)
+        count = seed_meetings_from_static_schedule(weeks=int(request.args.get("weeks", 52)), replace_future=True)
         flash(f"Created {count} meetings from static schedule.", "success")
     except Exception as e:
         flash(f"Static schedule seed failed: {e}", "danger")
@@ -7242,9 +7242,9 @@ def import_ics_command():
 def seed_schedule_command():
     """Seed meetings from the built-in static schedule for the next N weeks.
     Usage: flask --app app.py seed-schedule
-    Optionally set WEEKS env variable to control horizon (default 12).
+    Optionally set WEEKS env variable to control horizon (default 52).
     """
-    weeks = int(os.environ.get("WEEKS", "12"))
+    weeks = int(os.environ.get("WEEKS", "52"))
     count = seed_meetings_from_static_schedule(weeks=weeks, replace_future=True)
     print(f"Seeded {count} meetings from static schedule.")
 
@@ -7253,13 +7253,13 @@ def seed_schedule_command():
 def import_web_command():
     """Import meetings by scraping the website URL defined in env var SOURCE_MEETINGS_WEB_URL.
     Usage: flask --app app.py import-web
-    Optionally set WEEKS env variable to control horizon (default 12).
+    Optionally set WEEKS env variable to control horizon (default 52).
     """
     url = SOURCE_MEETINGS_WEB_URL
     if not url:
         print("SOURCE_MEETINGS_WEB_URL is not set.")
         return
-    weeks = int(os.environ.get("WEEKS", "12"))
+    weeks = int(os.environ.get("WEEKS", "52"))
     try:
         count = import_meetings_from_webpage(url, weeks=weeks, replace_future=True)
         print(f"Imported {count} meetings from website.")

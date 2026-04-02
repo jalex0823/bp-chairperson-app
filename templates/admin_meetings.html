@@ -267,31 +267,10 @@
       <p>No meetings created yet.</p>
     {% endif %}
   {% else %}
-    <!-- Bulk Assign Toolbar (hidden until checkboxes selected) -->
-    <div id="bulkAssignBar" class="card mb-3 border-success" style="display:none;">
-      <div class="card-body py-2 d-flex align-items-center gap-3 flex-wrap">
-        <strong id="bulkCount" class="text-success">0 selected</strong>
-        <div style="position:relative; flex:1; min-width:200px; max-width:400px;">
-          <input type="text" id="bulkUserSearch" class="form-control form-control-sm"
-                 placeholder="Search chairperson by name..." autocomplete="off">
-          <div id="bulkSearchResults" class="list-group"
-               style="display:none; position:absolute; z-index:1060; width:100%; max-height:200px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15); border:1px solid #ced4da; border-radius:0.375rem; background:#fff;"></div>
-        </div>
-        <span id="bulkSelectedUser" class="badge bg-primary" style="display:none;"></span>
-        <button type="button" id="bulkAssignBtn" class="btn btn-success btn-sm" disabled>
-          <i class="fas fa-user-check"></i> Assign to Selected
-        </button>
-        <button type="button" id="bulkCancelBtn" class="btn btn-outline-secondary btn-sm">
-          <i class="fas fa-times"></i> Cancel
-        </button>
-      </div>
-    </div>
-
     <div class="table-responsive">
     <table class="table table-striped table-sm align-middle">
       <thead>
         <tr>
-          <th style="width:30px;"><input type="checkbox" id="selectAllMeetings" title="Select all"></th>
           <th>Date</th>
           <th>Day</th>
           <th>Meeting</th>
@@ -309,7 +288,6 @@
               data-meeting-end-time="{{ m.end_time.strftime('%H:%M') if m.end_time }}"
               data-chair-id="{{ m.chair_signup.user_id if m.chair_signup else '' }}"
               data-meeting-type="{{ m.meeting_type }}">
-            <td><input type="checkbox" class="meeting-checkbox" value="{{ m.id }}"></td>
             <td>
               {{ m.event_date.strftime('%Y-%m-%d') }}<br>
               <small>{{ m.start_time.strftime('%I:%M %p') }}</small>
@@ -401,7 +379,7 @@
           <!-- Assign Chair Modal for meeting {{ m.id }} -->
           {% if not m.chair_signup %}
           <tr style="display:none;">
-            <td colspan="8">
+            <td colspan="7">
               <div class="modal fade" id="assignChairModal{{ m.id }}" tabindex="-1">
                 <div class="modal-dialog">
                   <div class="modal-content">
@@ -903,80 +881,75 @@ function changePageSize(newSize) {
 })();
 </script>
 
-<!-- Bulk Chair Assignment -->
+<!-- Bulk Assign Chair Modal -->
+<div class="modal fade" id="bulkAssignChairModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="fas fa-user-check"></i> Bulk Assign Chairperson</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p id="bulkAssignCount" class="fw-bold mb-3"></p>
+        <label class="form-label">Search for Chairperson</label>
+        <div style="position:relative;">
+          <input type="text" id="bulkModalUserSearch" class="form-control"
+                 placeholder="Type name or email..." autocomplete="off">
+          <div id="bulkModalSearchResults" class="list-group"
+               style="display:none; position:absolute; z-index:1080; width:100%; max-height:200px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15); border:1px solid #ced4da; border-radius:0.375rem; background:#fff;"></div>
+        </div>
+        <div id="bulkModalSelectedUser" class="mt-3" style="display:none;">
+          <span class="badge bg-primary fs-6 p-2" id="bulkModalUserBadge"></span>
+          <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="bulkModalClearUser">Change</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="bulkModalConfirmBtn" disabled>
+          <i class="fas fa-user-check"></i> Confirm Assignment
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Assign Chair Logic -->
 <script>
 (function() {
   const BULK_URL = '/api/admin/meetings/bulk-assign';
   const SEARCH_URL = '{{ url_for("api_users_search") }}';
-  let selectedUserId = null;
-  let selectedUserName = '';
+  let bulkUserId = null;
+  let bulkUserName = '';
 
-  const bar = document.getElementById('bulkAssignBar');
-  const countEl = document.getElementById('bulkCount');
-  const searchInput = document.getElementById('bulkUserSearch');
-  const resultsEl = document.getElementById('bulkSearchResults');
-  const userBadge = document.getElementById('bulkSelectedUser');
-  const assignBtn = document.getElementById('bulkAssignBtn');
-  const cancelBtn = document.getElementById('bulkCancelBtn');
-  const selectAll = document.getElementById('selectAllMeetings');
+  const modal = document.getElementById('bulkAssignChairModal');
+  if (!modal) return;
 
-  if (!bar || !selectAll) return; // no meetings on page
+  const searchInput = document.getElementById('bulkModalUserSearch');
+  const resultsEl = document.getElementById('bulkModalSearchResults');
+  const selectedDiv = document.getElementById('bulkModalSelectedUser');
+  const userBadge = document.getElementById('bulkModalUserBadge');
+  const clearUserBtn = document.getElementById('bulkModalClearUser');
+  const confirmBtn = document.getElementById('bulkModalConfirmBtn');
+  const countEl = document.getElementById('bulkAssignCount');
 
-  function getChecked() {
-    return Array.from(document.querySelectorAll('.meeting-checkbox:checked')).map(cb => parseInt(cb.value));
-  }
+  // Expose globally so meeting-enhancements.js can call it
+  window.openBulkAssignModal = function() {
+    const ids = window.bulkOperations ? window.bulkOperations.getSelectedIds() : [];
+    if (!ids.length) { alert('No meetings selected.'); return; }
+    countEl.textContent = 'Assigning chair to ' + ids.length + ' meeting(s)';
+    bulkUserId = null;
+    bulkUserName = '';
+    searchInput.value = '';
+    resultsEl.style.display = 'none';
+    resultsEl.innerHTML = '';
+    selectedDiv.style.display = 'none';
+    searchInput.style.display = '';
+    confirmBtn.disabled = true;
+    new bootstrap.Modal(modal).show();
+    setTimeout(() => searchInput.focus(), 300);
+  };
 
-  function updateBar() {
-    const ids = getChecked();
-    if (ids.length > 0) {
-      bar.style.display = '';
-      countEl.textContent = ids.length + ' meeting' + (ids.length > 1 ? 's' : '') + ' selected';
-    } else {
-      bar.style.display = 'none';
-      resetBulk();
-    }
-    updateAssignBtn();
-  }
-
-  function updateAssignBtn() {
-    assignBtn.disabled = !(getChecked().length > 0 && selectedUserId);
-  }
-
-  function resetBulk() {
-    selectedUserId = null;
-    selectedUserName = '';
-    if (searchInput) searchInput.value = '';
-    if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.style.display = 'none'; }
-    if (userBadge) { userBadge.style.display = 'none'; userBadge.textContent = ''; }
-    updateAssignBtn();
-  }
-
-  // Select All
-  selectAll.addEventListener('change', function() {
-    document.querySelectorAll('.meeting-checkbox').forEach(cb => cb.checked = this.checked);
-    updateBar();
-  });
-
-  // Individual checkboxes
-  document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('meeting-checkbox')) {
-      const all = document.querySelectorAll('.meeting-checkbox');
-      const checked = document.querySelectorAll('.meeting-checkbox:checked');
-      selectAll.checked = all.length === checked.length;
-      selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
-      updateBar();
-    }
-  });
-
-  // Cancel
-  cancelBtn.addEventListener('click', function() {
-    selectAll.checked = false;
-    selectAll.indeterminate = false;
-    document.querySelectorAll('.meeting-checkbox').forEach(cb => cb.checked = false);
-    updateBar();
-  });
-
-  // User search (debounced)
+  // Debounced search
   let timer = null;
   searchInput.addEventListener('input', function() {
     const q = this.value.trim();
@@ -992,18 +965,16 @@ function changePageSize(newSize) {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'list-group-item list-group-item-action';
-            btn.style.cssText = 'text-align:left; padding:0.4rem 0.75rem; font-size:0.85rem; border:none; border-bottom:1px solid #eee; cursor:pointer; color:#1a1a1a; background:#fff;';
+            btn.style.cssText = 'text-align:left; padding:0.5rem 0.75rem; font-size:0.9rem; cursor:pointer; color:#1a1a1a; background:#fff;';
             btn.textContent = user.label;
-            btn.addEventListener('mouseenter', () => btn.style.backgroundColor = '#e9f5f5');
-            btn.addEventListener('mouseleave', () => btn.style.backgroundColor = '#fff');
             btn.addEventListener('click', function() {
-              selectedUserId = user.id;
-              selectedUserName = user.display_name;
-              searchInput.value = '';
+              bulkUserId = user.id;
+              bulkUserName = user.display_name;
+              searchInput.style.display = 'none';
               resultsEl.style.display = 'none';
-              userBadge.textContent = user.display_name + ' ✓';
-              userBadge.style.display = '';
-              updateAssignBtn();
+              userBadge.textContent = user.display_name + ' (' + user.email + ')';
+              selectedDiv.style.display = '';
+              confirmBtn.disabled = false;
             });
             resultsEl.appendChild(btn);
           });
@@ -1019,37 +990,41 @@ function changePageSize(newSize) {
     }, 300);
   });
 
-  // Close search results on click outside
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('#bulkUserSearch') && !e.target.closest('#bulkSearchResults')) {
-      resultsEl.style.display = 'none';
-    }
+  // Change user
+  clearUserBtn.addEventListener('click', function() {
+    bulkUserId = null;
+    bulkUserName = '';
+    searchInput.value = '';
+    searchInput.style.display = '';
+    selectedDiv.style.display = 'none';
+    confirmBtn.disabled = true;
+    searchInput.focus();
   });
 
-  // Assign button
-  assignBtn.addEventListener('click', async function() {
-    const ids = getChecked();
-    if (!ids.length || !selectedUserId) return;
-    if (!confirm('Assign ' + selectedUserName + ' to ' + ids.length + ' meeting(s)?')) return;
+  // Confirm assignment
+  confirmBtn.addEventListener('click', async function() {
+    const ids = window.bulkOperations ? window.bulkOperations.getSelectedIds() : [];
+    if (!ids.length || !bulkUserId) return;
 
-    assignBtn.disabled = true;
-    assignBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Assigning...';
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Assigning...';
 
     try {
       const resp = await fetch(BULK_URL, {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ meeting_ids: ids, user_id: selectedUserId })
+        body: JSON.stringify({ meeting_ids: ids, user_id: bulkUserId })
       });
       const ct = resp.headers.get('content-type') || '';
       if (!ct.includes('application/json')) {
-        alert('Server returned non-JSON response (HTTP ' + resp.status + '). Please refresh.');
+        alert('Server error (HTTP ' + resp.status + '). Please refresh and try again.');
         return;
       }
       const data = await resp.json();
       if (data.ok) {
-        alert('Successfully assigned ' + data.chair_name + ' to ' + data.assigned_count + ' meeting(s).');
+        bootstrap.Modal.getInstance(modal).hide();
+        alert('Successfully assigned ' + data.chair_name + ' to ' + data.assigned_count + ' meeting(s).\nA confirmation email has been sent.');
         window.location.reload();
       } else {
         alert(data.error || 'Failed to bulk assign.');
@@ -1057,8 +1032,8 @@ function changePageSize(newSize) {
     } catch (e) {
       alert('Error: ' + e.message);
     } finally {
-      assignBtn.disabled = false;
-      assignBtn.innerHTML = '<i class="fas fa-user-check"></i> Assign to Selected';
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = '<i class="fas fa-user-check"></i> Confirm Assignment';
     }
   });
 })();
