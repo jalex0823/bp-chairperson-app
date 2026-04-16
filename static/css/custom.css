@@ -240,6 +240,15 @@ body {
     padding: 0.2rem 0;
 }
 
+.bp-topnav-sub .container-fluid {
+    display: flex;
+    justify-content: center;
+}
+
+.bp-topnav-sub ul {
+    justify-content: center;
+}
+
 .bp-sub-link {
     color: #ffffff;
     text-decoration: none;
