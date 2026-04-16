@@ -4529,12 +4529,12 @@ def quiz_certificate(user_id=None):
                 # Try different font sizes for name and date - SIGNIFICANTLY INCREASED FOR LEGIBILITY
                 # Try bold fonts first for better visibility
                 try:
-                    name_font = ImageFont.truetype("arialbd.ttf", 96)  # Arial Bold, size 96
-                    date_font = ImageFont.truetype("arialbd.ttf", 72)  # Arial Bold, size 72
+                    name_font = ImageFont.truetype("arialbd.ttf", 350)  # ~32pt on letter PDF at 300dpi
+                    date_font = ImageFont.truetype("arialbd.ttf", 220)  # ~20pt on letter PDF at 300dpi
                 except:
                     # Fallback to regular Arial with larger sizes
-                    name_font = ImageFont.truetype("arial.ttf", 96)
-                    date_font = ImageFont.truetype("arial.ttf", 72)
+                    name_font = ImageFont.truetype("arial.ttf", 350)
+                    date_font = ImageFont.truetype("arial.ttf", 220)
             except:
                 # Fallback to default font
                 name_font = ImageFont.load_default()
