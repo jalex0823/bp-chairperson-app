@@ -6354,46 +6354,63 @@ def admin_analytics():
     except Exception:
         avg_signup_time = "N/A"
 
-    # --- Attendance trends broken out by meeting type (weekly buckets) ---
-    distinct_types = [
-        row[0] or 'Regular'
-        for row in db.session.query(Meeting.meeting_type)
+    # --- Attendance trends broken out by meeting description (gender/audience) ---
+    # Map gender_restriction values to friendly labels
+    gender_label_map = {
+        'male':   "Men's Meeting",
+        'female': "Women's Meeting",
+        None:     "Coed Meeting",
+    }
+    gender_colors = {
+        'male':   '#17a2b8',
+        'female': '#e83e8c',
+        None:     '#0f6f75',
+    }
+
+    # Find which gender categories exist in the date range
+    existing_genders = [
+        row[0]
+        for row in db.session.query(Meeting.gender_restriction)
         .filter(Meeting.event_date >= filter_start, Meeting.event_date <= filter_end)
         .distinct().all()
     ]
-    distinct_types = sorted(set(distinct_types))
+    # Normalise: treat any non-male/female value as None (Coed)
+    existing_keys = sorted(
+        set(g if g in ('male', 'female') else None for g in existing_genders),
+        key=lambda x: (x is None, x or '')
+    )
 
     trend_labels = []
-    type_series = {t: [] for t in distinct_types}
+    type_series = {k: [] for k in existing_keys}
 
     current_date = filter_start
     while current_date <= filter_end:
         week_end = min(current_date + timedelta(days=6), filter_end)
         trend_labels.append(current_date.strftime('%m/%d'))
-        for mtype in distinct_types:
-            count = Meeting.query.filter(
-                Meeting.event_date >= current_date,
-                Meeting.event_date <= week_end,
-                Meeting.meeting_type == mtype
-            ).count()
-            type_series[mtype].append(count)
+        for gkey in existing_keys:
+            if gkey is None:
+                count = Meeting.query.filter(
+                    Meeting.event_date >= current_date,
+                    Meeting.event_date <= week_end,
+                    Meeting.gender_restriction.notin_(['male', 'female'])
+                    | Meeting.gender_restriction.is_(None)
+                ).count()
+            else:
+                count = Meeting.query.filter(
+                    Meeting.event_date >= current_date,
+                    Meeting.event_date <= week_end,
+                    Meeting.gender_restriction == gkey
+                ).count()
+            type_series[gkey].append(count)
         current_date += timedelta(weeks=1)
 
-    type_colors = {
-        'Regular':    '#0f6f75',
-        'Speaker':    '#f7b733',
-        'Step Study': '#17a2b8',
-        'Holiday':    '#dc3545',
-        'Workshop':   '#6f42c1',
-    }
-    default_colors = ['#0f6f75','#f7b733','#17a2b8','#dc3545','#6f42c1','#28a745','#fd7e14']
-
     datasets = []
-    for i, mtype in enumerate(distinct_types):
-        color = type_colors.get(mtype, default_colors[i % len(default_colors)])
+    for gkey in existing_keys:
+        label = gender_label_map.get(gkey, 'Coed Meeting')
+        color = gender_colors.get(gkey, '#0f6f75')
         datasets.append({
-            'label': mtype,
-            'data': type_series[mtype],
+            'label': label,
+            'data': type_series[gkey],
             'borderColor': color,
             'backgroundColor': color + '22',
             'tension': 0.4,
