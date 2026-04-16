@@ -372,6 +372,7 @@ const attendanceTrendsChart = new Chart(attendanceTrendsCtx, {
     scales: {
       y: {
         beginAtZero: true,
+        suggestedMax: {{ total_meetings }},
         ticks: { stepSize: 1 },
         title: {
           display: true,
