@@ -126,73 +126,126 @@ body {
     border-radius: 50%;
 }
 
-/* Navigation Bar - Primary Green Theme */
-.navbar.bg-bp-green {
-    background: var(--color-primary) !important;
-    box-shadow: 0 2px 8px rgba(15, 111, 117, 0.2);
-    border-bottom: 1px solid var(--color-primary-dark);
+/* =============================================
+   TWO-ROW NAVBAR
+   ============================================= */
+
+/* Outer nav wrapper */
+.bp-topnav {
+    background: var(--bp-green);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+    margin-bottom: 1.5rem;
 }
 
-.navbar-brand, .navbar .nav-link { 
-    color: var(--bp-white) !important; 
-    font-weight: 500;
+/* --- ROW 1: main bar --- */
+.bp-topnav-main {
+    background: var(--bp-green);
+    padding: 0.35rem 0;
+    border-bottom: 2px solid rgba(255,255,255,0.1);
 }
 
-.navbar .nav-link:hover,
-.navbar .nav-link:focus,
-.navbar .nav-link.active,
-.navbar .nav-link.show,
-.navbar .dropdown-toggle.show {
-    color: var(--bp-gold) !important;
-    transition: color 0.2s ease;
+/* Brand */
+.bp-brand { text-decoration: none; }
+
+/* Nav item list */
+.bp-nav-items { list-style: none; padding: 0; margin: 0; }
+
+/* Each nav link: icon stacked above label */
+.bp-nav-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff !important;
+    text-decoration: none;
+    padding: 0.35rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    gap: 4px;
+    transition: background 0.18s ease, color 0.18s ease;
+    white-space: nowrap;
 }
 
-.navbar .nav-link.active {
-    font-weight: 600;
-    border-bottom: 2px solid var(--bp-gold);
-    padding-bottom: calc(0.5rem - 2px);
+.bp-nav-link i {
+    font-size: 1rem;
+    display: block;
 }
 
-/* Navbar dropdown */
-.navbar .dropdown-menu {
+.bp-nav-link:hover,
+.bp-nav-link:focus,
+.bp-nav-link.active,
+.bp-nav-link.show {
+    background-color: var(--bp-gold) !important;
+    color: #1a1a1a !important;
+}
+
+/* Dropdown toggle: keep same look, remove Bootstrap caret gap */
+.bp-nav-link.dropdown-toggle::after {
+    display: none;
+}
+.bp-nav-link.dropdown-toggle .fa-shield-alt { margin-bottom: 2px; }
+
+/* --- Dropdown panel --- */
+.bp-topnav .dropdown-menu {
     background-color: #ffffff;
     border: none;
     border-top: 3px solid var(--bp-gold);
     border-radius: 0 0 6px 6px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
     z-index: 9999;
-    min-width: 200px;
-    padding: 0.25rem 0;
+    min-width: 210px;
+    padding: 0.3rem 0;
+    margin-top: 0 !important;
 }
 
-.navbar .dropdown-menu .dropdown-item {
+.bp-topnav .dropdown-menu .dropdown-item {
     color: var(--bp-green);
     font-size: 0.875rem;
-    padding: 0.55rem 1rem;
+    padding: 0.55rem 1.1rem;
     font-weight: 500;
 }
 
-.navbar .dropdown-menu .dropdown-item:hover,
-.navbar .dropdown-menu .dropdown-item:focus {
+.bp-topnav .dropdown-menu .dropdown-item:hover,
+.bp-topnav .dropdown-menu .dropdown-item:focus {
     background-color: var(--bp-gold);
     color: #1a1a1a !important;
 }
 
-.navbar .dropdown-menu .dropdown-divider {
+.bp-topnav .dropdown-menu .dropdown-divider {
     border-color: var(--bp-green-light);
-    margin: 0.15rem 0;
+    margin: 0.2rem 0;
 }
 
-/* Compact navbar spacing */
-.navbar .container { 
-    padding-top: 0.4rem; 
-    padding-bottom: 0.4rem; 
+/* --- ROW 2: sublink strip --- */
+.bp-topnav-sub {
+    background: var(--bp-green-dark);
+    padding: 0.2rem 0;
 }
 
-.navbar-brand img { 
-    box-shadow: 0 0 0 2px rgba(255,255,255,0.15); 
-    border-radius: 4px;
+.bp-sub-link {
+    color: rgba(255,255,255,0.75);
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    transition: color 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
 }
+
+.bp-sub-link:hover,
+.bp-sub-link:focus {
+    color: var(--bp-gold) !important;
+    background: rgba(255,255,255,0.05);
+}
+
+/* Keep old .navbar rules harmless (used by Bootstrap toggler) */
+.navbar-toggler { border-color: rgba(255,255,255,0.3); }
+.navbar-toggler-icon { filter: invert(1); }
 
 /* Buttons - Consistent Theme */
 .btn-primary { 

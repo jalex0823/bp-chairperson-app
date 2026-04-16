@@ -97,59 +97,89 @@
 <div id="currentChairPoints" data-points="{{ current_user.chair_points or 0 }}" style="display: none;"></div>
 {% endif %}
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-bp-green mb-4">
-  <div class="container-fluid px-3">
-    <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('index') }}">
-      <img src="{{ url_for('static', filename='img/backporch-logo.png') }}?v={{ asset_version }}" alt="Back Porch Logo" width="36" height="36" style="border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.4);">
-      <span class="fw-semibold" style="font-size: 1.05rem; letter-spacing: 0.01em;">Back Porch Chair</span>
-    </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-            data-bs-target="#navbarNav" aria-controls="navbarNav"
-            aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+<nav class="bp-topnav mb-4">
+  <!-- ROW 1: Brand + Main Nav + User -->
+  <div class="bp-topnav-main">
+    <div class="container-fluid px-3 d-flex align-items-center">
 
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-lg-1" style="font-size: 0.85rem;">
-        {% if not (current_user and current_user.is_admin) %}
-        <li class="nav-item">
-          <a class="nav-link px-2" href="{{ url_for('chair_resources') }}">How to Chair</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link px-2" href="{{ url_for('registration_instructions') }}">Instructions</a>
-        </li>
-        {% endif %}
-        <li class="nav-item">
-          <a class="nav-link px-2" href="{{ url_for('calendar_view') }}">Calendar</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link px-2" href="{{ url_for('meetings_today') }}">Today</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link px-2" href="{{ url_for('sponsors_directory') }}">Find a Sponsor</a>
-        </li>
-        {% if current_user and current_user.is_admin %}
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle px-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-shield-alt me-1" style="font-size:0.8rem;"></i>Admin
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{{ url_for('admin_meetings') }}"><i class="fas fa-calendar-alt me-2"></i>Meetings</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('admin_analytics') }}"><i class="fas fa-chart-bar me-2"></i>Analytics</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('admin_sponsor_requests') }}"><i class="fas fa-hands-helping me-2"></i>Sponsor Requests</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="{{ url_for('admin_monthly_html') }}"><i class="fas fa-file-alt me-2"></i>Monthly Report</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('admin_monthly_pdf') }}"><i class="fas fa-file-pdf me-2"></i>Monthly PDF</a></li>
-          </ul>
-        </li>
-        {% endif %}
-        {% if current_user %}
-        <li class="nav-item">
-          <a class="nav-link px-2" href="{{ url_for('dashboard') }}">Dashboard</a>
-        </li>
-        {% endif %}
-      </ul>
-      <div class="d-flex align-items-center flex-shrink-0 ms-lg-2">
+      <!-- Brand -->
+      <a class="bp-brand d-flex align-items-center gap-2 me-4 text-decoration-none" href="{{ url_for('index') }}">
+        <img src="{{ url_for('static', filename='img/backporch-logo.png') }}?v={{ asset_version }}" alt="Logo" width="40" height="40" style="border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.5);">
+        <span class="fw-bold text-white" style="font-size:1rem;letter-spacing:0.04em;white-space:nowrap;">BACK PORCH CHAIR</span>
+      </a>
+
+      <!-- Mobile toggler -->
+      <button class="navbar-toggler ms-auto d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#bpNavCollapse">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <!-- Main nav links -->
+      <div class="collapse navbar-collapse d-lg-flex flex-grow-1" id="bpNavCollapse">
+        <ul class="bp-nav-items list-unstyled d-flex flex-wrap mb-0 gap-1 flex-grow-1 justify-content-center">
+
+          {% if not (current_user and current_user.is_admin) %}
+          <li>
+            <a class="bp-nav-link" href="{{ url_for('chair_resources') }}">
+              <i class="fas fa-chalkboard-teacher"></i>
+              <span>HOW TO CHAIR</span>
+            </a>
+          </li>
+          <li>
+            <a class="bp-nav-link" href="{{ url_for('registration_instructions') }}">
+              <i class="fas fa-info-circle"></i>
+              <span>INSTRUCTIONS</span>
+            </a>
+          </li>
+          {% endif %}
+
+          <li>
+            <a class="bp-nav-link" href="{{ url_for('calendar_view') }}">
+              <i class="fas fa-calendar-alt"></i>
+              <span>CALENDAR</span>
+            </a>
+          </li>
+          <li>
+            <a class="bp-nav-link" href="{{ url_for('meetings_today') }}">
+              <i class="fas fa-sun"></i>
+              <span>TODAY</span>
+            </a>
+          </li>
+          <li>
+            <a class="bp-nav-link" href="{{ url_for('sponsors_directory') }}">
+              <i class="fas fa-hands-helping"></i>
+              <span>SPONSORS</span>
+            </a>
+          </li>
+
+          {% if current_user and current_user.is_admin %}
+          <li class="dropdown">
+            <a class="bp-nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-shield-alt"></i>
+              <span>ADMIN</span>
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="{{ url_for('admin_meetings') }}"><i class="fas fa-calendar-alt me-2"></i>Meetings</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('admin_analytics') }}"><i class="fas fa-chart-bar me-2"></i>Analytics</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('admin_sponsor_requests') }}"><i class="fas fa-hands-helping me-2"></i>Sponsor Requests</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{{ url_for('admin_monthly_html') }}"><i class="fas fa-file-alt me-2"></i>Monthly Report</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('admin_monthly_pdf') }}"><i class="fas fa-file-pdf me-2"></i>Monthly PDF</a></li>
+            </ul>
+          </li>
+          {% endif %}
+
+          {% if current_user %}
+          <li>
+            <a class="bp-nav-link" href="{{ url_for('dashboard') }}">
+              <i class="fas fa-tachometer-alt"></i>
+              <span>DASHBOARD</span>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+
+        <!-- Right: user / auth -->
+        <div class="d-flex align-items-center flex-shrink-0 ms-3">
         {% if current_user %}
           <!-- Theme Toggle -->
           <button id="themeToggle" class="btn btn-sm me-2" title="Toggle Dark/Light Theme" style="font-size: 1.2rem; border: none;">
@@ -214,7 +244,32 @@
             </div>
           </div>
         {% endif %}
-      </div>
+        </div><!-- /right user area -->
+      </div><!-- /bpNavCollapse -->
+    </div><!-- /container-fluid -->
+  </div><!-- /bp-topnav-main -->
+
+  <!-- ROW 2: Sublink strip -->
+  <div class="bp-topnav-sub d-none d-lg-block">
+    <div class="container-fluid px-3">
+      <ul class="list-unstyled d-flex mb-0 gap-3">
+        {% if current_user and current_user.is_admin %}
+          <li><a href="{{ url_for('admin_meetings') }}" class="bp-sub-link"><i class="fas fa-calendar-check me-1"></i>Meetings</a></li>
+          <li><a href="{{ url_for('admin_analytics') }}" class="bp-sub-link"><i class="fas fa-chart-bar me-1"></i>Analytics</a></li>
+          <li><a href="{{ url_for('admin_sponsor_requests') }}" class="bp-sub-link"><i class="fas fa-hands-helping me-1"></i>Sponsor Requests</a></li>
+          <li><a href="{{ url_for('admin_monthly_html') }}" class="bp-sub-link"><i class="fas fa-file-alt me-1"></i>Monthly Report</a></li>
+          <li><a href="{{ url_for('admin_monthly_pdf') }}" class="bp-sub-link"><i class="fas fa-file-pdf me-1"></i>Monthly PDF</a></li>
+        {% elif current_user %}
+          <li><a href="{{ url_for('chair_resources') }}" class="bp-sub-link"><i class="fas fa-book me-1"></i>Resources</a></li>
+          <li><a href="{{ url_for('registration_instructions') }}" class="bp-sub-link"><i class="fas fa-list-ol me-1"></i>Instructions</a></li>
+          <li><a href="{{ url_for('sponsors_directory') }}" class="bp-sub-link"><i class="fas fa-search me-1"></i>Find a Sponsor</a></li>
+        {% else %}
+          <li><a href="{{ url_for('chair_resources') }}" class="bp-sub-link"><i class="fas fa-book me-1"></i>Resources</a></li>
+          <li><a href="{{ url_for('sponsors_directory') }}" class="bp-sub-link"><i class="fas fa-search me-1"></i>Find a Sponsor</a></li>
+          <li><a href="{{ url_for('register') }}" class="bp-sub-link"><i class="fas fa-user-plus me-1"></i>Sign Up</a></li>
+          <li><a href="{{ url_for('login') }}" class="bp-sub-link"><i class="fas fa-sign-in-alt me-1"></i>Login</a></li>
+        {% endif %}
+      </ul>
     </div>
   </div>
 </nav>
