@@ -6354,35 +6354,55 @@ def admin_analytics():
     except Exception:
         avg_signup_time = "N/A"
 
-    # --- Attendance trends (weekly buckets across range) ---
-    labels = []
-    covered_data = []
-    total_data = []
+    # --- Attendance trends broken out by meeting type (weekly buckets) ---
+    distinct_types = [
+        row[0] or 'Regular'
+        for row in db.session.query(Meeting.meeting_type)
+        .filter(Meeting.event_date >= filter_start, Meeting.event_date <= filter_end)
+        .distinct().all()
+    ]
+    distinct_types = sorted(set(distinct_types))
+
+    trend_labels = []
+    type_series = {t: [] for t in distinct_types}
 
     current_date = filter_start
     while current_date <= filter_end:
         week_end = min(current_date + timedelta(days=6), filter_end)
-
-        week_meetings = Meeting.query.filter(
-            Meeting.event_date >= current_date,
-            Meeting.event_date <= week_end
-        ).count()
-
-        week_covered = Meeting.query.filter(
-            Meeting.event_date >= current_date,
-            Meeting.event_date <= week_end
-        ).join(ChairSignup).count()
-
-        labels.append(current_date.strftime('%m/%d'))
-        total_data.append(week_meetings)
-        covered_data.append(week_covered)
-
+        trend_labels.append(current_date.strftime('%m/%d'))
+        for mtype in distinct_types:
+            count = Meeting.query.filter(
+                Meeting.event_date >= current_date,
+                Meeting.event_date <= week_end,
+                Meeting.meeting_type == mtype
+            ).count()
+            type_series[mtype].append(count)
         current_date += timedelta(weeks=1)
 
+    type_colors = {
+        'Regular':    '#0f6f75',
+        'Speaker':    '#f7b733',
+        'Step Study': '#17a2b8',
+        'Holiday':    '#dc3545',
+        'Workshop':   '#6f42c1',
+    }
+    default_colors = ['#0f6f75','#f7b733','#17a2b8','#dc3545','#6f42c1','#28a745','#fd7e14']
+
+    datasets = []
+    for i, mtype in enumerate(distinct_types):
+        color = type_colors.get(mtype, default_colors[i % len(default_colors)])
+        datasets.append({
+            'label': mtype,
+            'data': type_series[mtype],
+            'borderColor': color,
+            'backgroundColor': color + '22',
+            'tension': 0.4,
+            'fill': False,
+        })
+
     attendance_trends_data = {
-        'labels': labels,
-        'total': total_data,
-        'covered': covered_data
+        'labels': trend_labels,
+        'datasets': datasets,
     }
 
     # --- Meeting types distribution (scoped) ---
