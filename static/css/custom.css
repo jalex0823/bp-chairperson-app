@@ -226,21 +226,21 @@ body {
 }
 
 .bp-sub-link {
-    color: rgba(255,255,255,0.75);
+    color: #ffffff;
     text-decoration: none;
     font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.03em;
-    padding: 0.2rem 0.4rem;
+    padding: 0.25rem 0.65rem;
     border-radius: 3px;
-    transition: color 0.15s ease, background 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease;
     white-space: nowrap;
 }
 
 .bp-sub-link:hover,
 .bp-sub-link:focus {
-    color: var(--bp-gold) !important;
-    background: rgba(255,255,255,0.05);
+    background-color: var(--bp-gold) !important;
+    color: #1a1a1a !important;
 }
 
 /* Keep old .navbar rules harmless (used by Bootstrap toggler) */
