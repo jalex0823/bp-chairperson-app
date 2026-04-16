@@ -148,7 +148,13 @@ body {
 .bp-brand { text-decoration: none; }
 
 /* Nav item list */
-.bp-nav-items { list-style: none; padding: 0; margin: 0; }
+.bp-nav-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    justify-content: space-evenly !important;
+    gap: 0 !important;
+}
 
 /* Each nav link: icon stacked above label */
 .bp-nav-link,
@@ -246,7 +252,9 @@ body {
 }
 
 .bp-topnav-sub ul {
-    justify-content: center;
+    justify-content: space-evenly;
+    flex-grow: 1;
+    max-width: 700px;
 }
 
 .bp-sub-link {
