@@ -151,13 +151,15 @@ body {
 .bp-nav-items { list-style: none; padding: 0; margin: 0; }
 
 /* Each nav link: icon stacked above label */
-.bp-nav-link {
+.bp-nav-link,
+.bp-topnav .bp-nav-link,
+.bp-topnav-main .bp-nav-link {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #fff !important;
-    text-decoration: none;
+    color: #ffffff !important;
+    text-decoration: none !important;
     padding: 0.35rem 0.75rem;
     border-radius: 4px;
     font-size: 0.7rem;
@@ -169,7 +171,9 @@ body {
     white-space: nowrap;
 }
 
-.bp-nav-link i {
+.bp-nav-link i,
+.bp-nav-link span {
+    color: #ffffff !important;
     font-size: 1rem;
     display: block;
 }
@@ -179,6 +183,17 @@ body {
 .bp-nav-link.active,
 .bp-nav-link.show {
     background-color: var(--bp-gold) !important;
+    color: #1a1a1a !important;
+}
+
+.bp-nav-link:hover i,
+.bp-nav-link:hover span,
+.bp-nav-link:focus i,
+.bp-nav-link:focus span,
+.bp-nav-link.active i,
+.bp-nav-link.active span,
+.bp-nav-link.show i,
+.bp-nav-link.show span {
     color: #1a1a1a !important;
 }
 
