@@ -1,15 +1,58 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container-fluid py-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
     <h2><i class="fas fa-chart-bar"></i> Analytics Dashboard</h2>
-    <div>
+    <div class="d-flex gap-2">
       <button class="btn btn-outline-secondary btn-sm" onclick="refreshCharts()">
         <i class="fas fa-sync-alt"></i> Refresh Data
       </button>
       <a href="{{ url_for('admin_meetings') }}" class="btn btn-outline-primary btn-sm">
         <i class="fas fa-arrow-left"></i> Back to Meetings
       </a>
+    </div>
+  </div>
+
+  <!-- Date Range Filter -->
+  <div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body py-3">
+      <form method="get" action="{{ url_for('admin_analytics') }}" class="d-flex flex-wrap align-items-end gap-3">
+        <div>
+          <label class="form-label small fw-semibold mb-1">Preset Range</label>
+          <div class="btn-group btn-group-sm" role="group">
+            <a href="{{ url_for('admin_analytics', days=30) }}"
+               class="btn btn-{{ 'primary' if days_filter == 30 else 'outline-secondary' }}">30 Days</a>
+            <a href="{{ url_for('admin_analytics', days=60) }}"
+               class="btn btn-{{ 'primary' if days_filter == 60 else 'outline-secondary' }}">60 Days</a>
+            <a href="{{ url_for('admin_analytics', days=90) }}"
+               class="btn btn-{{ 'primary' if days_filter == 90 else 'outline-secondary' }}">90 Days</a>
+          </div>
+        </div>
+        <div class="vr d-none d-md-block"></div>
+        <div>
+          <label for="start_date" class="form-label small fw-semibold mb-1">From</label>
+          <input type="date" id="start_date" name="start_date" class="form-control form-control-sm"
+                 value="{{ filter_start }}" style="width: 150px;">
+        </div>
+        <div>
+          <label for="end_date" class="form-label small fw-semibold mb-1">To</label>
+          <input type="date" id="end_date" name="end_date" class="form-control form-control-sm"
+                 value="{{ filter_end }}" style="width: 150px;">
+        </div>
+        <div>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="fas fa-filter"></i> Apply
+          </button>
+        </div>
+        {% if custom_range %}
+        <div class="ms-auto">
+          <span class="badge bg-primary px-3 py-2">
+            <i class="fas fa-calendar-alt me-1"></i>
+            Custom: {{ filter_start }} &rarr; {{ filter_end }}
+          </span>
+        </div>
+        {% endif %}
+      </form>
     </div>
   </div>
 

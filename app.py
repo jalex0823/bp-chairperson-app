@@ -6264,22 +6264,57 @@ def volunteer_bulk_upload():
 @require_login
 def admin_analytics():
     """Advanced analytics dashboard for administrators."""
-    # Get filter parameter (default to 30 days)
-    days_filter = request.args.get('days', '30')
-    try:
-        days = int(days_filter)
-        if days not in [30, 60, 90]:
+    today = date.today()
+
+    # --- Date range resolution ---
+    # Priority: custom start_date/end_date > days preset > default 30 days
+    raw_start = request.args.get('start_date', '')
+    raw_end = request.args.get('end_date', '')
+    days_filter = request.args.get('days', '')
+
+    filter_start = None
+    filter_end = None
+    custom_range = False
+
+    if raw_start and raw_end:
+        try:
+            filter_start = date.fromisoformat(raw_start)
+            filter_end = date.fromisoformat(raw_end)
+            if filter_start > filter_end:
+                filter_start, filter_end = filter_end, filter_start
+            custom_range = True
+            days = None
+        except ValueError:
+            pass
+
+    if not custom_range:
+        try:
+            days = int(days_filter)
+            if days not in [30, 60, 90]:
+                days = 30
+        except (ValueError, TypeError):
             days = 30
-    except ValueError:
-        days = 30
-    
-    # Summary statistics
-    total_meetings = Meeting.query.count()
-    active_chairpersons = User.query.join(ChairSignup).distinct().count()
-    covered_meetings = Meeting.query.join(ChairSignup).count()
+        filter_start = today - timedelta(days=days)
+        filter_end = today
+
+    # --- Summary statistics (scoped to date range) ---
+    total_meetings = Meeting.query.filter(
+        Meeting.event_date >= filter_start,
+        Meeting.event_date <= filter_end
+    ).count()
+    active_chairpersons = (
+        User.query.join(ChairSignup).join(Meeting)
+        .filter(Meeting.event_date >= filter_start, Meeting.event_date <= filter_end)
+        .distinct().count()
+    )
+    covered_meetings = (
+        Meeting.query.join(ChairSignup)
+        .filter(Meeting.event_date >= filter_start, Meeting.event_date <= filter_end)
+        .count()
+    )
     coverage_percentage = round((covered_meetings / total_meetings * 100) if total_meetings > 0 else 0)
-    
-    # Average signup time (days before meeting)
+
+    # --- Average signup time (scoped to date range) ---
     avg_signup_time = "N/A"
     try:
         dialect = db.engine.dialect.name
@@ -6291,6 +6326,7 @@ def admin_analytics():
             rows = (
                 db.session.query(ChairSignup.created_at, Meeting.event_date, Meeting.start_time)
                 .join(Meeting)
+                .filter(Meeting.event_date >= filter_start, Meeting.event_date <= filter_end)
                 .all()
             )
             diffs = []
@@ -6311,62 +6347,66 @@ def admin_analytics():
                         ChairSignup.created_at
                     )
                 )
-            ).join(Meeting).scalar()
+            ).join(Meeting).filter(
+                Meeting.event_date >= filter_start, Meeting.event_date <= filter_end
+            ).scalar()
             avg_signup_time = f"{int(signups_with_days or 0)} days" if signups_with_days else "N/A"
     except Exception:
         avg_signup_time = "N/A"
-    
-    # Attendance trends (last 12 weeks)
-    end_date = date.today()
-    start_date = end_date - timedelta(weeks=12)
-    
-    attendance_trends = []
+
+    # --- Attendance trends (weekly buckets across range) ---
     labels = []
     covered_data = []
     total_data = []
-    
-    current_date = start_date
-    while current_date <= end_date:
-        week_end = current_date + timedelta(days=6)
-        
+
+    current_date = filter_start
+    while current_date <= filter_end:
+        week_end = min(current_date + timedelta(days=6), filter_end)
+
         week_meetings = Meeting.query.filter(
             Meeting.event_date >= current_date,
             Meeting.event_date <= week_end
         ).count()
-        
+
         week_covered = Meeting.query.filter(
             Meeting.event_date >= current_date,
             Meeting.event_date <= week_end
         ).join(ChairSignup).count()
-        
+
         labels.append(current_date.strftime('%m/%d'))
         total_data.append(week_meetings)
         covered_data.append(week_covered)
-        
+
         current_date += timedelta(weeks=1)
-    
+
     attendance_trends_data = {
         'labels': labels,
         'total': total_data,
         'covered': covered_data
     }
-    
-    # Meeting types distribution
+
+    # --- Meeting types distribution (scoped) ---
     meeting_types = db.session.query(
         Meeting.meeting_type,
         func.count(Meeting.id)
+    ).filter(
+        Meeting.event_date >= filter_start, Meeting.event_date <= filter_end
     ).group_by(Meeting.meeting_type).all()
-    
+
     meeting_types_data = {
         'labels': [mt[0] or 'Regular' for mt in meeting_types],
         'data': [mt[1] for mt in meeting_types]
     }
-    
-    # Popular time slots
+
+    # --- Popular time slots (scoped) ---
     try:
         if dialect == "sqlite":
             counts = {}
-            for m in Meeting.query.filter(Meeting.start_time.isnot(None)).all():
+            for m in Meeting.query.filter(
+                Meeting.start_time.isnot(None),
+                Meeting.event_date >= filter_start,
+                Meeting.event_date <= filter_end
+            ).all():
                 try:
                     h = int(m.start_time.hour)
                 except Exception:
@@ -6377,81 +6417,81 @@ def admin_analytics():
             time_slots = db.session.query(
                 func.hour(Meeting.start_time).label('hour'),
                 func.count(Meeting.id).label('count')
-            ).filter(Meeting.start_time.isnot(None)).group_by('hour').order_by('hour').all()
+            ).filter(
+                Meeting.start_time.isnot(None),
+                Meeting.event_date >= filter_start,
+                Meeting.event_date <= filter_end
+            ).group_by('hour').order_by('hour').all()
     except Exception:
         time_slots = []
-    
-    # ChairPoints Leaderboard - Top 20 chairs by points
-    leaderboard = db.session.query(
-        User.id,
-        User.display_name,
-        User.chair_points,
-        User.profile_image
-    ).filter(User.chair_points > 0).order_by(User.chair_points.desc()).limit(20).all()
-    
+
     time_slots_data = {
         'labels': [f"{ts[0]}:00" for ts in time_slots],
         'data': [ts[1] for ts in time_slots]
     }
-    
-    # Weekly distribution (day of week)
+
+    # --- Weekly distribution (scoped) ---
     day_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     weekly_data = [0] * 7
     try:
         if dialect == "sqlite":
-            for m in Meeting.query.filter(Meeting.event_date.isnot(None)).all():
-                # Python: Monday=0..Sunday=6. We want Sunday=0..Saturday=6
+            for m in Meeting.query.filter(
+                Meeting.event_date.isnot(None),
+                Meeting.event_date >= filter_start,
+                Meeting.event_date <= filter_end
+            ).all():
                 idx = (m.event_date.weekday() + 1) % 7
                 weekly_data[idx] += 1
         else:
             weekly_dist = db.session.query(
                 func.dayofweek(Meeting.event_date).label('day'),
                 func.count(Meeting.id).label('count')
+            ).filter(
+                Meeting.event_date >= filter_start, Meeting.event_date <= filter_end
             ).group_by('day').order_by('day').all()
             for day, count in weekly_dist:
-                weekly_data[int(day) - 1] = count  # MySQL dayofweek returns 1-7
+                weekly_data[int(day) - 1] = count
     except Exception:
         weekly_data = [0] * 7
-    
+
     weekly_distribution_data = {
         'labels': day_names,
         'data': weekly_data
     }
-    
-    # Top chairpersons with filtered period
-    filter_start_date = date.today() - timedelta(days=days)
+
+    # --- Top chairpersons (scoped) ---
     top_chairpersons = db.session.query(
         User.display_name,
         func.count(ChairSignup.id).label('total_meetings')
     ).join(ChairSignup).join(Meeting).filter(
-        Meeting.event_date >= filter_start_date
+        Meeting.event_date >= filter_start,
+        Meeting.event_date <= filter_end
     ).group_by(User.id, User.display_name).order_by(func.count(ChairSignup.id).desc()).limit(15).all()
-    
-    # Convert to list of dicts for easier template access
+
     top_chairpersons_list = [
         {
             'display_name': chair[0],
             'total_meetings': chair[1],
-            'period_count': chair[1]  # Same as total in this filtered query
+            'period_count': chair[1]
         }
         for chair in top_chairpersons
     ]
-    
-    # Meetings needing chairs (next 30 days)
+
+    # --- Meetings needing chairs (next 30 days, always forward-looking) ---
     uncovered_meetings = Meeting.query.filter(
-        Meeting.event_date >= date.today(),
-        Meeting.event_date <= date.today() + timedelta(days=30),
+        Meeting.event_date >= today,
+        Meeting.event_date <= today + timedelta(days=30),
         ~Meeting.chair_signup.has()
     ).order_by(Meeting.event_date.asc(), Meeting.start_time.asc()).limit(10).all()
-    
-    # ChairPoints Leaderboard - Top 20 chairs by points
+
+    # --- ChairPoints Leaderboard ---
     leaderboard = db.session.query(
         User.id,
         User.display_name,
         User.chair_points,
         User.profile_image
     ).filter(User.chair_points > 0).order_by(User.chair_points.desc()).limit(20).all()
-    
+
     return render_template(
         "admin_analytics.html",
         total_meetings=total_meetings,
@@ -6464,7 +6504,10 @@ def admin_analytics():
         weekly_distribution_data=json.dumps(weekly_distribution_data),
         top_chairpersons=top_chairpersons_list,
         uncovered_meetings=uncovered_meetings,
-        days_filter=days,
+        days_filter=days if not custom_range else None,
+        filter_start=filter_start.isoformat(),
+        filter_end=filter_end.isoformat(),
+        custom_range=custom_range,
         leaderboard=leaderboard
     )
 
