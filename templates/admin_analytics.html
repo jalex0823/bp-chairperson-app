@@ -7,14 +7,27 @@
       <button class="btn btn-outline-secondary btn-sm" onclick="refreshCharts()">
         <i class="fas fa-sync-alt"></i> Refresh Data
       </button>
-      <a href="{{ url_for('admin_meetings') }}" class="btn btn-outline-primary btn-sm">
+      <button class="btn btn-success btn-sm no-print" onclick="printDashboard()">
+        <i class="fas fa-file-pdf"></i> Print / Save PDF
+      </button>
+      <a href="{{ url_for('admin_meetings') }}" class="btn btn-outline-primary btn-sm no-print">
         <i class="fas fa-arrow-left"></i> Back to Meetings
       </a>
     </div>
   </div>
 
+  <!-- Print-only header -->
+  <div class="print-header" style="display:none;">
+    <strong>Back Porch Analytics Dashboard</strong> &nbsp;|&nbsp;
+    Period: {{ filter_start }} &rarr; {{ filter_end }}
+    &nbsp;|&nbsp; Total Meetings: {{ total_meetings }}
+    &nbsp;|&nbsp; Coverage: {{ coverage_percentage }}%
+    &nbsp;|&nbsp; Printed: <span id="printDate"></span>
+    <script>document.getElementById('printDate').textContent = new Date().toLocaleDateString();</script>
+  </div>
+
   <!-- Date Range Filter -->
-  <div class="card mb-4 border-0 shadow-sm">
+  <div class="card mb-4 border-0 shadow-sm no-print">
     <div class="card-body py-3">
       <form method="get" action="{{ url_for('admin_analytics') }}" class="d-flex flex-wrap align-items-end gap-3">
         <div>
@@ -153,12 +166,12 @@
             <div class="flex-grow-1">
               <h4 class="mb-0">
                 <i class="fas fa-trophy"></i> 
-                <strong>Back Porch ChairPoints™ Leaderboard</strong> 
+                <strong>Back Porch ChairPoints Leaderboard</strong> 
                 <i class="fas fa-medal"></i>
               </h4>
               <small class="d-block mt-1" style="opacity: 0.9;">Top 20 Back Porch chairpersons - Earn 1 ChairPoint for every meeting you chair!</small>
             </div>
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 no-print">
               <a href="{{ url_for('admin_all_users_report') }}" class="btn btn-light btn-sm">
                 <i class="fas fa-users"></i> All Users Report
               </a>
@@ -188,15 +201,15 @@
                   <td class="text-center align-middle">
                     {% if loop.index == 1 %}
                       <span class="badge rounded-pill" style="background: linear-gradient(135deg, #FFD700, #FFA500); font-size: 1.1rem; padding: 0.5rem 0.8rem;">
-                        🥇 #1
+                        #1
                       </span>
                     {% elif loop.index == 2 %}
                       <span class="badge rounded-pill" style="background: linear-gradient(135deg, #C0C0C0, #A8A8A8); font-size: 1rem; padding: 0.4rem 0.7rem;">
-                        🥈 #2
+                        #2
                       </span>
                     {% elif loop.index == 3 %}
                       <span class="badge rounded-pill" style="background: linear-gradient(135deg, #CD7F32, #A0522D); color: white; font-size: 1rem; padding: 0.4rem 0.7rem;">
-                        🥉 #3
+                        #3
                       </span>
                     {% else %}
                       <span class="badge bg-secondary rounded-pill" style="font-size: 0.9rem;">
@@ -256,7 +269,7 @@
       <div class="card">
         <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
           <h5 class="mb-0"><i class="fas fa-trophy"></i> Top Chairpersons Activity</h5>
-          <div class="btn-group btn-group-sm" role="group">
+          <div class="btn-group btn-group-sm no-print" role="group">
             <a href="{{ url_for('admin_analytics', days=30) }}" class="btn btn-{{ 'light' if days_filter == 30 else 'outline-light' }}">30 Days</a>
             <a href="{{ url_for('admin_analytics', days=60) }}" class="btn btn-{{ 'light' if days_filter == 60 else 'outline-light' }}">60 Days</a>
             <a href="{{ url_for('admin_analytics', days=90) }}" class="btn btn-{{ 'light' if days_filter == 90 else 'outline-light' }}">90 Days</a>
@@ -291,7 +304,7 @@
         </div>
       </div>
     </div>
-    <div class="col-lg-4"
+    <div class="col-lg-4">
       <div class="card">
         <div class="card-header bg-secondary text-white">
           <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Meetings Needing Chairs</h5>
@@ -514,6 +527,12 @@ function refreshCharts() {
   window.location.reload();
 }
 
+// Print / Save PDF
+function printDashboard() {
+  // Give charts a moment to fully render before printing
+  window.print();
+}
+
 // Add smooth animations
 document.addEventListener('DOMContentLoaded', function() {
   // Animate cards on load
@@ -531,6 +550,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, index * 100);
   });
 });
+
 </script>
 
 <style>
@@ -563,6 +583,125 @@ document.addEventListener('DOMContentLoaded', function() {
   .card-body canvas {
     height: 250px !important;
   }
+}
+
+/* ===== PRINT / PDF STYLES ===== */
+@media print {
+  /* Page setup: landscape, no margins */
+  @page {
+    size: A4 landscape;
+    margin: 12mm 10mm;
+  }
+
+  /* Force color printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Hide nav, filters, action buttons */
+  nav, footer, .no-print,
+  .navbar, .date-filter-card {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    font-size: 10pt;
+  }
+
+  .container-fluid {
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Page title */
+  h2 {
+    font-size: 16pt;
+    margin-bottom: 6pt;
+  }
+
+  /* Summary cards: all 4 on one row */
+  .row.mb-4:first-of-type .col-md-3 {
+    width: 25% !important;
+    flex: 0 0 25% !important;
+    max-width: 25% !important;
+  }
+
+  /* Cards preserve their background colors */
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #dee2e6 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .bg-primary  { background-color: #0f6f75 !important; color: #fff !important; }
+  .bg-success  { background-color: #28a745 !important; color: #fff !important; }
+  .bg-warning  { background-color: #ffc107 !important; color: #212529 !important; }
+  .bg-info     { background-color: #17a2b8 !important; color: #fff !important; }
+  .bg-secondary{ background-color: #6c757d !important; color: #fff !important; }
+  .text-white  { color: #fff !important; }
+  .text-dark   { color: #212529 !important; }
+
+  /* Charts row: attendance + meeting types side-by-side on page 2 */
+  .row.mb-4 {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    page-break-before: auto;
+  }
+
+  /* Attendance trends takes full width on its own page */
+  .col-lg-8 { width: 66.6% !important; flex: 0 0 66.6% !important; max-width: 66.6% !important; }
+  .col-lg-4 { width: 33.3% !important; flex: 0 0 33.3% !important; max-width: 33.3% !important; }
+  .col-lg-6 { width: 50% !important; flex: 0 0 50% !important; max-width: 50% !important; }
+  .col-12   { width: 100% !important; flex: 0 0 100% !important; max-width: 100% !important; }
+
+  /* Make canvases scale properly */
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Leaderboard and table sections: new page */
+  .row.mb-4:has(.border-warning) {
+    page-break-before: always;
+  }
+
+  /* Tables */
+  .table {
+    font-size: 8pt;
+    width: 100% !important;
+  }
+
+  .table th, .table td {
+    padding: 3pt 5pt !important;
+  }
+
+  /* Badges keep color */
+  .badge {
+    border: 1px solid #999;
+    padding: 2pt 4pt;
+    font-size: 7pt;
+  }
+
+  /* Print header with filter info */
+  .print-header {
+    display: block !important;
+    margin-bottom: 8pt;
+    font-size: 9pt;
+    color: #555;
+    border-bottom: 1pt solid #ccc;
+    padding-bottom: 4pt;
+  }
+
+  /* Collapse detail rows hidden */
+  .collapse { display: none !important; }
+
+  /* Card footer keep */
+  .card-footer { font-size: 8pt; }
 }
 </style>
 {% endblock %}
