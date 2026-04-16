@@ -99,52 +99,53 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-bp-green mb-4">
   <div class="container-fluid px-3">
-    <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
-      <img src="{{ url_for('static', filename='img/backporch-logo.png') }}?v={{ asset_version }}" alt="Back Porch Logo" width="28" height="28" class="me-2" style="border-radius: 50%; object-fit: cover;">
-      <span>Back Porch Chair</span>
+    <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/backporch-logo.png') }}?v={{ asset_version }}" alt="Back Porch Logo" width="36" height="36" style="border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.4);">
+      <span class="fw-semibold" style="font-size: 1.05rem; letter-spacing: 0.01em;">Back Porch Chair</span>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
             data-bs-target="#navbarNav" aria-controls="navbarNav"
             aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
-    
+
     <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav flex-grow-1 justify-content-lg-evenly mb-2 mb-lg-0" style="font-size: 0.875rem;">
+      <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-lg-1" style="font-size: 0.85rem;">
         {% if not (current_user and current_user.is_admin) %}
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('chair_resources') }}">How to Chair / Resources</a>
+          <a class="nav-link px-2" href="{{ url_for('chair_resources') }}">How to Chair</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('registration_instructions') }}">Instructions</a>
+          <a class="nav-link px-2" href="{{ url_for('registration_instructions') }}">Instructions</a>
         </li>
         {% endif %}
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('calendar_view') }}">Calendar</a>
+          <a class="nav-link px-2" href="{{ url_for('calendar_view') }}">Calendar</a>
         </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('meetings_today') }}">Today</a>
-          </li>
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('sponsors_directory') }}">Find a Sponsor</a>
+          <a class="nav-link px-2" href="{{ url_for('meetings_today') }}">Today</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link px-2" href="{{ url_for('sponsors_directory') }}">Find a Sponsor</a>
         </li>
         {% if current_user and current_user.is_admin %}
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('admin_meetings') }}">Admin Meetings</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('admin_sponsor_requests') }}">Sponsor Requests</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('admin_monthly_html') }}">Monthly Report (HTML)</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('admin_monthly_pdf') }}">Monthly PDF Report</a>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle px-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-shield-alt me-1" style="font-size:0.8rem;"></i>Admin
+          </a>
+          <ul class="dropdown-menu dropdown-menu-dark">
+            <li><a class="dropdown-item" href="{{ url_for('admin_meetings') }}"><i class="fas fa-calendar-alt me-2"></i>Meetings</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin_analytics') }}"><i class="fas fa-chart-bar me-2"></i>Analytics</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin_sponsor_requests') }}"><i class="fas fa-hands-helping me-2"></i>Sponsor Requests</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin_monthly_html') }}"><i class="fas fa-file-alt me-2"></i>Monthly Report</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('admin_monthly_pdf') }}"><i class="fas fa-file-pdf me-2"></i>Monthly PDF</a></li>
+          </ul>
         </li>
         {% endif %}
         {% if current_user %}
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+          <a class="nav-link px-2" href="{{ url_for('dashboard') }}">Dashboard</a>
         </li>
         {% endif %}
       </ul>
