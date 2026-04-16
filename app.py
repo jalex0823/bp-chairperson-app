@@ -6422,17 +6422,21 @@ def admin_analytics():
         'datasets': datasets,
     }
 
-    # --- Meeting types distribution (scoped) ---
-    meeting_types = db.session.query(
-        Meeting.meeting_type,
+    # --- Meeting audience distribution (gender_restriction) for donut chart ---
+    gender_dist = db.session.query(
+        Meeting.gender_restriction,
         func.count(Meeting.id)
     ).filter(
         Meeting.event_date >= filter_start, Meeting.event_date <= filter_end
-    ).group_by(Meeting.meeting_type).all()
+    ).group_by(Meeting.gender_restriction).all()
+
+    _gender_label_map = {'male': "Men's Meeting", 'female': "Women's Meeting"}
+    _gender_color_map = {'male': '#17a2b8', 'female': '#e83e8c', None: '#0f6f75'}
 
     meeting_types_data = {
-        'labels': [mt[0] or 'Regular' for mt in meeting_types],
-        'data': [mt[1] for mt in meeting_types]
+        'labels': [_gender_label_map.get(row[0], 'Coed Meeting') for row in gender_dist],
+        'data':   [row[1] for row in gender_dist],
+        'colors': [_gender_color_map.get(row[0], '#0f6f75') for row in gender_dist],
     }
 
     # --- Popular time slots (scoped) ---

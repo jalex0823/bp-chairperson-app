@@ -372,7 +372,12 @@ const attendanceTrendsChart = new Chart(attendanceTrendsCtx, {
     scales: {
       y: {
         beginAtZero: true,
-        ticks: { stepSize: 1 }
+        ticks: { stepSize: 1 },
+        title: {
+          display: true,
+          text: 'Number of Meetings',
+          font: { size: 12 }
+        }
       }
     }
   }
@@ -386,7 +391,7 @@ const meetingTypesChart = new Chart(meetingTypesCtx, {
     labels: chartData.meetingTypes.labels,
     datasets: [{
       data: chartData.meetingTypes.data,
-      backgroundColor: ['#0f6f75', '#f7b733', '#dc3545', '#17a2b8'],
+      backgroundColor: chartData.meetingTypes.colors,
       borderWidth: 2,
       borderColor: '#ffffff'
     }]
