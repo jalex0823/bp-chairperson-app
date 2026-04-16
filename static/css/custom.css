@@ -138,9 +138,19 @@ body {
     font-weight: 500;
 }
 
-.navbar .nav-link:hover { 
-    color: var(--bp-gold) !important; 
-    transition: color 0.3s ease;
+.navbar .nav-link:hover,
+.navbar .nav-link:focus,
+.navbar .nav-link.active,
+.navbar .nav-link.show,
+.navbar .dropdown-toggle.show {
+    color: var(--bp-gold) !important;
+    transition: color 0.2s ease;
+}
+
+.navbar .nav-link.active {
+    font-weight: 600;
+    border-bottom: 2px solid var(--bp-gold);
+    padding-bottom: calc(0.5rem - 2px);
 }
 
 /* Compact navbar spacing */
