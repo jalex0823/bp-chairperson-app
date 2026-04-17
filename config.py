@@ -76,6 +76,12 @@ class Config:
     REGISTRATION_ACCESS_CODES = os.environ.get("REGISTRATION_ACCESS_CODES")
     # Suspended keys: comma-separated list of former keys that must no longer work
     REGISTRATION_ACCESS_SUSPENDED_KEYS = os.environ.get("REGISTRATION_ACCESS_SUSPENDED_KEYS", "")
+    # Blocked emails: list of emails that cannot register (e.g., banned users)
+    BLOCKED_EMAILS = [
+        e.strip().lower()
+        for e in (os.environ.get("BLOCKED_EMAILS", "corwin.meg@gmail.com") or "").split(",")
+        if e.strip()
+    ]
 
     # Sponsor registration gating (separate from chairperson registration)
     SPONSOR_REGISTRATION_ENABLED = os.environ.get("SPONSOR_REGISTRATION_ENABLED", "True").lower() == "true"

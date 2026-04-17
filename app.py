@@ -2876,6 +2876,12 @@ def register():
         # Check for existing user
         try:
             email_norm = normalize_email(form.email.data)
+            # Check if email is in blocklist (case-insensitive)
+            blocked_emails = app.config.get('BLOCKED_EMAILS', [])
+            if email_norm.lower() in [e.lower() for e in blocked_emails]:
+                flash("Registration is not permitted with this email address.", "danger")
+                access_codes_configured = bool(app.config.get('REGISTRATION_ACCESS_CODE') or app.config.get('REGISTRATION_ACCESS_CODES'))
+                return render_template("register.html", form=form, access_codes_configured=access_codes_configured)
             existing = User.query.filter_by(email=email_norm).first()
         except Exception as e:
             app.logger.error(f"Database error checking existing user: {e}")
