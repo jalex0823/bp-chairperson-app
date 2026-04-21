@@ -5285,6 +5285,56 @@ def admin_diagnostics():
     )
 
 
+@app.route("/admin/util/remove-sunday-signups")
+@admin_required
+def remove_sunday_signups():
+    """TEMP UTIL: Remove a user's chair signups from all Sunday meetings.
+    Usage: /admin/util/remove-sunday-signups?name=Jeff+The+Genius&confirm=yes
+    """
+    name = request.args.get("name", "").strip()
+    confirm = request.args.get("confirm", "").lower()
+
+    if not name:
+        return "<h2>Usage: ?name=Jeff+The+Genius&confirm=yes</h2>", 400
+
+    user = User.query.filter(User.display_name.ilike(f"%{name}%")).first()
+    if not user:
+        return f"<h2>No user found matching '{name}'</h2>", 404
+
+    signups = (
+        db.session.query(ChairSignup)
+        .join(Meeting)
+        .filter(ChairSignup.user_id == user.id)
+        .all()
+    )
+    sunday_signups = [s for s in signups if s.meeting.event_date.weekday() == 6]
+
+    if not sunday_signups:
+        return f"<h2>No Sunday signups found for {user.display_name}</h2>", 200
+
+    rows = "".join(
+        f"<tr><td>{s.meeting_id}</td><td>{s.meeting.event_date}</td><td>{s.meeting.title}</td></tr>"
+        for s in sunday_signups
+    )
+    table = f"<table border='1' cellpadding='6'><tr><th>Meeting ID</th><th>Date</th><th>Title</th></tr>{rows}</table>"
+
+    if confirm != "yes":
+        return (
+            f"<h2>Dry Run — Sunday signups for {user.display_name} (ID {user.id})</h2>"
+            f"{table}"
+            f"<br><a href='?name={name}&confirm=yes' style='color:red;font-weight:bold;'>"
+            f"Click here to CONFIRM deletion of {len(sunday_signups)} signup(s)</a>"
+        ), 200
+
+    for s in sunday_signups:
+        db.session.delete(s)
+    db.session.commit()
+    return (
+        f"<h2>Done. Removed {len(sunday_signups)} Sunday signup(s) for {user.display_name}.</h2>"
+        f"{table}"
+    ), 200
+
+
 @app.route("/admin/reports/all-users")
 @admin_required
 def admin_all_users_report():
