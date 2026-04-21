@@ -5288,7 +5288,7 @@ def admin_diagnostics():
 @app.route("/admin/util/remove-sunday-signups")
 @admin_required
 def remove_sunday_signups():
-    """TEMP UTIL: Remove a user's chair signups from all Sunday meetings.
+    """TEMP UTIL: Remove a user's chair signups AND availability from all Sunday meetings/dates.
     Usage: /admin/util/remove-sunday-signups?name=Jeff+The+Genius&confirm=yes
     """
     name = request.args.get("name", "").strip()
@@ -5301,37 +5301,59 @@ def remove_sunday_signups():
     if not user:
         return f"<h2>No user found matching '{name}'</h2>", 404
 
-    signups = (
+    # --- ChairSignup records on Sunday meetings ---
+    all_signups = (
         db.session.query(ChairSignup)
         .join(Meeting)
         .filter(ChairSignup.user_id == user.id)
         .all()
     )
-    sunday_signups = [s for s in signups if s.meeting.event_date.weekday() == 6]
+    sunday_signups = [s for s in all_signups if s.meeting.event_date.weekday() == 6]
 
-    if not sunday_signups:
-        return f"<h2>No Sunday signups found for {user.display_name}</h2>", 200
+    # --- ChairpersonAvailability records on Sundays ---
+    all_avail = ChairpersonAvailability.query.filter_by(user_id=user.id).all()
+    sunday_avail = [a for a in all_avail if a.volunteer_date.weekday() == 6]
 
-    rows = "".join(
+    signup_rows = "".join(
         f"<tr><td>{s.meeting_id}</td><td>{s.meeting.event_date}</td><td>{s.meeting.title}</td></tr>"
         for s in sunday_signups
+    ) or "<tr><td colspan='3'>None</td></tr>"
+
+    avail_rows = "".join(
+        f"<tr><td>{a.id}</td><td>{a.volunteer_date}</td><td>{a.time_preference or 'any'}</td></tr>"
+        for a in sunday_avail
+    ) or "<tr><td colspan='3'>None</td></tr>"
+
+    signup_table = (
+        f"<h3>ChairSignups ({len(sunday_signups)})</h3>"
+        f"<table border='1' cellpadding='6'><tr><th>Meeting ID</th><th>Date</th><th>Title</th></tr>"
+        f"{signup_rows}</table>"
     )
-    table = f"<table border='1' cellpadding='6'><tr><th>Meeting ID</th><th>Date</th><th>Title</th></tr>{rows}</table>"
+    avail_table = (
+        f"<h3>Availability Slots ({len(sunday_avail)})</h3>"
+        f"<table border='1' cellpadding='6'><tr><th>ID</th><th>Date</th><th>Time Pref</th></tr>"
+        f"{avail_rows}</table>"
+    )
+
+    total = len(sunday_signups) + len(sunday_avail)
 
     if confirm != "yes":
         return (
-            f"<h2>Dry Run — Sunday signups for {user.display_name} (ID {user.id})</h2>"
-            f"{table}"
-            f"<br><a href='?name={name}&confirm=yes' style='color:red;font-weight:bold;'>"
-            f"Click here to CONFIRM deletion of {len(sunday_signups)} signup(s)</a>"
+            f"<h2>Dry Run — All Sunday records for {user.display_name} (ID {user.id})</h2>"
+            f"{signup_table}{avail_table}"
+            f"<br><a href='?name={name}&confirm=yes' style='color:red;font-weight:bold;font-size:1.2em;'>"
+            f"&#9888; CONFIRM: Delete all {total} Sunday record(s)</a>"
         ), 200
 
     for s in sunday_signups:
         db.session.delete(s)
+    for a in sunday_avail:
+        db.session.delete(a)
     db.session.commit()
+
     return (
-        f"<h2>Done. Removed {len(sunday_signups)} Sunday signup(s) for {user.display_name}.</h2>"
-        f"{table}"
+        f"<h2>Done. Removed {total} Sunday record(s) for {user.display_name}.</h2>"
+        f"{signup_table}{avail_table}"
     ), 200
 
 
